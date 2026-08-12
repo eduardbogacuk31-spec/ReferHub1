@@ -1,0 +1,31 @@
+REFERHUB REWARDS — BETA 8.2 PROGRESSION CENTER
+
+ДОДАНО:
+- новий екран Місії та Досягнення;
+- три вкладки: Місії, Досягнення, Завдання;
+- новий дизайн щоденних місій;
+- 8 постійних досягнень;
+- прогрес до кожного досягнення;
+- Common, Rare, Epic, Legendary;
+- реальні нагороди місій і завдань залишились через наявний API;
+- досягнення працюють як медалі профілю і не змінюють баланс;
+- адаптація під телефон.
+
+НЕ ЗМІНЕНО:
+- Premium Roulette;
+- Daily Case 2.0;
+- Profile 2.0;
+- економіка;
+- база даних.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ:
+http://127.0.0.1:8081
+
+ПІСЛЯ ОНОВЛЕННЯ:
+Ctrl + Shift + R

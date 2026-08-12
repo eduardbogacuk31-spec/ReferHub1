@@ -1,0 +1,24 @@
+REFERHUB BETA 9.3 — OLD HOME + READABILITY
+
+ЗМІНЕНО:
+- повернуто старе головне меню Home 3.0;
+- Dashboard X вимкнений;
+- нижня навігація залишена без змін;
+- збільшено шрифти у всьому застосунку;
+- мінімальний дрібний текст став читабельним;
+- збільшено кнопки, RH, XP, LVL та назви карток;
+- додано три режими: Compact / Comfort / Large;
+- Comfort увімкнений за замовчуванням;
+- режим зберігається у браузері та Telegram WebView.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ:
+http://127.0.0.1:8081
+
+ПІСЛЯ ОНОВЛЕННЯ:
+Ctrl + Shift + R

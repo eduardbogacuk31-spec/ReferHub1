@@ -1,0 +1,28 @@
+REFERHUB REWARDS — BETA 8 PROFILE 2.0
+
+ДОДАНО:
+- повністю новий Hero Profile;
+- 6 атмосферних фонів;
+- фон зберігається автоматично;
+- нові картки статистики;
+- медалі профілю;
+- новий rank card;
+- новий XP display;
+- Profile Museum;
+- адаптація під телефон;
+- старі рамки та API збережені.
+
+НЕ ЗМІНЕНО:
+- рулетка;
+- кейс;
+- інші ігри;
+- економіка;
+- база даних.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+ПІСЛЯ ВІДКРИТТЯ: Ctrl + Shift + R

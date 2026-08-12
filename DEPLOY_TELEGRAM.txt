@@ -1,0 +1,8 @@
+1. Railway -> New Project -> Deploy from GitHub.
+2. Variables -> додай BOT_TOKEN.
+3. Після деплою: Networking -> Generate Domain.
+4. @BotFather -> /mybots -> @ReferHubRewardsBot -> Bot Settings -> Menu Button.
+5. Встав HTTPS URL Railway.
+6. Там же налаштуй Main Mini App на той самий URL.
+
+НЕ додавай BOT_TOKEN у GitHub або ZIP.

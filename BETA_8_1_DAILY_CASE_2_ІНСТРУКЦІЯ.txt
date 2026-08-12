@@ -1,0 +1,20 @@
+REFERHUB REWARDS — BETA 8.1 DAILY CASE 2.0
+
+ПЕРЕРОБЛЕНО ТІЛЬКИ DAILY CASE:
+- нова преміальна 2D-сцена;
+- три фази відкриття;
+- рідкості Common / Rare / Epic / Legendary;
+- серверні шанси та нагороди;
+- частинки та світловий reveal;
+- переліт RH до балансу;
+- мобільна адаптація;
+- без змін рулетки, профілю, API та економіки.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ: http://127.0.0.1:8081
+ПІСЛЯ ОНОВЛЕННЯ: Ctrl + Shift + R

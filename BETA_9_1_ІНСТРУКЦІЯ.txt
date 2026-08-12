@@ -1,0 +1,41 @@
+REFERHUB REWARDS — BETA 9.1 GLOBAL POLISH
+
+ДОДАНО:
+- центр налаштувань;
+- керування вібрацією;
+- керування анімаціями;
+- керування частинками;
+- компактний режим;
+- новий дизайн toast-повідомлень;
+- типи success / info / error;
+- індикатор ONLINE / OFFLINE;
+- тактильний відгук на кнопки;
+- глобальний press-ефект;
+- skeleton-компоненти для майбутніх екранів;
+- кнопка швидкого оновлення;
+- кнопка скидання налаштувань;
+- збереження параметрів у localStorage;
+- підтримка prefers-reduced-motion.
+
+НЕ ЗМІНЕНО:
+- логіка ігор;
+- Premium Roulette;
+- Daily Case;
+- Game Center;
+- Social Hub;
+- Shop;
+- Season Pass;
+- Profile;
+- API та база даних.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ:
+http://127.0.0.1:8081
+
+ПІСЛЯ ОНОВЛЕННЯ:
+Ctrl + Shift + R

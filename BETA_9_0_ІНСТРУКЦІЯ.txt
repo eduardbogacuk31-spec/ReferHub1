@@ -1,0 +1,30 @@
+REFERHUB REWARDS — BETA 9.0 GAME CENTER ULTIMATE
+
+ДОДАНО:
+- новий Game Center Ultimate;
+- живий фіолетово-золотий фон без важкого blur;
+- featured-блок Premium Roulette / Daily Case / улюблена гра;
+- статистика ігор, перемог, win rate, серії та рекорду;
+- ігрові ліги Bronze / Silver / Gold / Diamond / Master / Legend;
+- внутрішня подія Arcade Rush;
+- календар активності за 14 днів;
+- 6 ігрових досягнень;
+- плавний перехід до обраної гри;
+- адаптація під телефон.
+
+ВАЖЛИВО:
+- усі 7 старих ігор та їхня серверна логіка збережені;
+- рулетка і Daily Case не переписані;
+- магазин, друзі, сезон, профіль та економіка не змінені.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ:
+http://127.0.0.1:8081
+
+ПІСЛЯ ОНОВЛЕННЯ:
+Ctrl + Shift + R

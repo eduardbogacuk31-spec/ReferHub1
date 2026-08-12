@@ -1,0 +1,33 @@
+REFERHUB REWARDS — BETA 8.4 SHOP + INVENTORY
+
+ДОДАНО:
+- повністю новий магазин;
+- три вкладки: Магазин / Моє майно / Замовлення;
+- великий featured-блок;
+- категорії та пошук;
+- великий preview товару;
+- перевірка балансу й залишку;
+- куплені та очікувані товари відображаються у «Моє майно»;
+- статуси замовлень;
+- статистика покупок;
+- адаптація під телефон.
+
+НЕ ЗМІНЕНО:
+- рулетка;
+- Daily Case;
+- Progression Center;
+- Social Hub;
+- Profile 2.0;
+- API покупок та економіка.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ:
+http://127.0.0.1:8081
+
+ПІСЛЯ ОНОВЛЕННЯ:
+Ctrl + Shift + R

@@ -1,0 +1,35 @@
+REFERHUB BETA 9.4 — PROFILE X
+
+ДОДАНО:
+- новий великий Profile X Hero;
+- Profile Power;
+- ліга та глобальний рейтинг;
+- титули з окремим Title Studio;
+- режим «Як бачать інші»;
+- нова кар’єрна статистика;
+- медальна полиця;
+- інтегрований Frame Studio;
+- Background Studio;
+- Achievement Wall;
+- новий QR/реферальний блок;
+- нова Timeline;
+- великі читабельні шрифти;
+- мобільна адаптація.
+
+НЕ ЗМІНЕНО:
+- старе головне меню;
+- нижня навігація;
+- ігри;
+- магазин;
+- друзі;
+- сезон;
+- API та база даних.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ: http://127.0.0.1:8081
+Після оновлення: Ctrl + Shift + R

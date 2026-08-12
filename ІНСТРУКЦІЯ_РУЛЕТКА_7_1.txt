@@ -1,0 +1,13 @@
+REFERHUB REWARDS — BETA 7.1 PREMIUM ROULETTE
+
+Перероблено лише рулетку.
+Старі фіолетово-золоті кольори збережено.
+Кейс, інші ігри, профіль, магазин і сезон не змінено.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+Після відкриття: Ctrl + Shift + R

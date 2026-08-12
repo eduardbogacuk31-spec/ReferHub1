@@ -1,0 +1,38 @@
+REFERHUB REWARDS 3.0 — BETA 5 REAL ART ASSETS
+
+Готова система окремих графічних ресурсів.
+
+ДОДАНО 15 SVG-РАМОК:
+- Violet Core
+- Demon Horns
+- Celestial Wings
+- Ancient Tree
+- Royal Crown
+- Dragon Coil
+- Frozen King
+- Thunder God
+- Necromancer
+- Sakura Spirit
+- Galaxy Orbit
+- Phoenix Rise
+- Raven Lord
+- Mythic Throne
+- Founder Artifact
+
+Рамки лежать у static/assets/frames/ і накладаються поверх аватара як справжній арт із прозорим центром.
+
+ІГРОВІ РЕСУРСИ:
+- static/assets/games/roulette.svg
+- static/assets/games/coin.svg
+- static/assets/games/case.svg
+- static/assets/games/slot.svg
+
+Вони підключені до Game Center та кінематографічних анімацій.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+Після відкриття: Ctrl + 0, потім Ctrl + Shift + R

@@ -1,0 +1,27 @@
+REFERHUB X ALPHA — DASHBOARD V1
+
+ЗМІНЕНО ТІЛЬКИ ГОЛОВНУ СТОРІНКУ.
+НИЖНЯ НАВІГАЦІЯ ЗАЛИШЕНА БЕЗ ЗМІН.
+
+ДОДАНО:
+- динамічний Hero;
+- профіль, ліга, баланс і XP;
+- великі Quick Actions;
+- Daily Center;
+- Season Progress;
+- місії;
+- Activity Feed;
+- SVG-іконки;
+- окремі dashboard-x.css і dashboard-x.js;
+- адаптація під телефон.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ:
+http://127.0.0.1:8081
+
+ПІСЛЯ ОНОВЛЕННЯ: Ctrl + Shift + R

@@ -1,0 +1,22 @@
+REFERHUB REWARDS 3.0 — BETA 5.4 GAME CENTER RECOVERY
+
+Виправлено реальні конфлікти Game Center:
+- фільтри вкладок;
+- селектори карток;
+- Вгадай число;
+- Злам сейфа;
+- подвійні натискання;
+- скретч під час кулдауну;
+- криві SVG у картках;
+- пропорції ігор на телефоні;
+- передчасне оновлення сторінки.
+
+Avatar Skins не змінювалися.
+
+Запуск:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+Потім Ctrl + Shift + R.

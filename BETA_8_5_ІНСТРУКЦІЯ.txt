@@ -1,0 +1,24 @@
+REFERHUB REWARDS — BETA 8.5 SEASON PASS 2.0
+
+ДОДАНО:
+- новий великий банер сезону;
+- таймер завершення;
+- горизонтальна доріжка нагород;
+- візуальні FREE та ELITE рівні;
+- великий preview нагороди;
+- кнопка «Забрати все»;
+- reveal-анімація;
+- фінальна Ultimate-нагорода;
+- нові картки сезонних місій;
+- мобільна адаптація.
+
+ВАЖЛИВО: усі нагороди використовують реальний наявний API та баланс.
+
+ЗАПУСК:
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PORT=8081
+.\.venv\Scripts\python.exe .\app.py
+
+САЙТ: http://127.0.0.1:8081
+ПІСЛЯ ОНОВЛЕННЯ: Ctrl + Shift + R

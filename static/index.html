@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <title>ReferHub Rewards</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/static/style.css?v=beta92-frames-1785864359">
+  <link rel="stylesheet" href="/static/readability.css?v=readability93-1785869327">
+  <link rel="stylesheet" href="/static/profile-x.css?v=profilex94-1785872611">
+  <link rel="stylesheet" href="/static/shop-x.css?v=shopx95-1785875664">
+  <link rel="stylesheet" href="/static/roulette-svg99.css?v=svg99-1786546002">
+</head>
+<body>
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+
+  <main>
+    <header class="profile-head">
+      <div class="profile-copy">
+        <div class="brand">REFERHUB REWARDS</div>
+        <h1 id="hello">Завантаження...</h1>
+        <div class="online-line">
+          <span class="online-dot"></span>
+          <span id="online">0 онлайн</span>
+        </div>
+      </div>
+      <div class="avatar" id="avatar">R</div>
+    </header>
+
+    <section class="hero-balance">
+      <div>
+        <span class="hero-label">Мій баланс</span>
+        <div class="hero-amount">
+          <span class="star">★</span>
+          <strong id="balance">0</strong>
+        </div>
+        <small>RH Stars</small>
+      </div>
+      <button class="gift-button" onclick="openPage('shop')">🎁</button>
+    </section>
+
+    <section id="content">
+      <div class="loader"></div>
+    </section>
+  </main>
+
+  <button class="polish91-settings-button" onclick="openPolish91Settings()" aria-label="Налаштування">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+    </svg>
+  </button>
+
+  <div class="polish91-network" id="polish91Network">
+    <i></i><span>ONLINE</span>
+  </div>
+
+  <div class="polish91-settings" id="polish91Settings" hidden>
+    <div class="polish91-settings-backdrop" onclick="closePolish91Settings()"></div>
+    <section class="polish91-settings-card">
+      <header>
+        <div>
+          <span>APP CONTROL</span>
+          <h2>Налаштування</h2>
+        </div>
+        <button onclick="closePolish91Settings()">×</button>
+      </header>
+
+      <div class="polish91-setting-row">
+        <div><b>Вібрація</b><small>Відгук Telegram при натисканнях і нагородах</small></div>
+        <label><input type="checkbox" id="polish91Haptics" onchange="savePolish91Settings()"><i></i></label>
+      </div>
+
+      <div class="polish91-setting-row">
+        <div><b>Анімації</b><small>Переходи, reveal та декоративні ефекти</small></div>
+        <label><input type="checkbox" id="polish91Motion" onchange="savePolish91Settings()"><i></i></label>
+      </div>
+
+      <div class="polish91-setting-row">
+        <div><b>Частинки</b><small>Легкі живі ефекти на головних екранах</small></div>
+        <label><input type="checkbox" id="polish91Particles" onchange="savePolish91Settings()"><i></i></label>
+      </div>
+
+      <div class="polish91-setting-row">
+        <div><b>Компактний режим</b><small>Менші відступи для невеликих телефонів</small></div>
+        <label><input type="checkbox" id="polish91Compact" onchange="savePolish91Settings()"><i></i></label>
+      </div>
+
+      <div class="read93-scale-setting">
+        <div>
+          <b>Розмір інтерфейсу</b>
+          <small>Змінює шрифти, кнопки та відступи в усьому застосунку</small>
+        </div>
+        <div class="read93-scale-buttons" role="group" aria-label="Розмір інтерфейсу">
+          <button type="button" data-read93-scale="compact" onclick="setRead93Scale('compact')">Compact</button>
+          <button type="button" data-read93-scale="comfort" onclick="setRead93Scale('comfort')">Comfort</button>
+          <button type="button" data-read93-scale="large" onclick="setRead93Scale('large')">Large</button>
+        </div>
+      </div>
+
+      <div class="polish91-actions">
+        <button onclick="polish91Reload()">Оновити застосунок</button>
+        <button class="secondary" onclick="polish91ResetSettings()">Скинути налаштування</button>
+      </div>
+
+      <footer>ReferHub Rewards · Beta 9.1</footer>
+    </section>
+  </div>
+
+  <nav class="bottom-nav premium-bottom-nav">
+    <button class="active" data-page="home" onclick="openPage('home')" aria-label="Головна">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2v8.3a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5Z"/></svg></span>
+      <span class="nav-label">Головна</span>
+    </button>
+    <button data-page="tasks" onclick="openPage('tasks')" aria-label="Завдання">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v4H9zM8.5 12l2 2 4-4M8.5 17h7"/></svg></span>
+      <span class="nav-label">Завдання</span>
+    </button>
+    <button data-page="friends" onclick="openPage('friends')" aria-label="Друзі">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.8 19c.5-3.5 2.5-5.3 5.2-5.3s4.7 1.8 5.2 5.3M14.2 14.5c2.9-.6 5 .9 5.7 3.8"/></svg></span>
+      <span class="nav-label">Друзі</span>
+    </button>
+    <button data-page="games" onclick="openPage('games')" aria-label="Ігри">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h8c3.3 0 5.5 2.2 5.5 5.5 0 3-1.7 5.5-4.2 5.5-1.7 0-2.4-1.1-3.3-2.3h-4c-.9 1.2-1.6 2.3-3.3 2.3-2.5 0-4.2-2.5-4.2-5.5C2.5 10.2 4.7 8 8 8Z"/><path d="M7 11v4M5 13h4M16.2 12.2h.1M18.2 14.2h.1"/></svg></span>
+      <span class="nav-label">Ігри</span>
+    </button>
+    <button data-page="shop" onclick="openPage('shop')" aria-label="Магазин">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2l2 10h10l2-7H6"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg></span>
+      <span class="nav-label">Магазин</span>
+    </button>
+    <button data-page="season" onclick="openPage('season')" aria-label="Сезон">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 9-13h-6z"/></svg><span class="nav-badge">NEW</span></span>
+      <span class="nav-label">Сезон</span>
+    </button>
+    <button data-page="profile" onclick="openPage('profile')" aria-label="Профіль">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c.6-4.5 3.2-7 7.5-7s6.9 2.5 7.5 7"/></svg></span>
+      <span class="nav-label">Профіль</span>
+    </button>
+  </nav>
+
+  <div id="toast"></div>
+  <script src="/static/app.js?v=profilex94-1785872611"></script>
+  <script src="/static/readability.js?v=readability93-1785869327"></script>
+  <script src="/static/shop-x.js?v=shopx95-1785875664"></script>
+  <script src="/static/telegram-miniapp.js"></script>
+</body>
+</html>

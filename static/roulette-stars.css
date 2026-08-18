@@ -1,0 +1,355 @@
+
+/* ============================================================
+   REFERHUB BETA 9.6 — STAR ROULETTE
+   ============================================================ */
+
+.premium71-roulette{
+  border-color:rgba(244,193,69,.42)!important;
+  background:
+    radial-gradient(circle at 50% 14%,rgba(255,191,44,.09),transparent 32%),
+    radial-gradient(circle at 8% 8%,rgba(135,82,238,.14),transparent 38%),
+    linear-gradient(145deg,#17131f,#090b10 72%)!important;
+}
+
+.premium71-wheel-shell{
+  width:min(590px,82vw)!important;
+  aspect-ratio:1!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  box-shadow:
+    0 35px 80px rgba(0,0,0,.55),
+    0 0 65px rgba(255,187,50,.16)!important;
+}
+
+.clean2d-wheel.premium71-wheel{
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+.star96-wheel-image{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+  pointer-events:none;
+  user-select:none;
+  filter:
+    drop-shadow(0 25px 30px rgba(0,0,0,.42))
+    saturate(1.06)
+    contrast(1.03);
+}
+
+.premium71-inner-ring,
+.premium71-wheel-center,
+.premium71-lamps{
+  display:none!important;
+}
+
+.premium71-pointer{
+  z-index:30!important;
+  top:-18px!important;
+  width:60px!important;
+  height:78px!important;
+  opacity:0!important; /* pointer is already included in the supplied artwork */
+}
+
+.premium71-halo.halo-a{
+  border-color:rgba(255,204,88,.25)!important;
+  box-shadow:0 0 55px rgba(255,190,47,.16)!important;
+}
+.premium71-halo.halo-b{
+  border-color:rgba(149,97,239,.16)!important;
+}
+
+.premium71-balance{
+  border-color:rgba(244,193,69,.5)!important;
+  background:linear-gradient(135deg,rgba(244,193,69,.12),rgba(255,255,255,.02))!important;
+}
+.premium71-balance strong,
+.premium71-balance small{
+  color:#ffd66e!important;
+}
+
+.premium71-result.star96-jackpot{
+  border-color:#f0bc42!important;
+  background:
+    radial-gradient(circle at 50% 0,rgba(255,214,94,.18),transparent 52%),
+    linear-gradient(145deg,#493016,#21170e)!important;
+  box-shadow:
+    0 20px 45px rgba(0,0,0,.38),
+    0 0 45px rgba(255,193,58,.18)!important;
+  animation:star96JackpotPulse 1s ease-in-out infinite alternate;
+}
+.premium71-result.star96-jackpot strong{
+  color:#ffe18c!important;
+  text-shadow:0 0 18px rgba(255,211,91,.42);
+}
+@keyframes star96JackpotPulse{
+  to{transform:scale(1.025)}
+}
+
+.premium71-prize-cards{
+  max-height:470px;
+  overflow-y:auto;
+  padding-right:4px;
+}
+.premium71-prize-cards::-webkit-scrollbar{width:5px}
+.premium71-prize-cards::-webkit-scrollbar-thumb{
+  border-radius:99px;
+  background:#7659a7;
+}
+
+@media(max-width:760px){
+  .premium71-wheel-shell{
+    width:min(520px,94vw)!important;
+  }
+}
+@media(max-width:480px){
+  .premium71-wheel-shell{
+    width:min(410px,96vw)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .premium71-result.star96-jackpot{animation:none!important}
+}
+
+
+/* ===== BETA 9.6.1 — ROULETTE ALIGNMENT FIX ===== */
+
+.premium71-wheel-stage{
+  overflow:visible!important;
+}
+
+.premium71-wheel-shell{
+  position:relative!important;
+  overflow:visible!important;
+}
+
+/* Only the circular wheel rotates now. */
+.clean2d-wheel.premium71-wheel{
+  border-radius:50%!important;
+  overflow:visible!important;
+  transform:rotate(0deg);
+}
+
+.clean2d-wheel.premium71-wheel.spin{
+  animation:star961Spin 3.1s cubic-bezier(.12,.68,.12,1) forwards!important;
+}
+
+@keyframes star961Spin{
+  from{ transform:rotate(var(--spin-from,0deg)); }
+  to{ transform:rotate(var(--spin-target,2160deg)); }
+}
+
+.star96-wheel-image{
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  border-radius:50%!important;
+  object-fit:contain!important;
+}
+
+/* Real fixed pointer. It never rotates with the wheel. */
+.premium71-wheel-shell:after{
+  content:"";
+  position:absolute;
+  z-index:80;
+  left:50%;
+  top:-15px;
+  width:0;
+  height:0;
+  transform:translateX(-50%);
+  border-left:18px solid transparent;
+  border-right:18px solid transparent;
+  border-top:0;
+  border-bottom:44px solid #ffd86d;
+  filter:
+    drop-shadow(0 4px 3px rgba(0,0,0,.55))
+    drop-shadow(0 0 10px rgba(255,202,75,.35));
+}
+
+.premium71-wheel-shell:before{
+  content:"";
+  position:absolute;
+  z-index:81;
+  left:50%;
+  top:-22px;
+  width:18px;
+  height:18px;
+  transform:translateX(-50%) rotate(45deg);
+  border:3px solid #d9a52d;
+  border-radius:4px;
+  background:#b91f40;
+  box-shadow:0 0 10px rgba(255,66,104,.35);
+}
+
+/* remove any old pointer artwork/elements */
+.premium71-pointer{display:none!important}
+
+/* cleaner result state */
+.premium71-result{
+  transition:transform .2s ease,opacity .2s ease!important;
+}
+.premium71-result.show{
+  transform:translateY(0) scale(1)!important;
+}
+
+@media(max-width:500px){
+  .premium71-wheel-shell:after{
+    top:-12px;
+    border-left-width:15px;
+    border-right-width:15px;
+    border-bottom-width:36px;
+  }
+  .premium71-wheel-shell:before{
+    top:-19px;
+    width:15px;
+    height:15px;
+  }
+}
+
+
+/* ============================================================
+   BETA 9.6.4 — RESTORED ORIGINAL CSS 2D ROULETTE
+   Removes the inserted image and exposes the native wheel.
+   ============================================================ */
+
+.original2d-wheel{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  border:10px solid #b58a32!important;
+  background:
+    conic-gradient(
+      from -15deg,
+      #202530 0deg 30deg,
+      #49254f 30deg 60deg,
+      #252a35 60deg 90deg,
+      #573041 90deg 120deg,
+      #222833 120deg 150deg,
+      #46305c 150deg 180deg,
+      #242a34 180deg 210deg,
+      #5b2f48 210deg 240deg,
+      #222833 240deg 270deg,
+      #45305c 270deg 300deg,
+      #242a34 300deg 330deg,
+      #6b4b1e 330deg 360deg
+    )!important;
+  box-shadow:
+    inset 0 0 0 5px #171a20,
+    inset 0 0 0 7px rgba(255,220,130,.38),
+    inset 0 0 38px rgba(0,0,0,.62),
+    0 20px 48px rgba(0,0,0,.46),
+    0 0 26px rgba(220,169,62,.12)!important;
+}
+
+.original2d-wheel:before{
+  content:"";
+  position:absolute;
+  inset:12%;
+  z-index:3;
+  border-radius:50%;
+  border:2px solid rgba(239,198,102,.38);
+  box-shadow:
+    inset 0 0 30px rgba(0,0,0,.42),
+    0 0 0 4px rgba(0,0,0,.18);
+  pointer-events:none;
+}
+
+.original2d-wheel:after{
+  content:"★";
+  position:absolute;
+  z-index:15;
+  left:50%;top:50%;
+  width:86px;height:86px;
+  translate:-50% -50%;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:5px solid #b68b35;
+  background:
+    radial-gradient(circle at 35% 30%,#38313d,#171920 68%);
+  color:#f0c968;
+  font-size:33px;
+  text-shadow:0 2px 10px rgba(0,0,0,.6);
+  box-shadow:
+    inset 0 0 0 3px rgba(255,220,134,.12),
+    0 8px 22px rgba(0,0,0,.48);
+  pointer-events:none;
+}
+
+.original2d-wheel .star96-wheel-image{
+  display:none!important;
+}
+
+.premium71-segment-label{
+  position:absolute;
+  z-index:7;
+  left:50%;
+  top:50%;
+  width:44px;
+  height:50%;
+  margin-left:-22px;
+  margin-top:-50%;
+  transform-origin:50% 100%;
+  transform:rotate(var(--segment-angle));
+  display:flex;
+  justify-content:center;
+  padding-top:25px;
+  box-sizing:border-box;
+  pointer-events:none;
+}
+
+.premium71-segment-label b{
+  display:grid;
+  place-items:center;
+  min-width:35px;
+  height:35px;
+  padding:0 5px;
+  border-radius:10px;
+  color:#f3ead7;
+  font-size:21px;
+  line-height:1;
+  font-weight:950;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.9),
+    0 0 10px rgba(255,220,140,.16);
+  transform:rotate(calc(-1 * var(--segment-angle)));
+}
+
+.premium71-wheel-shell:after{
+  display:block!important;
+}
+
+.premium71-wheel-shell:before{
+  display:block!important;
+}
+
+@media(max-width:500px){
+  .original2d-wheel{
+    border-width:7px!important;
+  }
+  .original2d-wheel:after{
+    width:68px;height:68px;
+    font-size:27px;
+    border-width:4px;
+  }
+  .premium71-segment-label{
+    padding-top:19px;
+  }
+  .premium71-segment-label b{
+    min-width:30px;
+    height:30px;
+    font-size:17px;
+  }
+}

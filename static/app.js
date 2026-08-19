@@ -140,6 +140,9 @@ function openPolish91Settings(){
   if(!modal)return;
   applyPolish91Settings();
   modal.hidden=false;
+  document.documentElement.classList.add("settings-open");
+  document.body.classList.add("settings-open");
+  modal.scrollTop=0;
   requestAnimationFrame(()=>modal.classList.add("show"));
   if(window.polish91Prefs?.haptics!==false){
     tg?.HapticFeedback?.impactOccurred?.("light");
@@ -150,6 +153,8 @@ function closePolish91Settings(){
   const modal=document.getElementById("polish91Settings");
   if(!modal)return;
   modal.classList.remove("show");
+  document.documentElement.classList.remove("settings-open");
+  document.body.classList.remove("settings-open");
   setTimeout(()=>modal.hidden=true,220);
 }
 

@@ -28,6 +28,14 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "rewards.db"
 
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+
+
+def runtime_bot_token() -> str:
+    return (os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or BOT_TOKEN or "").strip()
+
+
+def runtime_webapp_url() -> str:
+    return (os.getenv("WEBAPP_URL") or WEBAPP_URL or "").strip().rstrip("/")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "ReferHubRewardsBot").strip().lstrip("@")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
 DEBUG_USER_ID = int(os.getenv("DEBUG_USER_ID", "0") or 0)
@@ -946,7 +954,8 @@ def validate_init_data(init_data: str) -> dict:
             }
         raise HTTPException(401, "Відкрий застосунок через Telegram або додай DEBUG_USER_ID")
 
-    if not BOT_TOKEN:
+    token = runtime_bot_token()
+    if not token:
         raise HTTPException(500, "BOT_TOKEN не налаштований")
 
     values = dict(parse_qsl(init_data, keep_blank_values=True))
@@ -960,7 +969,7 @@ def validate_init_data(init_data: str) -> dict:
 
     secret = hmac.new(
         b"WebAppData",
-        BOT_TOKEN.encode(),
+        token.encode(),
         hashlib.sha256,
     ).digest()
 
@@ -1790,7 +1799,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         referrer_id,
     )
 
-    if not WEBAPP_URL:
+    if not runtime_webapp_url():
         await update.message.reply_text(
             "✅ Бот працює локально.\n"
             "Для відкриття Mini App у Telegram пізніше додамо WEBAPP_URL."
@@ -1801,7 +1810,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [[
             InlineKeyboardButton(
                 "🚀 Відкрити ReferHub Rewards",
-                web_app=WebAppInfo(url=WEBAPP_URL),
+                web_app=WebAppInfo(url=runtime_webapp_url()),
             )
         ]]
     )
@@ -1817,8 +1826,10 @@ async def lifespan(app: FastAPI):
     global bot_app
     init_database()
 
-    if BOT_TOKEN:
-        bot_app = Application.builder().token(BOT_TOKEN).build()
+    token = runtime_bot_token()
+    webapp_url = runtime_webapp_url()
+    if token:
+        bot_app = Application.builder().token(token).build()
         bot_app.add_handler(CommandHandler("start", start_command))
         await bot_app.initialize()
         await bot_app.start()
@@ -1846,10 +1857,18 @@ async def index():
 
 @app.get("/health")
 async def health():
+    token = runtime_bot_token()
+    url = runtime_webapp_url()
+    source = "BOT_TOKEN" if (os.getenv("BOT_TOKEN") or "").strip() else (
+        "TELEGRAM_BOT_TOKEN" if (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip() else "none"
+    )
     return {
         "ok": True,
-        "bot_token_configured": bool(BOT_TOKEN),
-        "webapp_url_configured": bool(WEBAPP_URL),
+        "bot_token_configured": bool(token),
+        "bot_token_source": source,
+        "bot_token_length": len(token),
+        "webapp_url_configured": bool(url),
+        "webapp_url": url if url else "",
         "bot_username": BOT_USERNAME,
         "data_dir": str(DATA_DIR),
     }

@@ -1,0 +1,5135 @@
+
+import hashlib
+import hmac
+import json
+import os
+import random
+import sqlite3
+import time
+from contextlib import asynccontextmanager
+from pathlib import Path
+from urllib.parse import parse_qsl
+
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
+from telegram.ext import Application, CommandHandler, ContextTypes
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR)))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+DB_PATH = DATA_DIR / "rewards.db"
+
+BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+
+
+def runtime_bot_token() -> str:
+    return (os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or BOT_TOKEN or "").strip()
+
+
+def runtime_webapp_url() -> str:
+    return (os.getenv("WEBAPP_URL") or WEBAPP_URL or "").strip().rstrip("/")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "ReferHubRewardsBot").strip().lstrip("@")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
+DEBUG_USER_ID = int(os.getenv("DEBUG_USER_ID", "0") or 0)
+REFERRAL_REWARD = int(os.getenv("REFERRAL_REWARD", "10") or 10)
+
+ADMIN_IDS = {
+    int(value.strip())
+    for value in os.getenv("ADMIN_IDS", "").split(",")
+    if value.strip().isdigit()
+}
+
+bot_app: Application | None = None
+
+
+def connect_db():
+    db = sqlite3.connect(DB_PATH, timeout=30)
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    return db
+
+
+def init_database():
+    with connect_db() as db:
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                telegram_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT NOT NULL,
+                balance INTEGER NOT NULL DEFAULT 0,
+                total_earned INTEGER NOT NULL DEFAULT 0,
+                referrals_count INTEGER NOT NULL DEFAULT 0,
+                referrer_id INTEGER,
+                created_at INTEGER NOT NULL,
+                last_seen INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                reward INTEGER NOT NULL,
+                icon TEXT NOT NULL DEFAULT '⭐',
+                link TEXT,
+                category TEXT NOT NULL DEFAULT 'other',
+                verification_type TEXT NOT NULL DEFAULT 'visit',
+                telegram_chat_id TEXT,
+                wait_seconds INTEGER NOT NULL DEFAULT 5,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                max_claims INTEGER NOT NULL DEFAULT 0,
+                starts_at INTEGER NOT NULL DEFAULT 0,
+                ends_at INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS task_opens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                opened_at INTEGER NOT NULL,
+                UNIQUE(task_id, user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS task_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                UNIQUE(task_id, user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS task_checks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                success INTEGER NOT NULL,
+                message TEXT,
+                checked_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS spins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS gifts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                emoji TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS gift_orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                gift_id INTEGER NOT NULL,
+                price INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                admin_note TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS ledger (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                note TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS referral_rewards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_id INTEGER NOT NULL,
+                referral_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                reward_type TEXT NOT NULL DEFAULT 'signup',
+                created_at INTEGER NOT NULL,
+                UNIQUE(referrer_id, referral_id, reward_type)
+            );
+
+            CREATE TABLE IF NOT EXISTS game_settings (
+                game_key TEXT PRIMARY KEY,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                min_bet INTEGER NOT NULL DEFAULT 1,
+                max_bet INTEGER NOT NULL DEFAULT 100,
+                daily_limit INTEGER NOT NULL DEFAULT 0,
+                cooldown_seconds INTEGER NOT NULL DEFAULT 0,
+                config_json TEXT NOT NULL DEFAULT '{}'
+            );
+
+            CREATE TABLE IF NOT EXISTS game_plays (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                game_key TEXT NOT NULL,
+                bet INTEGER NOT NULL DEFAULT 0,
+                reward INTEGER NOT NULL DEFAULT 0,
+                result_text TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS daily_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                streak INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS promo_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT NOT NULL UNIQUE,
+                discount_percent INTEGER NOT NULL,
+                max_uses INTEGER NOT NULL DEFAULT 0,
+                uses_count INTEGER NOT NULL DEFAULT 0,
+                expires_at INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                icon TEXT NOT NULL DEFAULT '🏆',
+                condition_type TEXT NOT NULL,
+                condition_value INTEGER NOT NULL,
+                reward INTEGER NOT NULL DEFAULT 0,
+                xp_reward INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS user_achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                achievement_id INTEGER NOT NULL,
+                claimed INTEGER NOT NULL DEFAULT 0,
+                unlocked_at INTEGER NOT NULL,
+                claimed_at INTEGER,
+                UNIQUE(user_id, achievement_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS daily_missions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                mission_type TEXT NOT NULL,
+                target_value INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                xp_reward INTEGER NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS mission_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                mission_id INTEGER NOT NULL,
+                mission_date TEXT NOT NULL,
+                progress INTEGER NOT NULL DEFAULT 0,
+                claimed INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(user_id, mission_id, mission_date)
+            );
+
+            CREATE TABLE IF NOT EXISTS tournaments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                starts_at INTEGER NOT NULL,
+                ends_at INTEGER NOT NULL,
+                prize_1 INTEGER NOT NULL DEFAULT 0,
+                prize_2 INTEGER NOT NULL DEFAULT 0,
+                prize_3 INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                is_finalized INTEGER NOT NULL DEFAULT 0,
+                is_cancelled INTEGER NOT NULL DEFAULT 0,
+                finalized_at INTEGER NOT NULL DEFAULT 0,
+                cancelled_at INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS tournament_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tournament_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                score INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL,
+                UNIQUE(tournament_id, user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS seasons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                starts_at INTEGER NOT NULL,
+                ends_at INTEGER NOT NULL,
+                max_level INTEGER NOT NULL DEFAULT 20,
+                xp_per_level INTEGER NOT NULL DEFAULT 100,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS season_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                season_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                season_xp INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL,
+                UNIQUE(season_id, user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS season_rewards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                season_id INTEGER NOT NULL,
+                level INTEGER NOT NULL,
+                reward_type TEXT NOT NULL DEFAULT 'rh',
+                reward_value INTEGER NOT NULL DEFAULT 0,
+                title TEXT NOT NULL,
+                icon TEXT NOT NULL DEFAULT '🎁',
+                UNIQUE(season_id, level)
+            );
+
+            CREATE TABLE IF NOT EXISTS season_reward_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                season_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                reward_id INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                UNIQUE(user_id, reward_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS season_missions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                season_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                mission_type TEXT NOT NULL,
+                target_value INTEGER NOT NULL,
+                season_xp_reward INTEGER NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS season_mission_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                season_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                mission_id INTEGER NOT NULL,
+                progress INTEGER NOT NULL DEFAULT 0,
+                claimed INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(season_id, user_id, mission_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS tournament_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tournament_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                place INTEGER NOT NULL,
+                score INTEGER NOT NULL,
+                reward INTEGER NOT NULL DEFAULT 0,
+                rewarded_at INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                UNIQUE(tournament_id, place),
+                UNIQUE(tournament_id, user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS order_status_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                old_status TEXT,
+                new_status TEXT NOT NULL,
+                admin_id INTEGER,
+                note TEXT,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS admin_action_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER NOT NULL,
+                target_user_id INTEGER,
+                action TEXT NOT NULL,
+                details TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL
+            );
+            """
+        )
+
+        user_columns = {
+            row["name"]
+            for row in db.execute("PRAGMA table_info(users)").fetchall()
+        }
+        user_migrations = [
+            ("is_banned", "ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0"),
+            ("xp", "ALTER TABLE users ADD COLUMN xp INTEGER NOT NULL DEFAULT 0"),
+            ("photo_url", "ALTER TABLE users ADD COLUMN photo_url TEXT"),
+            ("profile_frame", "ALTER TABLE users ADD COLUMN profile_frame TEXT NOT NULL DEFAULT 'violet'"),
+            ("featured_achievement_id", "ALTER TABLE users ADD COLUMN featured_achievement_id INTEGER"),
+            ("stars", "ALTER TABLE users ADD COLUMN stars INTEGER NOT NULL DEFAULT 0"),
+        ]
+        for column_name, statement in user_migrations:
+            if column_name not in user_columns:
+                db.execute(statement)
+
+        tournament_columns = {
+            row["name"]
+            for row in db.execute("PRAGMA table_info(tournaments)").fetchall()
+        }
+        tournament_migrations = [
+            ("is_finalized", "ALTER TABLE tournaments ADD COLUMN is_finalized INTEGER NOT NULL DEFAULT 0"),
+            ("is_cancelled", "ALTER TABLE tournaments ADD COLUMN is_cancelled INTEGER NOT NULL DEFAULT 0"),
+            ("finalized_at", "ALTER TABLE tournaments ADD COLUMN finalized_at INTEGER NOT NULL DEFAULT 0"),
+            ("cancelled_at", "ALTER TABLE tournaments ADD COLUMN cancelled_at INTEGER NOT NULL DEFAULT 0"),
+        ]
+        for column_name, statement in tournament_migrations:
+            if column_name not in tournament_columns:
+                db.execute(statement)
+
+        gift_columns = {
+            row["name"]
+            for row in db.execute("PRAGMA table_info(gifts)").fetchall()
+        }
+        gift_migrations = [
+            ("description", "ALTER TABLE gifts ADD COLUMN description TEXT NOT NULL DEFAULT ''"),
+            ("stock", "ALTER TABLE gifts ADD COLUMN stock INTEGER NOT NULL DEFAULT 0"),
+            ("is_active", "ALTER TABLE gifts ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"),
+            ("sort_order", "ALTER TABLE gifts ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"),
+            ("created_at", "ALTER TABLE gifts ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0"),
+            ("category", "ALTER TABLE gifts ADD COLUMN category TEXT NOT NULL DEFAULT 'Telegram Gifts'"),
+            ("image_url", "ALTER TABLE gifts ADD COLUMN image_url TEXT"),
+            ("old_price", "ALTER TABLE gifts ADD COLUMN old_price INTEGER NOT NULL DEFAULT 0"),
+            ("is_featured", "ALTER TABLE gifts ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0"),
+        ]
+        for column_name, statement in gift_migrations:
+            if column_name not in gift_columns:
+                db.execute(statement)
+
+        order_columns = {
+            row["name"]
+            for row in db.execute("PRAGMA table_info(gift_orders)").fetchall()
+        }
+        order_migrations = [
+            ("admin_note", "ALTER TABLE gift_orders ADD COLUMN admin_note TEXT"),
+            ("updated_at", "ALTER TABLE gift_orders ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0"),
+            ("original_price", "ALTER TABLE gift_orders ADD COLUMN original_price INTEGER NOT NULL DEFAULT 0"),
+            ("promo_code", "ALTER TABLE gift_orders ADD COLUMN promo_code TEXT"),
+        ]
+        for column_name, statement in order_migrations:
+            if column_name not in order_columns:
+                db.execute(statement)
+
+        task_columns = {
+            row["name"]
+            for row in db.execute("PRAGMA table_info(tasks)").fetchall()
+        }
+        migrations = [
+            ("category", "ALTER TABLE tasks ADD COLUMN category TEXT NOT NULL DEFAULT 'other'"),
+            ("verification_type", "ALTER TABLE tasks ADD COLUMN verification_type TEXT NOT NULL DEFAULT 'visit'"),
+            ("telegram_chat_id", "ALTER TABLE tasks ADD COLUMN telegram_chat_id TEXT"),
+            ("wait_seconds", "ALTER TABLE tasks ADD COLUMN wait_seconds INTEGER NOT NULL DEFAULT 5"),
+            ("sort_order", "ALTER TABLE tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"),
+            ("created_at", "ALTER TABLE tasks ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0"),
+            ("xp_reward", "ALTER TABLE tasks ADD COLUMN xp_reward INTEGER NOT NULL DEFAULT 5"),
+            ("max_claims", "ALTER TABLE tasks ADD COLUMN max_claims INTEGER NOT NULL DEFAULT 0"),
+            ("starts_at", "ALTER TABLE tasks ADD COLUMN starts_at INTEGER NOT NULL DEFAULT 0"),
+            ("ends_at", "ALTER TABLE tasks ADD COLUMN ends_at INTEGER NOT NULL DEFAULT 0"),
+        ]
+        for column_name, statement in migrations:
+            if column_name not in task_columns:
+                db.execute(statement)
+
+        if db.execute("SELECT COUNT(*) FROM game_settings").fetchone()[0] == 0:
+            db.executemany(
+                """
+                INSERT INTO game_settings(
+                    game_key, is_active, min_bet, max_bet,
+                    daily_limit, cooldown_seconds, config_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        "roulette",
+                        1,
+                        0,
+                        0,
+                        1,
+                        86400,
+                        json.dumps({
+                            "rewards": [0, 1, 2, 3, 5, 10, 20],
+                            "weights": [28, 24, 18, 13, 9, 6, 2],
+                        }),
+                    ),
+                    (
+                        "slot",
+                        1,
+                        5,
+                        100,
+                        20,
+                        15,
+                        json.dumps({
+                            "symbols": ["🍒", "🍋", "🔔", "⭐", "💎"],
+                            "win_chance": 0.24,
+                            "double_multiplier": 1.2,
+                            "triple_multipliers": {
+                                "🍒": 2,
+                                "🍋": 2.5,
+                                "🔔": 4,
+                                "⭐": 6,
+                                "💎": 10
+                            },
+                        }),
+                    ),
+                    (
+                        "daily_case",
+                        1,
+                        0,
+                        0,
+                        1,
+                        86400,
+                        json.dumps({
+                            "rewards": [1, 2, 3, 5, 10, 25],
+                            "weights": [30, 25, 20, 14, 8, 3],
+                        }),
+                    ),
+                    (
+                        "coin_flip",
+                        1,
+                        5,
+                        50,
+                        10,
+                        30,
+                        json.dumps({
+                            "win_chance": 0.46,
+                            "multiplier": 1.85
+                        }),
+                    ),
+                    (
+                        "number_guess",
+                        1,
+                        0,
+                        0,
+                        5,
+                        3600,
+                        json.dumps({
+                            "min_number": 1,
+                            "max_number": 5,
+                            "reward": 8
+                        }),
+                    ),
+                    (
+                        "scratch",
+                        1,
+                        0,
+                        0,
+                        1,
+                        86400,
+                        json.dumps({
+                            "rewards": [0, 1, 2, 3, 5, 10, 20],
+                            "weights": [24, 26, 20, 14, 9, 5, 2]
+                        }),
+                    ),
+                    (
+                        "safe_crack",
+                        1,
+                        0,
+                        0,
+                        3,
+                        21600,
+                        json.dumps({
+                            "reward": 12,
+                            "range": 6
+                        }),
+                    ),
+                ],
+            )
+
+        if db.execute("SELECT COUNT(*) FROM seasons").fetchone()[0] == 0:
+            now = int(time.time())
+            cursor = db.execute(
+                """
+                INSERT INTO seasons(
+                    title, description, starts_at, ends_at,
+                    max_level, xp_per_level, is_active
+                )
+                VALUES (?, ?, ?, ?, 20, 100, 1)
+                """,
+                (
+                    "NEON ASCENSION",
+                    "Перший сезон ReferHub. Виконуй місії та відкривай нагороди.",
+                    now - 3600,
+                    now + 30 * 86400,
+                ),
+            )
+            season_id = cursor.lastrowid
+
+            rewards = []
+            for level in range(1, 21):
+                if level % 5 == 0:
+                    value = level * 5
+                    icon = "👑" if level == 20 else "💎"
+                    title = f"Елітна нагорода {level}"
+                else:
+                    value = 5 + level * 2
+                    icon = "⭐"
+                    title = f"Нагорода рівня {level}"
+                rewards.append(
+                    (season_id, level, "rh", value, title, icon)
+                )
+
+            db.executemany(
+                """
+                INSERT INTO season_rewards(
+                    season_id, level, reward_type,
+                    reward_value, title, icon
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                rewards,
+            )
+
+            db.executemany(
+                """
+                INSERT INTO season_missions(
+                    season_id, title, description,
+                    mission_type, target_value,
+                    season_xp_reward
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        season_id,
+                        "Мисливець за завданнями",
+                        "Виконай 10 завдань протягом сезону",
+                        "tasks",
+                        10,
+                        180,
+                    ),
+                    (
+                        season_id,
+                        "Аркадний боєць",
+                        "Зіграй 25 разів у будь-які ігри",
+                        "games",
+                        25,
+                        220,
+                    ),
+                    (
+                        season_id,
+                        "Колекціонер RH",
+                        "Зароби 300 RH протягом сезону",
+                        "earned",
+                        300,
+                        300,
+                    ),
+                    (
+                        season_id,
+                        "Соціальний рівень",
+                        "Запроси 3 друзів",
+                        "friends",
+                        3,
+                        260,
+                    ),
+                ],
+            )
+
+        if db.execute("SELECT COUNT(*) FROM achievements").fetchone()[0] == 0:
+            db.executemany(
+                """
+                INSERT INTO achievements(
+                    code, title, description, icon,
+                    condition_type, condition_value,
+                    reward, xp_reward
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    ("earn_100", "Перші 100 RH", "Зароби 100 RH ⭐", "💰", "earned", 100, 10, 25),
+                    ("tasks_10", "Працьовитий", "Виконай 10 завдань", "📋", "tasks", 10, 20, 40),
+                    ("friends_5", "Команда", "Запроси 5 друзів", "👥", "friends", 5, 25, 50),
+                    ("level_5", "Майстер", "Досягни 5 рівня", "👑", "level", 5, 50, 100),
+                ],
+            )
+
+        if db.execute("SELECT COUNT(*) FROM daily_missions").fetchone()[0] == 0:
+            db.executemany(
+                """
+                INSERT INTO daily_missions(
+                    title, description, mission_type,
+                    target_value, reward, xp_reward
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    ("Виконай завдання", "Виконай 1 завдання сьогодні", "tasks", 1, 5, 10),
+                    ("Зіграй 3 рази", "Зіграй 3 рази у будь-яку гру", "games", 3, 8, 15),
+                    ("Зароби 20 RH", "Зароби 20 RH ⭐ за день", "earned", 20, 10, 20),
+                ],
+            )
+
+        if db.execute("SELECT COUNT(*) FROM tournaments").fetchone()[0] == 0:
+            now = int(time.time())
+            db.execute(
+                """
+                INSERT INTO tournaments(
+                    title, description, starts_at, ends_at,
+                    prize_1, prize_2, prize_3
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "Тижневий турнір",
+                    "Зароби найбільше RH ⭐ за тиждень",
+                    now - 3600,
+                    now + 7 * 86400,
+                    100,
+                    50,
+                    25,
+                ),
+            )
+
+        extra_games = [
+            (
+                "coin_flip", 1, 5, 50, 10, 30,
+                json.dumps({"win_chance": 0.46, "multiplier": 1.85}),
+            ),
+            (
+                "number_guess", 1, 0, 0, 5, 3600,
+                json.dumps({"min_number": 1, "max_number": 5, "reward": 8}),
+            ),
+            (
+                "scratch", 1, 0, 0, 1, 86400,
+                json.dumps({
+                    "rewards": [0, 1, 2, 3, 5, 10, 20],
+                    "weights": [24, 26, 20, 14, 9, 5, 2],
+                }),
+            ),
+            (
+                "safe_crack", 1, 0, 0, 3, 21600,
+                json.dumps({"reward": 12, "range": 6}),
+            ),
+        ]
+        for game in extra_games:
+            db.execute(
+                """
+                INSERT OR IGNORE INTO game_settings(
+                    game_key, is_active, min_bet, max_bet,
+                    daily_limit, cooldown_seconds, config_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                game,
+            )
+
+        db.execute(
+            """
+            UPDATE game_settings
+            SET daily_limit = CASE WHEN daily_limit = 0 THEN 20 ELSE daily_limit END,
+                cooldown_seconds = CASE WHEN cooldown_seconds < 15 THEN 15 ELSE cooldown_seconds END
+            WHERE game_key = 'slot'
+            """
+        )
+
+        if db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0:
+            now = int(time.time())
+            db.executemany(
+                """
+                INSERT INTO tasks(
+                    title, description, reward, icon, link,
+                    category, verification_type, wait_seconds,
+                    sort_order, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        "Перша нагорода",
+                        "Відкрий завдання, зачекай кілька секунд і забери бонус.",
+                        5,
+                        "🚀",
+                        None,
+                        "other",
+                        "instant",
+                        0,
+                        30,
+                        now,
+                    ),
+                    (
+                        "Запроси друга",
+                        "Поділись реферальним посиланням. Нагорода доступна після першого реферала.",
+                        15,
+                        "👥",
+                        None,
+                        "referral",
+                        "referral",
+                        0,
+                        20,
+                        now,
+                    ),
+                    (
+                        "Відкрий Telegram",
+                        "Перейди за посиланням і повернися для перевірки.",
+                        3,
+                        "📢",
+                        "https://t.me/telegram",
+                        "telegram",
+                        "visit",
+                        5,
+                        10,
+                        now,
+                    ),
+                ],
+            )
+
+        if db.execute("SELECT COUNT(*) FROM gifts").fetchone()[0] == 0:
+            db.executemany(
+                """
+                INSERT INTO gifts(title, emoji, price)
+                VALUES (?, ?, ?)
+                """,
+                [
+                    ("Маленький подарунок", "🎁", 100),
+                    ("Середній подарунок", "💎", 250),
+                    ("Преміум-подарунок", "👑", 500),
+                ],
+            )
+
+
+        # Beta 9.6: the visual wheel has 12 sectors:
+        # 1,2,3,4,5,5,6,7,8,9,10 and a star jackpot (15).
+        db.execute(
+            """
+            UPDATE game_settings
+            SET min_bet = 0,
+                max_bet = 0,
+                config_json = ?
+            WHERE game_key = 'roulette'
+            """,
+            (
+                json.dumps({
+                    "rewards": [1, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 15],
+                    "weights": [11, 10, 10, 9, 10, 8, 8, 8, 7, 7, 6, 6],
+                    "currency": "stars",
+                    "jackpot_value": 15,
+                }),
+            ),
+        )
+
+        db.commit()
+
+
+def add_balance(db, user_id: int, amount: int, note: str, xp: int = 0):
+    now = int(time.time())
+    db.execute(
+        """
+        UPDATE users
+        SET balance = balance + ?,
+            total_earned = total_earned + CASE WHEN ? > 0 THEN ? ELSE 0 END,
+            xp = xp + ?,
+            last_seen = ?
+        WHERE telegram_id = ?
+        """,
+        (amount, amount, amount, xp, now, user_id),
+    )
+    db.execute(
+        """
+        INSERT INTO ledger(user_id, amount, note, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (user_id, amount, note, now),
+    )
+
+
+def upsert_user(user: dict, referrer_id: int | None = None):
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        existing = db.execute(
+            "SELECT * FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+
+        if existing:
+            db.execute(
+                """
+                UPDATE users
+                SET username = ?, first_name = ?, photo_url = ?, last_seen = ?
+                WHERE telegram_id = ?
+                """,
+                (
+                    user.get("username"),
+                    user.get("first_name") or "Користувач",
+                    user.get("photo_url"),
+                    now,
+                    user_id,
+                ),
+            )
+            db.commit()
+            return
+
+        if referrer_id == user_id:
+            referrer_id = None
+
+        if referrer_id:
+            found = db.execute(
+                "SELECT telegram_id FROM users WHERE telegram_id = ?",
+                (referrer_id,),
+            ).fetchone()
+            if not found:
+                referrer_id = None
+
+        db.execute(
+            """
+            INSERT INTO users(
+                telegram_id, username, first_name, photo_url,
+                referrer_id, created_at, last_seen
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                user.get("username"),
+                user.get("first_name") or "Користувач",
+                user.get("photo_url"),
+                referrer_id,
+                now,
+                now,
+            ),
+        )
+
+        if referrer_id:
+            db.execute(
+                """
+                UPDATE users
+                SET referrals_count = referrals_count + 1
+                WHERE telegram_id = ?
+                """,
+                (referrer_id,),
+            )
+            try:
+                db.execute(
+                    """
+                    INSERT INTO referral_rewards(
+                        referrer_id, referral_id, amount,
+                        reward_type, created_at
+                    )
+                    VALUES (?, ?, ?, 'signup', ?)
+                    """,
+                    (
+                        referrer_id,
+                        user_id,
+                        REFERRAL_REWARD,
+                        now,
+                    ),
+                )
+                add_balance(
+                    db,
+                    referrer_id,
+                    REFERRAL_REWARD,
+                    f"Новий реферал #{user_id}",
+                )
+                add_season_progress(db, referrer_id, "friends", 1)
+            except sqlite3.IntegrityError:
+                pass
+
+        db.commit()
+
+
+def validate_init_data(init_data: str) -> dict:
+    if not init_data:
+        if DEBUG_USER_ID:
+            return {
+                "id": DEBUG_USER_ID,
+                "first_name": "Eduard",
+                "username": "debug_user",
+            }
+        raise HTTPException(401, "Відкрий застосунок через Telegram або додай DEBUG_USER_ID")
+
+    token = runtime_bot_token()
+    if not token:
+        raise HTTPException(500, "BOT_TOKEN не налаштований")
+
+    values = dict(parse_qsl(init_data, keep_blank_values=True))
+    received_hash = values.pop("hash", "")
+
+    # IMPORTANT:
+    # Telegram Mini Apps now may include the `signature` field in initData.
+    # For BOT_TOKEN/HMAC validation, `signature` must remain in the
+    # data-check-string. Only `hash` is excluded.
+    check_string = "\n".join(
+        f"{key}={value}"
+        for key, value in sorted(values.items())
+    )
+
+    secret = hmac.new(
+        b"WebAppData",
+        token.encode(),
+        hashlib.sha256,
+    ).digest()
+
+    calculated = hmac.new(
+        secret,
+        check_string.encode(),
+        hashlib.sha256,
+    ).hexdigest()
+
+    if not hmac.compare_digest(calculated, received_hash):
+        raise HTTPException(401, "Невірний підпис Telegram")
+
+    try:
+        return json.loads(values["user"])
+    except Exception as exc:
+        raise HTTPException(401, "Telegram не передав користувача") from exc
+
+
+def current_user(init_data: str | None):
+    user = validate_init_data(init_data or "")
+    upsert_user(user)
+
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT is_banned FROM users WHERE telegram_id = ?",
+            (int(user["id"]),),
+        ).fetchone()
+        if row and row["is_banned"]:
+            raise HTTPException(403, "Обліковий запис заблоковано")
+
+    return user
+
+
+def get_profile(user_id: int):
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT * FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+
+        rank = db.execute(
+            """
+            SELECT COUNT(*) + 1
+            FROM users
+            WHERE total_earned > ?
+            """,
+            (row["total_earned"],),
+        ).fetchone()[0]
+
+        last_spin = db.execute(
+            """
+            SELECT created_at FROM spins
+            WHERE user_id = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+
+        next_spin = 0
+        if last_spin:
+            next_spin = max(0, last_spin["created_at"] + 86400 - int(time.time()))
+
+        online_count = db.execute(
+            """
+            SELECT COUNT(*) FROM users
+            WHERE last_seen >= ?
+            """,
+            (int(time.time()) - 300,),
+        ).fetchone()[0]
+
+        level = level_info(row["xp"])
+        daily = get_daily_status(user_id)
+
+        return {
+            "id": row["telegram_id"],
+            "username": row["username"],
+            "first_name": row["first_name"],
+            "photo_url": row["photo_url"],
+            "profile_frame": row["profile_frame"],
+            "featured_achievement_id": row["featured_achievement_id"],
+            "balance": row["balance"],
+            "stars": row["stars"],
+            "total_earned": row["total_earned"],
+            "xp": row["xp"],
+            "referrals_count": row["referrals_count"],
+            "rank": rank,
+            "next_spin_in": next_spin,
+            "is_admin": row["telegram_id"] in ADMIN_IDS,
+            "referral_link": f"https://t.me/{BOT_USERNAME}?start=ref_{row['telegram_id']}",
+            "online_count": online_count,
+            "level": level,
+            "daily": daily,
+        }
+
+
+def level_info(total_earned: int):
+    levels = [
+        ("Новачок", 0, 50, "🥉"),
+        ("Шукач", 50, 150, "🥈"),
+        ("Мисливець", 150, 350, "🥇"),
+        ("Майстер", 350, 700, "💎"),
+        ("Легенда", 700, 10**9, "👑"),
+    ]
+
+    for index, (name, start, end, icon) in enumerate(levels, start=1):
+        if total_earned < end:
+            progress = 100 if end >= 10**9 else int(
+                max(0, min(100, (total_earned - start) / (end - start) * 100))
+            )
+            return {
+                "number": index,
+                "name": name,
+                "icon": icon,
+                "start": start,
+                "next": None if end >= 10**9 else end,
+                "progress": progress,
+            }
+
+    return {
+        "number": len(levels),
+        "name": "Легенда",
+        "icon": "👑",
+        "start": 700,
+        "next": None,
+        "progress": 100,
+    }
+
+
+def get_daily_status(user_id: int):
+    now = int(time.time())
+    with connect_db() as db:
+        last = db.execute(
+            """
+            SELECT reward, streak, claimed_at
+            FROM daily_claims
+            WHERE user_id = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+
+    if not last:
+        return {
+            "available": True,
+            "streak": 0,
+            "next_in": 0,
+            "last_reward": 0,
+        }
+
+    remaining = last["claimed_at"] + 86400 - now
+    return {
+        "available": remaining <= 0,
+        "streak": last["streak"],
+        "next_in": max(0, remaining),
+        "last_reward": last["reward"],
+    }
+
+
+TASK_CATEGORIES = {
+    "telegram": "Telegram",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "discord": "Discord",
+    "referral": "Реферали",
+    "other": "Інше",
+}
+
+
+class GamePlayPayload(BaseModel):
+    bet: int = Field(default=0, ge=0, le=1000000)
+
+
+class CoinFlipPayload(BaseModel):
+    bet: int = Field(ge=1, le=1000000)
+    choice: str
+
+
+class NumberGuessPayload(BaseModel):
+    number: int = Field(ge=1, le=100)
+
+
+class SafeCrackPayload(BaseModel):
+    number: int = Field(ge=1, le=100)
+
+
+class GameSettingsPayload(BaseModel):
+    is_active: bool | None = None
+    min_bet: int | None = Field(default=None, ge=0, le=1000000)
+    max_bet: int | None = Field(default=None, ge=0, le=1000000)
+    daily_limit: int | None = Field(default=None, ge=0, le=100000)
+    cooldown_seconds: int | None = Field(default=None, ge=0, le=31536000)
+    config_json: str | None = None
+
+
+
+
+class BalanceChangePayload(BaseModel):
+    amount: int = Field(ge=-10000000, le=10000000)
+    note: str = Field(default="Корекція адміністратором", max_length=300)
+
+
+class UserBanPayload(BaseModel):
+    is_banned: bool
+
+
+class ProfileStylePayload(BaseModel):
+    frame: str | None = None
+    featured_achievement_id: int | None = None
+
+
+class XPChangePayload(BaseModel):
+    amount: int = Field(ge=-10000000, le=10000000)
+    note: str = Field(default="Корекція XP адміністратором", max_length=300)
+
+
+class SetLevelPayload(BaseModel):
+    level: int = Field(ge=1, le=100000)
+    note: str = Field(default="Рівень встановлено адміністратором", max_length=300)
+
+
+class GrantAchievementPayload(BaseModel):
+    achievement_id: int = Field(ge=1)
+    claim_reward: bool = True
+
+
+
+
+class GiftCreatePayload(BaseModel):
+    title: str = Field(min_length=2, max_length=100)
+    description: str = Field(default="", max_length=500)
+    price: int = Field(ge=1, le=10000000)
+    emoji: str = Field(default="🎁", max_length=10)
+    stock: int = Field(default=0, ge=0, le=1000000)
+    sort_order: int = Field(default=0, ge=-100000, le=100000)
+
+
+class GiftUpdatePayload(BaseModel):
+    title: str | None = Field(default=None, min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    price: int | None = Field(default=None, ge=1, le=10000000)
+    emoji: str | None = Field(default=None, max_length=10)
+    stock: int | None = Field(default=None, ge=0, le=1000000)
+    sort_order: int | None = Field(default=None, ge=-100000, le=100000)
+    is_active: bool | None = None
+
+
+class OrderStatusPayload(BaseModel):
+    status: str
+    admin_note: str | None = Field(default=None, max_length=500)
+    notify_user: bool = True
+
+
+
+class TaskCreatePayload(BaseModel):
+    title: str = Field(min_length=2, max_length=90)
+    description: str = Field(min_length=2, max_length=400)
+    reward: int = Field(ge=0, le=100000)
+    icon: str = Field(default="⭐", max_length=10)
+    link: str | None = Field(default=None, max_length=500)
+    category: str = Field(default="other", max_length=30)
+    verification_type: str = Field(default="visit", max_length=30)
+    telegram_chat_id: str | None = Field(default=None, max_length=100)
+    wait_seconds: int = Field(default=5, ge=0, le=3600)
+    sort_order: int = Field(default=0, ge=-100000, le=100000)
+    max_claims: int = Field(default=0, ge=0, le=10000000)
+    starts_at: int = Field(default=0, ge=0)
+    ends_at: int = Field(default=0, ge=0)
+
+
+class TaskUpdatePayload(BaseModel):
+    title: str | None = Field(default=None, min_length=2, max_length=90)
+    description: str | None = Field(default=None, min_length=2, max_length=400)
+    reward: int | None = Field(default=None, ge=0, le=100000)
+    icon: str | None = Field(default=None, max_length=10)
+    link: str | None = Field(default=None, max_length=500)
+    category: str | None = Field(default=None, max_length=30)
+    verification_type: str | None = Field(default=None, max_length=30)
+    telegram_chat_id: str | None = Field(default=None, max_length=100)
+    wait_seconds: int | None = Field(default=None, ge=0, le=3600)
+    sort_order: int | None = Field(default=None, ge=-100000, le=100000)
+    max_claims: int | None = Field(default=None, ge=0, le=10000000)
+    starts_at: int | None = Field(default=None, ge=0)
+    ends_at: int | None = Field(default=None, ge=0)
+    is_active: bool | None = None
+
+
+def require_admin(user_id: int):
+    if user_id not in ADMIN_IDS:
+        raise HTTPException(403, "Немає доступу")
+
+
+def normalize_telegram_chat_id(chat_id: str) -> str | int:
+    value = (chat_id or "").strip()
+    if not value:
+        raise ValueError("Telegram-канал не вказаний")
+
+    if value.startswith("https://t.me/"):
+        value = "@" + value.rstrip("/").split("/")[-1]
+    elif value.startswith("t.me/"):
+        value = "@" + value.rstrip("/").split("/")[-1]
+
+    if value.lstrip("-").isdigit():
+        return int(value)
+
+    if not value.startswith("@"):
+        value = "@" + value
+
+    return value
+
+
+async def telegram_membership_details(user_id: int, chat_id: str):
+    if not bot_app:
+        return False, "Telegram-бот не запущений. Перевір BOT_TOKEN."
+
+    try:
+        normalized = normalize_telegram_chat_id(chat_id)
+        member = await bot_app.bot.get_chat_member(
+            chat_id=normalized,
+            user_id=user_id,
+        )
+
+        status = member.status
+        is_member = status in {"member", "administrator", "creator"}
+        if status == "restricted":
+            is_member = bool(getattr(member, "is_member", False))
+
+        if is_member:
+            return True, None
+
+        if status in {"left", "kicked"}:
+            return False, "Користувач не підписаний на канал"
+
+        return False, f"Підписку не підтверджено: статус {status}"
+    except ValueError as error:
+        return False, str(error)
+    except Exception as error:
+        message = str(error).lower()
+
+        if "chat not found" in message:
+            return False, "Канал не знайдено. Перевір @username або chat_id."
+        if "member list is inaccessible" in message or "not enough rights" in message:
+            return False, "Бота треба додати адміністратором каналу."
+        if "user not found" in message:
+            return False, "Користувача не знайдено в Telegram."
+
+        return False, f"Помилка Telegram: {str(error)[:160]}"
+
+
+async def verify_telegram_membership(user_id: int, chat_id: str) -> bool:
+    ok, _ = await telegram_membership_details(user_id, chat_id)
+    return ok
+
+
+
+def task_availability(db, task):
+    now = int(time.time())
+
+    if not task["is_active"]:
+        return False, "Завдання вимкнено"
+
+    if task["starts_at"] and now < task["starts_at"]:
+        return False, "Завдання ще не почалося"
+
+    if task["ends_at"] and now > task["ends_at"]:
+        return False, "Термін завдання завершився"
+
+    if task["max_claims"]:
+        claims_count = db.execute(
+            "SELECT COUNT(*) FROM task_claims WHERE task_id = ?",
+            (task["id"],),
+        ).fetchone()[0]
+        if claims_count >= task["max_claims"]:
+            return False, "Ліміт виконань вичерпано"
+
+    return True, None
+
+
+async def verify_task_completion(db, task, user_id: int):
+    verification_type = task["verification_type"]
+
+    if verification_type == "instant":
+        return True, None
+
+    if verification_type == "referral":
+        referrals = db.execute(
+            "SELECT referrals_count FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+        if referrals and referrals["referrals_count"] >= 1:
+            return True, None
+        return False, "Запроси хоча б одного друга"
+
+    if verification_type == "telegram_member":
+        chat_id = task["telegram_chat_id"]
+        if not chat_id:
+            return False, "Адміністратор не вказав Telegram-канал"
+        verified, reason = await telegram_membership_details(user_id, chat_id)
+        if verified:
+            return True, None
+        return False, reason or "Підписку на канал не знайдено"
+
+    opened = db.execute(
+        """
+        SELECT opened_at FROM task_opens
+        WHERE task_id = ? AND user_id = ?
+        """,
+        (task["id"], user_id),
+    ).fetchone()
+
+    if not opened:
+        return False, "Спочатку натисни «Відкрити»"
+
+    remaining = opened["opened_at"] + task["wait_seconds"] - int(time.time())
+    if remaining > 0:
+        return False, f"Зачекай ще {remaining} сек."
+
+    return True, None
+
+
+def get_game_setting(db, game_key: str):
+    row = db.execute(
+        "SELECT * FROM game_settings WHERE game_key = ?",
+        (game_key,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Гру не знайдено")
+    return row
+
+
+def weighted_choice(values, weights):
+    import random
+    return random.choices(values, weights=weights, k=1)[0]
+
+
+def game_access_check(db, user_id: int, setting):
+    if not setting["is_active"]:
+        raise HTTPException(400, "Гру тимчасово вимкнено")
+
+    now = int(time.time())
+    today_start = now - (now % 86400)
+
+    if setting["daily_limit"]:
+        count = db.execute(
+            """
+            SELECT COUNT(*) FROM game_plays
+            WHERE user_id = ? AND game_key = ? AND created_at >= ?
+            """,
+            (user_id, setting["game_key"], today_start),
+        ).fetchone()[0]
+        if count >= setting["daily_limit"]:
+            raise HTTPException(400, "Денний ліміт спроб вичерпано")
+
+    if setting["cooldown_seconds"]:
+        last = db.execute(
+            """
+            SELECT created_at FROM game_plays
+            WHERE user_id = ? AND game_key = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (user_id, setting["game_key"]),
+        ).fetchone()
+        if last:
+            remaining = (
+                last["created_at"]
+                + setting["cooldown_seconds"]
+                - now
+            )
+            if remaining > 0:
+                raise HTTPException(
+                    400,
+                    f"Наступна спроба через {remaining} сек.",
+                )
+
+
+def save_game_play(
+    db,
+    user_id: int,
+    game_key: str,
+    bet: int,
+    reward: int,
+    result_text: str,
+):
+    db.execute(
+        """
+        INSERT INTO game_plays(
+            user_id, game_key, bet, reward,
+            result_text, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            game_key,
+            bet,
+            reward,
+            result_text,
+            int(time.time()),
+        ),
+    )
+
+
+
+
+def tournament_prize(tournament, place: int):
+    return {
+        1: int(tournament["prize_1"]),
+        2: int(tournament["prize_2"]),
+        3: int(tournament["prize_3"]),
+    }.get(place, 0)
+
+
+def finalize_tournament(db, tournament_id: int):
+    tournament = db.execute(
+        "SELECT * FROM tournaments WHERE id = ?",
+        (tournament_id,),
+    ).fetchone()
+    if not tournament:
+        raise HTTPException(404, "Турнір не знайдено")
+    if tournament["is_cancelled"]:
+        raise HTTPException(409, "Турнір скасовано")
+    if tournament["is_finalized"]:
+        return []
+
+    standings = db.execute(
+        """
+        SELECT user_id, score
+        FROM tournament_scores
+        WHERE tournament_id = ?
+        ORDER BY score DESC, updated_at ASC, user_id ASC
+        LIMIT 10
+        """,
+        (tournament_id,),
+    ).fetchall()
+
+    now = int(time.time())
+    winners = []
+
+    for place, standing in enumerate(standings, start=1):
+        reward = tournament_prize(tournament, place)
+        db.execute(
+            """
+            INSERT OR IGNORE INTO tournament_results(
+                tournament_id, user_id, place,
+                score, reward, rewarded_at, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, 0, ?)
+            """,
+            (
+                tournament_id,
+                standing["user_id"],
+                place,
+                standing["score"],
+                reward,
+                now,
+            ),
+        )
+
+        result = db.execute(
+            """
+            SELECT rewarded_at
+            FROM tournament_results
+            WHERE tournament_id = ? AND user_id = ?
+            """,
+            (tournament_id, standing["user_id"]),
+        ).fetchone()
+
+        if reward > 0 and result and not result["rewarded_at"]:
+            add_balance(
+                db,
+                standing["user_id"],
+                reward,
+                f"Приз за {place} місце: {tournament['title']}",
+                max(5, reward // 2),
+            )
+            db.execute(
+                """
+                UPDATE tournament_results
+                SET rewarded_at = ?
+                WHERE tournament_id = ? AND user_id = ?
+                """,
+                (now, tournament_id, standing["user_id"]),
+            )
+
+        winners.append({
+            "user_id": standing["user_id"],
+            "place": place,
+            "score": standing["score"],
+            "reward": reward,
+        })
+
+    db.execute(
+        """
+        UPDATE tournaments
+        SET is_finalized = 1,
+            is_active = 0,
+            finalized_at = ?
+        WHERE id = ?
+        """,
+        (now, tournament_id),
+    )
+    return winners
+
+
+def finalize_expired_tournaments(db):
+    now = int(time.time())
+    expired = db.execute(
+        """
+        SELECT id FROM tournaments
+        WHERE is_active = 1
+          AND is_finalized = 0
+          AND is_cancelled = 0
+          AND ends_at <= ?
+        """,
+        (now,),
+    ).fetchall()
+
+    result = []
+    for row in expired:
+        result.append((row["id"], finalize_tournament(db, row["id"])))
+    return result
+
+
+async def notify_tournament_winners(tournament_id: int, winners: list[dict]):
+    if not bot_app or not winners:
+        return 0
+
+    with connect_db() as db:
+        tournament = db.execute(
+            "SELECT title FROM tournaments WHERE id = ?",
+            (tournament_id,),
+        ).fetchone()
+
+    sent = 0
+    for winner in winners:
+        if winner["reward"] <= 0:
+            continue
+        try:
+            await bot_app.bot.send_message(
+                chat_id=winner["user_id"],
+                text=(
+                    f"🏆 Турнір завершено!\\n\\n"
+                    f"{tournament['title']}\\n"
+                    f"Твоє місце: #{winner['place']}\\n"
+                    f"Результат: {winner['score']}\\n"
+                    f"Нагорода: +{winner['reward']} RH ⭐"
+                ),
+            )
+            sent += 1
+        except Exception as error:
+            print(f"Не вдалося повідомити переможця {winner['user_id']}: {error}")
+
+    return sent
+
+
+def active_season(db):
+    now = int(time.time())
+    return db.execute(
+        """
+        SELECT * FROM seasons
+        WHERE is_active = 1
+          AND starts_at <= ?
+          AND ends_at >= ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (now, now),
+    ).fetchone()
+
+
+def add_season_progress(db, user_id: int, mission_type: str, amount: int):
+    season = active_season(db)
+    if not season or amount <= 0:
+        return
+
+    missions = db.execute(
+        """
+        SELECT * FROM season_missions
+        WHERE season_id = ?
+          AND mission_type = ?
+          AND is_active = 1
+        """,
+        (season["id"], mission_type),
+    ).fetchall()
+
+    for mission in missions:
+        db.execute(
+            """
+            INSERT INTO season_mission_progress(
+                season_id, user_id, mission_id,
+                progress, claimed
+            )
+            VALUES (?, ?, ?, ?, 0)
+            ON CONFLICT(season_id, user_id, mission_id)
+            DO UPDATE SET progress = progress + excluded.progress
+            """,
+            (
+                season["id"],
+                user_id,
+                mission["id"],
+                amount,
+            ),
+        )
+
+
+def grant_season_xp(db, season_id: int, user_id: int, amount: int):
+    if amount <= 0:
+        return
+
+    db.execute(
+        """
+        INSERT INTO season_progress(
+            season_id, user_id, season_xp, updated_at
+        )
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(season_id, user_id)
+        DO UPDATE SET
+            season_xp = season_xp + excluded.season_xp,
+            updated_at = excluded.updated_at
+        """,
+        (season_id, user_id, amount, int(time.time())),
+    )
+
+
+def today_key():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+
+def add_mission_progress(db, user_id: int, mission_type: str, amount: int):
+    add_season_progress(db, user_id, mission_type, amount)
+
+    for mission in db.execute(
+        "SELECT * FROM daily_missions WHERE mission_type = ? AND is_active = 1",
+        (mission_type,),
+    ).fetchall():
+        db.execute(
+            """
+            INSERT INTO mission_progress(
+                user_id, mission_id, mission_date, progress, claimed
+            )
+            VALUES (?, ?, ?, ?, 0)
+            ON CONFLICT(user_id, mission_id, mission_date)
+            DO UPDATE SET progress = progress + excluded.progress
+            """,
+            (user_id, mission["id"], today_key(), amount),
+        )
+
+
+def add_tournament_score(db, user_id: int, amount: int):
+    if amount <= 0:
+        return
+    now = int(time.time())
+    for tournament in db.execute(
+        """
+        SELECT * FROM tournaments
+        WHERE is_active = 1 AND starts_at <= ? AND ends_at >= ?
+        """,
+        (now, now),
+    ).fetchall():
+        db.execute(
+            """
+            INSERT INTO tournament_scores(
+                tournament_id, user_id, score, updated_at
+            )
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(tournament_id, user_id)
+            DO UPDATE SET score = score + excluded.score,
+                          updated_at = excluded.updated_at
+            """,
+            (tournament["id"], user_id, amount, now),
+        )
+
+
+def achievement_value(db, user_id: int, achievement):
+    user = db.execute(
+        "SELECT * FROM users WHERE telegram_id = ?",
+        (user_id,),
+    ).fetchone()
+    kind = achievement["condition_type"]
+    if kind == "earned":
+        return user["total_earned"]
+    if kind == "friends":
+        return user["referrals_count"]
+    if kind == "tasks":
+        return db.execute(
+            "SELECT COUNT(*) FROM task_claims WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+    if kind == "level":
+        return level_info(user["xp"])["number"]
+    return 0
+
+
+def unlock_achievements(db, user_id: int):
+    for achievement in db.execute(
+        "SELECT * FROM achievements WHERE is_active = 1"
+    ).fetchall():
+        if achievement_value(db, user_id, achievement) >= achievement["condition_value"]:
+            db.execute(
+                """
+                INSERT OR IGNORE INTO user_achievements(
+                    user_id, achievement_id, claimed, unlocked_at
+                )
+                VALUES (?, ?, 0, ?)
+                """,
+                (user_id, achievement["id"], int(time.time())),
+            )
+
+
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    referrer_id = None
+
+    if context.args and context.args[0].startswith("ref_"):
+        raw = context.args[0].replace("ref_", "", 1)
+        if raw.isdigit():
+            referrer_id = int(raw)
+
+    user = update.effective_user
+    upsert_user(
+        {
+            "id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+        },
+        referrer_id,
+    )
+
+    if not runtime_webapp_url():
+        await update.message.reply_text(
+            "✅ Бот працює локально.\n"
+            "Для відкриття Mini App у Telegram пізніше додамо WEBAPP_URL."
+        )
+        return
+
+    keyboard = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton(
+                "🚀 Відкрити ReferHub Rewards",
+                web_app=WebAppInfo(url=runtime_webapp_url()),
+            )
+        ]]
+    )
+
+    await update.message.reply_text(
+        "⭐ ReferHub Rewards\nВиконуй завдання, крути рулетку та заробляй RH ⭐.",
+        reply_markup=keyboard,
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global bot_app
+    init_database()
+
+    token = runtime_bot_token()
+    webapp_url = runtime_webapp_url()
+    if token:
+        bot_app = Application.builder().token(token).build()
+        bot_app.add_handler(CommandHandler("start", start_command))
+        await bot_app.initialize()
+        await bot_app.start()
+        await bot_app.updater.start_polling(drop_pending_updates=True)
+        print("✅ Telegram-бот запущено")
+    else:
+        print("⚠️ BOT_TOKEN порожній — працює лише локальний Mini App")
+
+    yield
+
+    if bot_app:
+        await bot_app.updater.stop()
+        await bot_app.stop()
+        await bot_app.shutdown()
+
+
+app = FastAPI(title="ReferHub Rewards", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+
+@app.get("/")
+async def index():
+    return FileResponse(BASE_DIR / "static" / "index.html")
+
+
+@app.get("/health")
+async def health():
+    token = runtime_bot_token()
+    url = runtime_webapp_url()
+    source = "BOT_TOKEN" if (os.getenv("BOT_TOKEN") or "").strip() else (
+        "TELEGRAM_BOT_TOKEN" if (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip() else "none"
+    )
+    return {
+        "ok": True,
+        "bot_token_configured": bool(token),
+        "bot_token_source": source,
+        "bot_token_length": len(token),
+        "webapp_url_configured": bool(url),
+        "webapp_url": url if url else "",
+        "bot_username": BOT_USERNAME,
+        "data_dir": str(DATA_DIR),
+    }
+
+
+@app.get("/api/me")
+async def api_me(x_telegram_init_data: str | None = Header(default=None)):
+    user = current_user(x_telegram_init_data)
+    return get_profile(int(user["id"]))
+
+
+@app.get("/api/profile-pro")
+async def profile_pro(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+    day = 86400
+    start_14_days = now - 13 * day
+
+    with connect_db() as db:
+        profile_row = db.execute(
+            "SELECT * FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+
+        tasks_completed = db.execute(
+            "SELECT COUNT(*) FROM task_claims WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        games_played = db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        games_won = db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id = ? AND reward > 0",
+            (user_id,),
+        ).fetchone()[0]
+
+        game_rewards = db.execute(
+            "SELECT COALESCE(SUM(reward), 0) FROM game_plays WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        orders_count = db.execute(
+            "SELECT COUNT(*) FROM gift_orders WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        tournaments_count = db.execute(
+            "SELECT COUNT(*) FROM tournament_scores WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        best_tournament_place = db.execute(
+            "SELECT MIN(place) FROM tournament_results WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        achievements = db.execute(
+            """
+            SELECT achievements.id, achievements.title,
+                   achievements.icon, achievements.description,
+                   user_achievements.claimed,
+                   user_achievements.unlocked_at
+            FROM user_achievements
+            JOIN achievements
+              ON achievements.id = user_achievements.achievement_id
+            WHERE user_achievements.user_id = ?
+            ORDER BY user_achievements.unlocked_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+
+        activity_rows = db.execute(
+            """
+            SELECT date(created_at, 'unixepoch') AS activity_day,
+                   COUNT(*) AS actions,
+                   COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS earned
+            FROM ledger
+            WHERE user_id = ? AND created_at >= ?
+            GROUP BY activity_day
+            """,
+            (user_id, start_14_days),
+        ).fetchall()
+
+        activity_map = {
+            row["activity_day"]: {
+                "actions": row["actions"],
+                "earned": row["earned"],
+            }
+            for row in activity_rows
+        }
+
+        activity = []
+        for offset in range(13, -1, -1):
+            timestamp = now - offset * day
+            key = time.strftime("%Y-%m-%d", time.gmtime(timestamp))
+            item = activity_map.get(key, {"actions": 0, "earned": 0})
+            activity.append({
+                "date": key,
+                "label": time.strftime("%d.%m", time.gmtime(timestamp)),
+                **item,
+            })
+
+        favorite = None
+        if profile_row["featured_achievement_id"]:
+            favorite_row = db.execute(
+                """
+                SELECT achievements.id, achievements.title,
+                       achievements.icon, achievements.description
+                FROM achievements
+                JOIN user_achievements
+                  ON user_achievements.achievement_id = achievements.id
+                WHERE achievements.id = ?
+                  AND user_achievements.user_id = ?
+                """,
+                (
+                    profile_row["featured_achievement_id"],
+                    user_id,
+                ),
+            ).fetchone()
+            if favorite_row:
+                favorite = dict(favorite_row)
+
+        account_age_days = max(
+            1,
+            (now - profile_row["created_at"]) // day + 1,
+        )
+
+    return {
+        "tasks_completed": tasks_completed,
+        "games_played": games_played,
+        "games_won": games_won,
+        "win_rate": round(games_won * 100 / games_played) if games_played else 0,
+        "game_rewards": game_rewards,
+        "orders_count": orders_count,
+        "tournaments_count": tournaments_count,
+        "best_tournament_place": best_tournament_place,
+        "account_age_days": account_age_days,
+        "activity": activity,
+        "unlocked_achievements": [dict(row) for row in achievements],
+        "favorite_achievement": favorite,
+        "available_frames": [
+
+            {"key": "violet", "name": "Violet Core", "min_level": 1},
+            {"key": "horned", "name": "Demon Horns", "min_level": 2},
+            {"key": "angel", "name": "Celestial Wings", "min_level": 3},
+            {"key": "tree", "name": "Ancient Tree", "min_level": 4},
+            {"key": "crown", "name": "Royal Crown", "min_level": 5},
+            {"key": "dragon", "name": "Dragon Coil", "min_level": 6},
+            {"key": "frost", "name": "Frozen King", "min_level": 7},
+            {"key": "thunder", "name": "Thunder God", "min_level": 8},
+            {"key": "necromancer", "name": "Necromancer", "min_level": 9},
+            {"key": "sakura", "name": "Sakura Spirit", "min_level": 10},
+            {"key": "galaxy", "name": "Galaxy Orbit", "min_level": 12},
+            {"key": "phoenix", "name": "Phoenix Rise", "min_level": 14},
+            {"key": "raven", "name": "Raven Lord", "min_level": 16},
+            {"key": "mythic", "name": "Mythic Throne", "min_level": 18},
+            {"key": "founder", "name": "Founder Artifact", "min_level": 20}
+        ],
+    }
+
+
+@app.patch("/api/profile-pro/style")
+async def update_profile_style(
+    payload: ProfileStylePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    allowed_frames = {
+        "violet": 1,
+        "cyan": 2,
+        "gold": 4,
+        "inferno": 5,
+    }
+
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT xp FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+        current_level = level_info(row["xp"])["number"]
+
+        if payload.frame is not None:
+            if payload.frame not in allowed_frames:
+                raise HTTPException(400, "Невідома рамка профілю")
+            if current_level < allowed_frames[payload.frame]:
+                raise HTTPException(
+                    400,
+                    f"Рамка відкривається на {allowed_frames[payload.frame]} рівні",
+                )
+            db.execute(
+                "UPDATE users SET profile_frame = ? WHERE telegram_id = ?",
+                (payload.frame, user_id),
+            )
+
+        if payload.featured_achievement_id is not None:
+            unlocked = db.execute(
+                """
+                SELECT 1 FROM user_achievements
+                WHERE user_id = ? AND achievement_id = ?
+                """,
+                (user_id, payload.featured_achievement_id),
+            ).fetchone()
+            if not unlocked:
+                raise HTTPException(400, "Це досягнення ще не відкрито")
+            db.execute(
+                """
+                UPDATE users
+                SET featured_achievement_id = ?
+                WHERE telegram_id = ?
+                """,
+                (payload.featured_achievement_id, user_id),
+            )
+
+        db.commit()
+
+    return {"ok": True}
+
+
+
+
+@app.get("/api/tasks")
+async def api_tasks(x_telegram_init_data: str | None = Header(default=None)):
+    user = current_user(x_telegram_init_data)
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT tasks.*,
+                   CASE WHEN task_claims.id IS NULL THEN 0 ELSE 1 END AS claimed,
+                   task_opens.opened_at
+            FROM tasks
+            LEFT JOIN task_claims
+              ON task_claims.task_id = tasks.id
+             AND task_claims.user_id = ?
+            LEFT JOIN task_opens
+              ON task_opens.task_id = tasks.id
+             AND task_opens.user_id = ?
+            WHERE tasks.is_active = 1
+              AND (tasks.starts_at = 0 OR tasks.starts_at <= strftime('%s','now'))
+              AND (tasks.ends_at = 0 OR tasks.ends_at >= strftime('%s','now'))
+            ORDER BY tasks.sort_order DESC, tasks.id DESC
+            """,
+            (int(user["id"]), int(user["id"])),
+        ).fetchall()
+
+    result = []
+    with connect_db() as db:
+        for row in rows:
+            item = dict(row)
+            item["category_name"] = TASK_CATEGORIES.get(
+                item["category"],
+                item["category"],
+            )
+            item["claims_count"] = db.execute(
+                "SELECT COUNT(*) FROM task_claims WHERE task_id = ?",
+                (item["id"],),
+            ).fetchone()[0]
+            item["remaining_claims"] = (
+                max(0, item["max_claims"] - item["claims_count"])
+                if item["max_claims"]
+                else None
+            )
+            result.append(item)
+
+    return result
+
+
+@app.post("/api/tasks/{task_id}/open")
+async def open_task(
+    task_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        task = db.execute(
+            "SELECT * FROM tasks WHERE id = ? AND is_active = 1",
+            (task_id,),
+        ).fetchone()
+        if not task:
+            raise HTTPException(404, "Завдання не знайдено")
+
+        db.execute(
+            """
+            INSERT INTO task_opens(task_id, user_id, opened_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(task_id, user_id)
+            DO UPDATE SET opened_at = excluded.opened_at
+            """,
+            (task_id, user_id, int(time.time())),
+        )
+        db.commit()
+
+    return {
+        "ok": True,
+        "link": task["link"],
+        "wait_seconds": task["wait_seconds"],
+    }
+
+
+@app.post("/api/tasks/{task_id}/claim")
+async def claim_task(
+    task_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        task = db.execute(
+            "SELECT * FROM tasks WHERE id = ? AND is_active = 1",
+            (task_id,),
+        ).fetchone()
+
+        if not task:
+            raise HTTPException(404, "Завдання не знайдено")
+
+        available, availability_message = task_availability(db, task)
+        if not available:
+            db.execute(
+                """
+                INSERT INTO task_checks(task_id, user_id, success, message, checked_at)
+                VALUES (?, ?, 0, ?, ?)
+                """,
+                (task_id, user_id, availability_message, int(time.time())),
+            )
+            db.commit()
+            raise HTTPException(400, availability_message)
+
+        claimed = db.execute(
+            """
+            SELECT id FROM task_claims
+            WHERE task_id = ? AND user_id = ?
+            """,
+            (task_id, user_id),
+        ).fetchone()
+        if claimed:
+            raise HTTPException(409, "Нагороду вже отримано")
+
+        verified, message = await verify_task_completion(
+            db,
+            task,
+            user_id,
+        )
+        db.execute(
+            """
+            INSERT INTO task_checks(task_id, user_id, success, message, checked_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                task_id,
+                user_id,
+                1 if verified else 0,
+                message,
+                int(time.time()),
+            ),
+        )
+
+        if not verified:
+            db.commit()
+            raise HTTPException(400, message or "Завдання не виконано")
+
+        try:
+            db.execute(
+                """
+                INSERT INTO task_claims(task_id, user_id, claimed_at)
+                VALUES (?, ?, ?)
+                """,
+                (task_id, user_id, int(time.time())),
+            )
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, "Нагороду вже отримано")
+
+        add_balance(
+            db,
+            user_id,
+            task["reward"],
+            f"Завдання: {task['title']}",
+            task["xp_reward"],
+        )
+        add_mission_progress(db, user_id, "tasks", 1)
+        add_mission_progress(db, user_id, "earned", task["reward"])
+        add_tournament_score(db, user_id, task["reward"])
+        unlock_achievements(db, user_id)
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {"reward": task["reward"], "balance": balance}
+
+
+@app.post("/api/spin")
+async def spin(x_telegram_init_data: str | None = Header(default=None)):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        last = db.execute(
+            """
+            SELECT created_at FROM spins
+            WHERE user_id = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+
+        if last and last["created_at"] + 86400 > now:
+            raise HTTPException(429, "Спроба ще не відновилася")
+
+        rewards = [0, 1, 2, 3, 5, 10, 20]
+        weights = [25, 24, 20, 14, 10, 5, 2]
+        reward = random.choices(rewards, weights=weights, k=1)[0]
+
+        db.execute(
+            "INSERT INTO spins(user_id, reward, created_at) VALUES (?, ?, ?)",
+            (user_id, reward, now),
+        )
+
+        if reward:
+            add_balance(db, user_id, reward, "Щоденна рулетка")
+
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {"reward": reward, "balance": balance, "next_spin_in": 86400}
+
+
+@app.post("/api/daily")
+async def claim_daily(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        last = db.execute(
+            """
+            SELECT streak, claimed_at
+            FROM daily_claims
+            WHERE user_id = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+
+        if last and last["claimed_at"] + 86400 > now:
+            raise HTTPException(429, "Щоденний бонус уже отримано")
+
+        if last and now - last["claimed_at"] <= 172800:
+            streak = min(last["streak"] + 1, 30)
+        else:
+            streak = 1
+
+        reward = min(1 + streak // 3, 10)
+
+        db.execute(
+            """
+            INSERT INTO daily_claims(user_id, reward, streak, claimed_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (user_id, reward, streak, now),
+        )
+        add_balance(
+            db,
+            user_id,
+            reward,
+            f"Щоденний бонус • день {streak}",
+        )
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "reward": reward,
+        "streak": streak,
+        "balance": balance,
+        "next_in": 86400,
+    }
+
+
+@app.get("/api/friends")
+async def friends(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT telegram_id, username, first_name,
+                   total_earned, created_at, last_seen
+            FROM users
+            WHERE referrer_id = ?
+            ORDER BY created_at DESC
+            LIMIT 500
+            """,
+            (user_id,),
+        ).fetchall()
+
+        referral_earned = db.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM referral_rewards
+            WHERE referrer_id = ?
+            """,
+            (user_id,),
+        ).fetchone()[0]
+
+    now = int(time.time())
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["is_online"] = now - int(item.get("last_seen") or 0) <= 300
+        result.append(item)
+
+    return result
+
+
+
+@app.get("/api/leaderboard")
+async def leaderboard(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT telegram_id, username, first_name,
+                   balance, total_earned, referrals_count,
+                   xp, last_seen, created_at
+            FROM users
+            ORDER BY total_earned DESC, balance DESC, referrals_count DESC
+            LIMIT 100
+            """
+        ).fetchall()
+
+    current_time = int(time.time())
+    players = []
+    my_rank = None
+
+    for index, row in enumerate(rows, start=1):
+        item = dict(row)
+        item["rank"] = index
+        item["level"] = level_info(int(item.get("xp") or 0))
+        item["is_online"] = (
+            current_time - int(item.get("last_seen") or 0) <= 300
+        )
+        item["is_me"] = int(item["telegram_id"]) == user_id
+        item["league"] = (
+            "Legend" if index <= 3 else
+            "Diamond" if index <= 10 else
+            "Platinum" if index <= 25 else
+            "Gold" if index <= 50 else
+            "Silver"
+        )
+        if item["is_me"]:
+            my_rank = index
+        players.append(item)
+
+    return {
+        "players": players,
+        "my_rank": my_rank,
+        "total_players": len(players),
+    }
+
+
+@app.get("/api/referrals/summary")
+async def referral_summary(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        profile = db.execute(
+            """
+            SELECT referrals_count
+            FROM users
+            WHERE telegram_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+
+        total_reward = db.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM referral_rewards
+            WHERE referrer_id = ?
+            """,
+            (user_id,),
+        ).fetchone()[0]
+
+        active_count = db.execute(
+            """
+            SELECT COUNT(*)
+            FROM users
+            WHERE referrer_id = ?
+              AND last_seen >= ?
+            """,
+            (user_id, int(time.time()) - 7 * 86400),
+        ).fetchone()[0]
+
+    count = profile["referrals_count"] if profile else 0
+    milestones = [
+        {"count": 1, "label": "Перший друг"},
+        {"count": 5, "label": "Команда"},
+        {"count": 10, "label": "Амбасадор"},
+        {"count": 25, "label": "Лідер"},
+        {"count": 50, "label": "Легенда"},
+    ]
+    next_milestone = next(
+        (milestone for milestone in milestones if count < milestone["count"]),
+        None,
+    )
+
+    return {
+        "referrals_count": count,
+        "active_count": active_count,
+        "total_reward": total_reward,
+        "reward_per_friend": REFERRAL_REWARD,
+        "referral_link": (
+            f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
+        ),
+        "next_milestone": next_milestone,
+        "milestones": [
+            {
+                **milestone,
+                "completed": count >= milestone["count"],
+            }
+            for milestone in milestones
+        ],
+    }
+
+
+@app.get("/api/feed")
+async def feed(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    current_user(x_telegram_init_data)
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT users.first_name, ledger.amount, ledger.note,
+                   ledger.created_at
+            FROM ledger
+            JOIN users ON users.telegram_id = ledger.user_id
+            WHERE ledger.amount > 0
+            ORDER BY ledger.id DESC
+            LIMIT 10
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/admin/tasks")
+async def admin_tasks(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT tasks.*,
+                   COUNT(task_claims.id) AS claims_count
+            FROM tasks
+            LEFT JOIN task_claims ON task_claims.task_id = tasks.id
+            GROUP BY tasks.id
+            ORDER BY tasks.sort_order DESC, tasks.id DESC
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/admin/telegram-channel/check")
+async def admin_check_telegram_channel(
+    chat_id: str,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    if not bot_app:
+        raise HTTPException(400, "Telegram-бот не запущений. Перевір BOT_TOKEN.")
+
+    try:
+        normalized = normalize_telegram_chat_id(chat_id)
+        chat = await bot_app.bot.get_chat(normalized)
+        bot_user = await bot_app.bot.get_me()
+        bot_member = await bot_app.bot.get_chat_member(
+            chat_id=normalized,
+            user_id=bot_user.id,
+        )
+
+        bot_status = bot_member.status
+        can_check_members = bot_status in {"administrator", "creator"}
+
+        return {
+            "ok": True,
+            "chat_id": chat.id,
+            "title": chat.title or chat.username or str(chat.id),
+            "username": chat.username,
+            "type": chat.type,
+            "bot_status": bot_status,
+            "can_check_members": can_check_members,
+            "message": (
+                "Канал готовий до перевірки підписок"
+                if can_check_members
+                else "Додай бота адміністратором каналу"
+            ),
+        }
+    except Exception as error:
+        message = str(error)
+        raise HTTPException(
+            400,
+            f"Не вдалося перевірити канал: {message[:180]}",
+        )
+
+
+
+
+@app.post("/api/admin/tasks")
+async def admin_create_task(
+    payload: TaskCreatePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    if payload.category not in TASK_CATEGORIES:
+        raise HTTPException(400, "Невідома категорія")
+
+    allowed_verification = {
+        "instant",
+        "visit",
+        "telegram_member",
+        "referral",
+    }
+    if payload.verification_type not in allowed_verification:
+        raise HTTPException(400, "Невідомий тип перевірки")
+
+    with connect_db() as db:
+        cursor = db.execute(
+            """
+            INSERT INTO tasks(
+                title, description, reward, icon, link,
+                category, verification_type, telegram_chat_id,
+                wait_seconds, sort_order, max_claims,
+                starts_at, ends_at, is_active, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            """,
+            (
+                payload.title,
+                payload.description,
+                payload.reward,
+                payload.icon,
+                payload.link,
+                payload.category,
+                payload.verification_type,
+                payload.telegram_chat_id,
+                payload.wait_seconds,
+                payload.sort_order,
+                payload.max_claims,
+                payload.starts_at,
+                payload.ends_at,
+                int(time.time()),
+            ),
+        )
+        db.commit()
+
+    return {"ok": True, "id": cursor.lastrowid}
+
+
+@app.patch("/api/admin/tasks/{task_id}")
+async def admin_update_task(
+    task_id: int,
+    payload: TaskUpdatePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    data = payload.model_dump(exclude_unset=True)
+    if not data:
+        return {"ok": True}
+
+    allowed_fields = {
+        "title",
+        "description",
+        "reward",
+        "icon",
+        "link",
+        "category",
+        "verification_type",
+        "telegram_chat_id",
+        "wait_seconds",
+        "sort_order",
+        "max_claims",
+        "starts_at",
+        "ends_at",
+        "is_active",
+    }
+
+    fields = []
+    values = []
+    for key, value in data.items():
+        if key not in allowed_fields:
+            continue
+        if key == "is_active":
+            value = 1 if value else 0
+        fields.append(f"{key} = ?")
+        values.append(value)
+
+    if not fields:
+        return {"ok": True}
+
+    values.append(task_id)
+
+    with connect_db() as db:
+        db.execute(
+            f"UPDATE tasks SET {', '.join(fields)} WHERE id = ?",
+            values,
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.delete("/api/admin/tasks/{task_id}")
+async def admin_delete_task(
+    task_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        db.execute(
+            "UPDATE tasks SET is_active = 0 WHERE id = ?",
+            (task_id,),
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/tasks/{task_id}")
+async def admin_task_detail(
+    task_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        task = db.execute(
+            "SELECT * FROM tasks WHERE id = ?",
+            (task_id,),
+        ).fetchone()
+        if not task:
+            raise HTTPException(404, "Завдання не знайдено")
+
+        data = dict(task)
+        data["claims_count"] = db.execute(
+            "SELECT COUNT(*) FROM task_claims WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()[0]
+        data["checks_count"] = db.execute(
+            "SELECT COUNT(*) FROM task_checks WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()[0]
+
+    return data
+
+
+@app.get("/api/admin/tasks/{task_id}/checks")
+async def admin_task_checks(
+    task_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT task_checks.*, users.first_name, users.username
+            FROM task_checks
+            LEFT JOIN users ON users.telegram_id = task_checks.user_id
+            WHERE task_checks.task_id = ?
+            ORDER BY task_checks.id DESC
+            LIMIT 100
+            """,
+            (task_id,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/admin/tasks/{task_id}/restore")
+async def admin_restore_task(
+    task_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        db.execute(
+            "UPDATE tasks SET is_active = 1 WHERE id = ?",
+            (task_id,),
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/gifts")
+async def admin_gifts(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT gifts.*,
+                   COUNT(gift_orders.id) AS orders_count
+            FROM gifts
+            LEFT JOIN gift_orders ON gift_orders.gift_id = gifts.id
+            GROUP BY gifts.id
+            ORDER BY gifts.sort_order DESC, gifts.id DESC
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/admin/gifts")
+async def admin_create_gift(
+    payload: GiftCreatePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        cursor = db.execute(
+            """
+            INSERT INTO gifts(
+                title, description, price, emoji,
+                stock, sort_order, is_active, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+            """,
+            (
+                payload.title,
+                payload.description,
+                payload.price,
+                payload.emoji,
+                payload.stock,
+                payload.sort_order,
+                int(time.time()),
+            ),
+        )
+        db.commit()
+
+    return {"ok": True, "id": cursor.lastrowid}
+
+
+@app.patch("/api/admin/gifts/{gift_id}")
+async def admin_update_gift(
+    gift_id: int,
+    payload: GiftUpdatePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    data = payload.model_dump(exclude_unset=True)
+    if not data:
+        return {"ok": True}
+
+    fields = []
+    values = []
+    for key, value in data.items():
+        if key == "is_active":
+            value = 1 if value else 0
+        fields.append(f"{key} = ?")
+        values.append(value)
+
+    values.append(gift_id)
+
+    with connect_db() as db:
+        db.execute(
+            f"UPDATE gifts SET {', '.join(fields)} WHERE id = ?",
+            values,
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/orders")
+async def admin_orders(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT gift_orders.*, gifts.title, gifts.emoji,
+                   users.first_name, users.username,
+                   (
+                       SELECT COUNT(*)
+                       FROM order_status_history
+                       WHERE order_status_history.order_id = gift_orders.id
+                   ) AS status_changes
+            FROM gift_orders
+            JOIN gifts ON gifts.id = gift_orders.gift_id
+            JOIN users ON users.telegram_id = gift_orders.user_id
+            ORDER BY
+                CASE gift_orders.status
+                    WHEN 'pending' THEN 0
+                    WHEN 'completed' THEN 1
+                    ELSE 2
+                END,
+                gift_orders.id DESC
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.patch("/api/admin/orders/{order_id}")
+async def admin_update_order(
+    order_id: int,
+    payload: OrderStatusPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    admin_id = int(user["id"])
+    require_admin(admin_id)
+
+    allowed = {"pending", "processing", "completed", "rejected"}
+    if payload.status not in allowed:
+        raise HTTPException(400, "Невідомий статус заявки")
+
+    with connect_db() as db:
+        order = db.execute(
+            """
+            SELECT gift_orders.*, gifts.title
+            FROM gift_orders
+            JOIN gifts ON gifts.id = gift_orders.gift_id
+            WHERE gift_orders.id = ?
+            """,
+            (order_id,),
+        ).fetchone()
+        if not order:
+            raise HTTPException(404, "Заявку не знайдено")
+
+        old_status = order["status"]
+        if old_status == payload.status:
+            raise HTTPException(409, "Цей статус уже встановлено")
+
+        if old_status in {"completed", "rejected"}:
+            raise HTTPException(409, "Завершену заявку вже не можна змінити")
+
+        if payload.status == "rejected":
+            add_balance(
+                db,
+                order["user_id"],
+                order["price"],
+                f"Повернення за заявку #{order_id}",
+            )
+            db.execute(
+                """
+                UPDATE gifts
+                SET stock = CASE WHEN stock > 0 THEN stock + 1 ELSE stock END
+                WHERE id = ?
+                """,
+                (order["gift_id"],),
+            )
+
+        now = int(time.time())
+        db.execute(
+            """
+            UPDATE gift_orders
+            SET status = ?, admin_note = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (payload.status, payload.admin_note, now, order_id),
+        )
+        db.execute(
+            """
+            INSERT INTO order_status_history(
+                order_id, old_status, new_status,
+                admin_id, note, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                order_id,
+                old_status,
+                payload.status,
+                admin_id,
+                payload.admin_note,
+                now,
+            ),
+        )
+        log_admin_action(
+            db,
+            admin_id,
+            "order_status_changed",
+            f"Заявка #{order_id}: {old_status} → {payload.status}",
+            order["user_id"],
+        )
+        db.commit()
+
+    notified = False
+    if payload.notify_user:
+        notified = await notify_order_user(
+            order["user_id"],
+            order_id,
+            order["title"],
+            payload.status,
+            payload.admin_note,
+        )
+
+    return {"ok": True, "notified": notified}
+
+
+@app.get("/api/admin/orders/{order_id}/history")
+async def admin_order_history(
+    order_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT order_status_history.*,
+                   users.first_name AS admin_name,
+                   users.username AS admin_username
+            FROM order_status_history
+            LEFT JOIN users
+              ON users.telegram_id = order_status_history.admin_id
+            WHERE order_status_history.order_id = ?
+            ORDER BY order_status_history.id DESC
+            """,
+            (order_id,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def log_admin_action(db, admin_id: int, action: str, details: str = "", target_user_id: int | None = None):
+    db.execute(
+        """
+        INSERT INTO admin_action_logs(admin_id, target_user_id, action, details, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (admin_id, target_user_id, action, details, int(time.time())),
+    )
+
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+    now = int(time.time())
+    day_ago = now - 86400
+    week_ago = now - 7 * 86400
+
+    with connect_db() as db:
+        total_users = db.execute(
+            "SELECT COUNT(*) FROM users"
+        ).fetchone()[0]
+
+        active_today = db.execute(
+            "SELECT COUNT(*) FROM users WHERE last_seen >= ?",
+            (day_ago,),
+        ).fetchone()[0]
+
+        active_week = db.execute(
+            "SELECT COUNT(*) FROM users WHERE last_seen >= ?",
+            (week_ago,),
+        ).fetchone()[0]
+
+        banned_users = db.execute(
+            "SELECT COUNT(*) FROM users WHERE is_banned = 1"
+        ).fetchone()[0]
+
+        total_balance = db.execute(
+            "SELECT COALESCE(SUM(balance), 0) FROM users"
+        ).fetchone()[0]
+
+        issued_today = db.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM ledger
+            WHERE amount > 0 AND created_at >= ?
+            """,
+            (day_ago,),
+        ).fetchone()[0]
+
+        spent_today = abs(db.execute(
+            """
+            SELECT COALESCE(SUM(amount), 0)
+            FROM ledger
+            WHERE amount < 0 AND created_at >= ?
+            """,
+            (day_ago,),
+        ).fetchone()[0])
+
+        total_games = db.execute(
+            "SELECT COUNT(*) FROM game_plays"
+        ).fetchone()[0]
+
+        pending_orders = db.execute(
+            """
+            SELECT COUNT(*) FROM gift_orders
+            WHERE status IN ('new', 'pending', 'Нове', 'В обробці')
+            """
+        ).fetchone()[0]
+
+        active_tasks = db.execute(
+            "SELECT COUNT(*) FROM tasks WHERE is_active = 1"
+        ).fetchone()[0]
+
+        recent_users = db.execute(
+            """
+            SELECT telegram_id, username, first_name,
+                   balance, xp, is_banned, last_seen, created_at
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT 8
+            """
+        ).fetchall()
+
+        recent_orders = db.execute(
+            """
+            SELECT gift_orders.id, gift_orders.user_id,
+                   gift_orders.status, gift_orders.price,
+                   gift_orders.created_at, gifts.title AS gift_title,
+                   users.first_name
+            FROM gift_orders
+            LEFT JOIN gifts ON gifts.id = gift_orders.gift_id
+            LEFT JOIN users ON users.telegram_id = gift_orders.user_id
+            ORDER BY gift_orders.created_at DESC
+            LIMIT 8
+            """
+        ).fetchall()
+
+        game_stats = db.execute(
+            """
+            SELECT game_key, COUNT(*) AS plays,
+                   COALESCE(SUM(reward), 0) AS rewards
+            FROM game_plays
+            GROUP BY game_key
+            ORDER BY plays DESC
+            """
+        ).fetchall()
+
+        ledger_days = db.execute(
+            """
+            SELECT date(created_at, 'unixepoch') AS day,
+                   COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS issued,
+                   ABS(COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0)) AS spent
+            FROM ledger
+            WHERE created_at >= ?
+            GROUP BY day
+            ORDER BY day
+            """,
+            (week_ago,),
+        ).fetchall()
+
+    return {
+        "total_users": total_users,
+        "active_today": active_today,
+        "active_week": active_week,
+        "banned_users": banned_users,
+        "total_balance": total_balance,
+        "issued_today": issued_today,
+        "spent_today": spent_today,
+        "total_games": total_games,
+        "pending_orders": pending_orders,
+        "active_tasks": active_tasks,
+        "recent_users": [dict(row) for row in recent_users],
+        "recent_orders": [dict(row) for row in recent_orders],
+        "game_stats": [dict(row) for row in game_stats],
+        "ledger_days": [dict(row) for row in ledger_days],
+    }
+
+
+
+
+@app.get("/api/admin/users")
+async def admin_users(
+    q: str = "",
+    limit: int = 100,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    limit = max(1, min(limit, 500))
+    search = f"%{q.strip()}%"
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT telegram_id, username, first_name, balance, xp,
+                   total_earned, referrals_count, created_at,
+                   last_seen, is_banned
+            FROM users
+            WHERE ? = ''
+               OR CAST(telegram_id AS TEXT) LIKE ?
+               OR COALESCE(username, '') LIKE ?
+               OR COALESCE(first_name, '') LIKE ?
+            ORDER BY last_seen DESC
+            LIMIT ?
+            """,
+            (q.strip(), search, search, search, limit),
+        ).fetchall()
+
+    now = int(time.time())
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["is_online"] = now - item["last_seen"] <= 300
+        result.append(item)
+
+    return result
+
+
+@app.get("/api/admin/users/{user_id}")
+async def admin_user_detail(
+    user_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        profile = db.execute(
+            """
+            SELECT telegram_id, username, first_name, balance, xp,
+                   total_earned, referrals_count, referrer_id,
+                   created_at, last_seen, is_banned
+            FROM users
+            WHERE telegram_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+        if not profile:
+            raise HTTPException(404, "Користувача не знайдено")
+
+        history = db.execute(
+            """
+            SELECT amount, note, created_at
+            FROM ledger
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (user_id,),
+        ).fetchall()
+
+        orders = db.execute(
+            """
+            SELECT gift_orders.id, gift_orders.price,
+                   gift_orders.status, gift_orders.created_at,
+                   gifts.title, gifts.emoji
+            FROM gift_orders
+            JOIN gifts ON gifts.id = gift_orders.gift_id
+            WHERE gift_orders.user_id = ?
+            ORDER BY gift_orders.id DESC
+            LIMIT 50
+            """,
+            (user_id,),
+        ).fetchall()
+
+        achievements = db.execute(
+            """
+            SELECT achievements.id, achievements.title, achievements.icon,
+                   achievements.reward, achievements.xp_reward,
+                   CASE WHEN user_achievements.id IS NULL THEN 0 ELSE 1 END AS unlocked,
+                   COALESCE(user_achievements.claimed, 0) AS claimed
+            FROM achievements
+            LEFT JOIN user_achievements
+              ON user_achievements.achievement_id = achievements.id
+             AND user_achievements.user_id = ?
+            WHERE achievements.is_active = 1
+            ORDER BY achievements.id
+            """,
+            (user_id,),
+        ).fetchall()
+
+    return {
+        "profile": dict(profile),
+        "history": [dict(row) for row in history],
+        "orders": [dict(row) for row in orders],
+        "achievements": [dict(row) for row in achievements],
+    }
+
+
+@app.post("/api/admin/users/{user_id}/balance")
+async def admin_change_balance(
+    user_id: int,
+    payload: BalanceChangePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    admin = current_user(x_telegram_init_data)
+    admin_id = int(admin["id"])
+    require_admin(admin_id)
+
+    if payload.amount == 0:
+        raise HTTPException(400, "Сума не може дорівнювати нулю")
+
+    with connect_db() as db:
+        target = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+        if not target:
+            raise HTTPException(404, "Користувача не знайдено")
+
+        if target["balance"] + payload.amount < 0:
+            raise HTTPException(400, "Баланс не може стати від’ємним")
+
+        add_balance(
+            db,
+            user_id,
+            payload.amount,
+            payload.note or "Корекція адміністратором",
+        )
+        log_admin_action(
+            db, admin_id, "balance_change",
+            f"{payload.amount:+d} RH — {payload.note}", user_id,
+        )
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {"ok": True, "balance": balance}
+
+
+@app.patch("/api/admin/users/{user_id}/ban")
+async def admin_ban_user(
+    user_id: int,
+    payload: UserBanPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    admin = current_user(x_telegram_init_data)
+    admin_id = int(admin["id"])
+    require_admin(admin_id)
+
+    if user_id == admin_id and payload.is_banned:
+        raise HTTPException(400, "Не можна заблокувати самого себе")
+
+    with connect_db() as db:
+        updated = db.execute(
+            "UPDATE users SET is_banned = ? WHERE telegram_id = ?",
+            (1 if payload.is_banned else 0, user_id),
+        )
+        if updated.rowcount == 0:
+            raise HTTPException(404, "Користувача не знайдено")
+        log_admin_action(
+            db, admin_id,
+            "user_ban" if payload.is_banned else "user_unban",
+            "Користувача заблоковано" if payload.is_banned else "Користувача розблоковано",
+            user_id,
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.post("/api/admin/users/{user_id}/xp")
+async def admin_change_xp(
+    user_id: int,
+    payload: XPChangePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    admin = current_user(x_telegram_init_data)
+    admin_id = int(admin["id"])
+    require_admin(admin_id)
+    if payload.amount == 0:
+        raise HTTPException(400, "Сума XP не може дорівнювати нулю")
+    with connect_db() as db:
+        target = db.execute("SELECT xp FROM users WHERE telegram_id = ?", (user_id,)).fetchone()
+        if not target:
+            raise HTTPException(404, "Користувача не знайдено")
+        new_xp = target["xp"] + payload.amount
+        if new_xp < 0:
+            raise HTTPException(400, "XP не може бути від’ємним")
+        db.execute("UPDATE users SET xp = ? WHERE telegram_id = ?", (new_xp, user_id))
+        log_admin_action(db, admin_id, "xp_change", f"{payload.amount:+d} XP — {payload.note}", user_id)
+        db.commit()
+    return {"ok": True, "xp": new_xp, "level": level_info(new_xp)}
+
+
+@app.post("/api/admin/users/{user_id}/level")
+async def admin_set_level(
+    user_id: int,
+    payload: SetLevelPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    admin = current_user(x_telegram_init_data)
+    admin_id = int(admin["id"])
+    require_admin(admin_id)
+    new_xp = (payload.level - 1) * 100
+    with connect_db() as db:
+        updated = db.execute("UPDATE users SET xp = ? WHERE telegram_id = ?", (new_xp, user_id))
+        if updated.rowcount == 0:
+            raise HTTPException(404, "Користувача не знайдено")
+        log_admin_action(db, admin_id, "level_set", f"Рівень {payload.level} — {payload.note}", user_id)
+        db.commit()
+    return {"ok": True, "xp": new_xp, "level": level_info(new_xp)}
+
+
+@app.post("/api/admin/users/{user_id}/achievement")
+async def admin_grant_achievement(
+    user_id: int,
+    payload: GrantAchievementPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    admin = current_user(x_telegram_init_data)
+    admin_id = int(admin["id"])
+    require_admin(admin_id)
+    with connect_db() as db:
+        achievement = db.execute("SELECT * FROM achievements WHERE id = ? AND is_active = 1", (payload.achievement_id,)).fetchone()
+        if not achievement:
+            raise HTTPException(404, "Досягнення не знайдено")
+        if not db.execute("SELECT 1 FROM users WHERE telegram_id = ?", (user_id,)).fetchone():
+            raise HTTPException(404, "Користувача не знайдено")
+        existing = db.execute("SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?", (user_id, payload.achievement_id)).fetchone()
+        if existing:
+            raise HTTPException(409, "Досягнення вже видано")
+        claimed = 1 if payload.claim_reward else 0
+        now = int(time.time())
+        db.execute("""INSERT INTO user_achievements(user_id, achievement_id, claimed, unlocked_at, claimed_at) VALUES (?, ?, ?, ?, ?)""",
+                   (user_id, payload.achievement_id, claimed, now, now if claimed else None))
+        if payload.claim_reward:
+            add_balance(db, user_id, achievement["reward"], f"Досягнення від адміністратора: {achievement['title']}", achievement["xp_reward"])
+        log_admin_action(db, admin_id, "achievement_grant", f"{achievement['title']} (нагорода: {'так' if payload.claim_reward else 'ні'})", user_id)
+        db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/admin/logs")
+async def admin_logs(
+    limit: int = 100,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+    limit = max(1, min(limit, 500))
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT admin_action_logs.*,
+                   admin.first_name AS admin_name,
+                   target.first_name AS target_name
+            FROM admin_action_logs
+            LEFT JOIN users admin ON admin.telegram_id = admin_action_logs.admin_id
+            LEFT JOIN users target ON target.telegram_id = admin_action_logs.target_user_id
+            ORDER BY admin_action_logs.id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/admin/referrals-top")
+async def admin_referrals_top(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT telegram_id, username, first_name,
+                   referrals_count,
+                   COALESCE((
+                       SELECT SUM(amount)
+                       FROM referral_rewards
+                       WHERE referrer_id = users.telegram_id
+                   ), 0) AS referral_earned
+            FROM users
+            ORDER BY referrals_count DESC, referral_earned DESC
+            LIMIT 100
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    now = int(time.time())
+    day_ago = now - 86400
+    week_ago = now - 7 * 86400
+
+    with connect_db() as db:
+        users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        active_day = db.execute(
+            "SELECT COUNT(*) FROM users WHERE last_seen >= ?",
+            (day_ago,),
+        ).fetchone()[0]
+        active_week = db.execute(
+            "SELECT COUNT(*) FROM users WHERE last_seen >= ?",
+            (week_ago,),
+        ).fetchone()[0]
+        total_balance = db.execute(
+            "SELECT COALESCE(SUM(balance),0) FROM users"
+        ).fetchone()[0]
+        total_earned = db.execute(
+            "SELECT COALESCE(SUM(total_earned),0) FROM users"
+        ).fetchone()[0]
+        task_claims = db.execute(
+            "SELECT COUNT(*) FROM task_claims"
+        ).fetchone()[0]
+        pending_orders = db.execute(
+            "SELECT COUNT(*) FROM gift_orders WHERE status = 'pending'"
+        ).fetchone()[0]
+        completed_orders = db.execute(
+            "SELECT COUNT(*) FROM gift_orders WHERE status = 'completed'"
+        ).fetchone()[0]
+        banned_users = db.execute(
+            "SELECT COUNT(*) FROM users WHERE is_banned = 1"
+        ).fetchone()[0]
+
+    return {
+        "users": users,
+        "active_day": active_day,
+        "active_week": active_week,
+        "total_balance": total_balance,
+        "total_earned": total_earned,
+        "task_claims": task_claims,
+        "pending_orders": pending_orders,
+        "completed_orders": completed_orders,
+        "banned_users": banned_users,
+    }
+
+
+@app.get("/api/admin/games")
+async def admin_games(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT game_settings.*,
+                   COUNT(game_plays.id) AS plays_count,
+                   COALESCE(SUM(game_plays.bet), 0) AS total_bets,
+                   COALESCE(SUM(game_plays.reward), 0) AS total_rewards
+            FROM game_settings
+            LEFT JOIN game_plays
+              ON game_plays.game_key = game_settings.game_key
+            GROUP BY game_settings.game_key
+            ORDER BY game_settings.game_key
+            """
+        ).fetchall()
+
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["config"] = json.loads(item.pop("config_json") or "{}")
+        result.append(item)
+
+    return result
+
+
+@app.patch("/api/admin/games/{game_key}")
+async def admin_update_game(
+    game_key: str,
+    payload: GameSettingsPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    data = payload.model_dump(exclude_unset=True)
+    if not data:
+        return {"ok": True}
+
+    if "config_json" in data:
+        try:
+            json.loads(data["config_json"])
+        except json.JSONDecodeError:
+            raise HTTPException(400, "config_json має бути валідним JSON")
+
+    fields = []
+    values = []
+    for key, value in data.items():
+        if key == "is_active":
+            value = 1 if value else 0
+        fields.append(f"{key} = ?")
+        values.append(value)
+
+    values.append(game_key)
+
+    with connect_db() as db:
+        updated = db.execute(
+            f"""
+            UPDATE game_settings
+            SET {', '.join(fields)}
+            WHERE game_key = ?
+            """,
+            values,
+        )
+        if updated.rowcount == 0:
+            raise HTTPException(404, "Гру не знайдено")
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/summary")
+async def admin_summary(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    if user_id not in ADMIN_IDS:
+        raise HTTPException(403, "Немає доступу")
+
+    with connect_db() as db:
+        return {
+            "users": db.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+            "online": db.execute(
+                "SELECT COUNT(*) FROM users WHERE last_seen >= ?",
+                (int(time.time()) - 300,),
+            ).fetchone()[0],
+            "tasks": db.execute(
+                "SELECT COUNT(*) FROM tasks WHERE is_active = 1"
+            ).fetchone()[0],
+            "orders": db.execute(
+                "SELECT COUNT(*) FROM gift_orders WHERE status = 'pending'"
+            ).fetchone()[0],
+            "balance_sum": db.execute(
+                "SELECT COALESCE(SUM(balance), 0) FROM users"
+            ).fetchone()[0],
+        }
+
+
+@app.get("/api/top")
+async def top(x_telegram_init_data: str | None = Header(default=None)):
+    current_user(x_telegram_init_data)
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT telegram_id, username, first_name,
+                   total_earned, referrals_count
+            FROM users
+            ORDER BY total_earned DESC, referrals_count DESC
+            LIMIT 50
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/gifts")
+async def gifts(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    current_user(x_telegram_init_data)
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT *
+            FROM gifts
+            WHERE is_active = 1
+              AND (stock = 0 OR stock > 0)
+            ORDER BY is_featured DESC, sort_order DESC, id DESC
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/gifts/{gift_id}/buy")
+async def buy_gift(
+    gift_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        gift = db.execute(
+            """
+            SELECT *
+            FROM gifts
+            WHERE id = ? AND is_active = 1
+            """,
+            (gift_id,),
+        ).fetchone()
+
+        if not gift:
+            raise HTTPException(404, "Товар не знайдено")
+
+        if gift["stock"] < 0:
+            raise HTTPException(400, "Некоректний залишок товару")
+
+        balance_row = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+        balance = balance_row["balance"] if balance_row else 0
+
+        if balance < gift["price"]:
+            raise HTTPException(400, "Недостатньо RH ⭐")
+
+        pending = db.execute(
+            """
+            SELECT id FROM gift_orders
+            WHERE user_id = ? AND gift_id = ? AND status = 'pending'
+            """,
+            (user_id, gift_id),
+        ).fetchone()
+        if pending:
+            raise HTTPException(409, "У тебе вже є заявка на цей товар")
+
+        if gift["stock"] > 0:
+            updated = db.execute(
+                """
+                UPDATE gifts
+                SET stock = stock - 1
+                WHERE id = ? AND stock > 0
+                """,
+                (gift_id,),
+            )
+            if updated.rowcount == 0:
+                raise HTTPException(409, "Товар закінчився")
+
+        add_balance(
+            db,
+            user_id,
+            -gift["price"],
+            f"Покупка: {gift['title']}",
+        )
+
+        cursor = db.execute(
+            """
+            INSERT INTO gift_orders(
+                user_id, gift_id, price, status,
+                created_at, updated_at
+            )
+            VALUES (?, ?, ?, 'pending', ?, ?)
+            """,
+            (user_id, gift_id, gift["price"], now, now),
+        )
+        db.commit()
+
+        new_balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "order_id": cursor.lastrowid,
+        "balance": new_balance,
+        "message": "Заявку створено",
+    }
+
+
+@app.post("/api/gifts/{gift_id}/buy-with-promo")
+async def buy_gift_with_promo(
+    gift_id: int,
+    payload: dict,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+    promo_text = str(payload.get("code", "")).strip()
+    promo = None
+
+    with connect_db() as db:
+        gift = db.execute(
+            "SELECT * FROM gifts WHERE id = ? AND is_active = 1",
+            (gift_id,),
+        ).fetchone()
+        if not gift:
+            raise HTTPException(404, "Товар не знайдено")
+
+        final_price = gift["price"]
+        if promo_text:
+            promo = db.execute(
+                """
+                SELECT * FROM promo_codes
+                WHERE UPPER(code) = UPPER(?)
+                  AND is_active = 1
+                  AND (expires_at = 0 OR expires_at >= ?)
+                  AND (max_uses = 0 OR uses_count < max_uses)
+                """,
+                (promo_text, now),
+            ).fetchone()
+            if not promo:
+                raise HTTPException(400, "Промокод недійсний")
+            final_price = max(
+                1,
+                int(gift["price"] * (100 - promo["discount_percent"]) / 100),
+            )
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+        if balance < final_price:
+            raise HTTPException(400, "Недостатньо RH ⭐")
+
+        if gift["stock"] > 0:
+            if db.execute(
+                "UPDATE gifts SET stock = stock - 1 WHERE id = ? AND stock > 0",
+                (gift_id,),
+            ).rowcount == 0:
+                raise HTTPException(409, "Товар закінчився")
+
+        add_balance(db, user_id, -final_price, f"Покупка: {gift['title']}")
+
+        cursor = db.execute(
+            """
+            INSERT INTO gift_orders(
+                user_id, gift_id, price, original_price,
+                promo_code, status, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+            """,
+            (
+                user_id,
+                gift_id,
+                final_price,
+                gift["price"],
+                promo_text or None,
+                now,
+                now,
+            ),
+        )
+        if promo:
+            db.execute(
+                "UPDATE promo_codes SET uses_count = uses_count + 1 WHERE id = ?",
+                (promo["id"],),
+            )
+        db.commit()
+
+        new_balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "order_id": cursor.lastrowid,
+        "balance": new_balance,
+        "final_price": final_price,
+        "message": "Заявку створено",
+    }
+
+
+
+
+@app.get("/api/orders")
+async def user_orders(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT gift_orders.*, gifts.title, gifts.emoji
+            FROM gift_orders
+            JOIN gifts ON gifts.id = gift_orders.gift_id
+            WHERE gift_orders.user_id = ?
+            ORDER BY gift_orders.id DESC
+            """,
+            (user_id,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/games")
+async def games(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+    today_start = now - (now % 86400)
+
+    with connect_db() as db:
+        settings = db.execute(
+            """
+            SELECT * FROM game_settings
+            ORDER BY game_key
+            """
+        ).fetchall()
+
+        result = []
+        for row in settings:
+            item = dict(row)
+            item["config"] = json.loads(item.pop("config_json") or "{}")
+            item["plays_today"] = db.execute(
+                """
+                SELECT COUNT(*) FROM game_plays
+                WHERE user_id = ? AND game_key = ? AND created_at >= ?
+                """,
+                (user_id, item["game_key"], today_start),
+            ).fetchone()[0]
+
+            last = db.execute(
+                """
+                SELECT created_at FROM game_plays
+                WHERE user_id = ? AND game_key = ?
+                ORDER BY id DESC LIMIT 1
+                """,
+                (user_id, item["game_key"]),
+            ).fetchone()
+
+            item["cooldown_remaining"] = 0
+            if last and item["cooldown_seconds"]:
+                item["cooldown_remaining"] = max(
+                    0,
+                    last["created_at"]
+                    + item["cooldown_seconds"]
+                    - now,
+                )
+
+            result.append(item)
+
+    return result
+
+
+@app.post("/api/games/roulette")
+async def play_roulette(
+    payload: GamePlayPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "roulette")
+        game_access_check(db, user_id, setting)
+
+        # IMPORTANT: order must match the real wheel image clockwise from 12 o'clock.
+        sectors = [1, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 15]
+        weights = [11, 10, 10, 9, 10, 8, 8, 8, 7, 7, 6, 6]
+
+        # Choose sector INDEX first. This makes visual result and reward identical.
+        sector_index = int(weighted_choice(list(range(len(sectors))), weights))
+        reward = int(sectors[sector_index])
+        is_jackpot = reward == 15
+
+        db.execute(
+            """
+            UPDATE users
+            SET stars = stars + ?,
+                last_seen = ?
+            WHERE telegram_id = ?
+            """,
+            (reward, int(time.time()), user_id),
+        )
+
+        result_text = (
+            f"⭐ ДЖЕКПОТ! +{reward} зірок"
+            if is_jackpot
+            else f"Рулетка: +{reward} зірок"
+        )
+
+        add_mission_progress(db, user_id, "games", 1)
+        save_game_play(db, user_id, "roulette", 0, reward, result_text)
+        db.commit()
+
+        row = db.execute(
+            "SELECT balance, stars FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+
+    return {
+        "ok": True,
+        "reward": reward,
+        "sector_index": sector_index,
+        "stars": int(row["stars"]),
+        "balance": int(row["balance"]),
+        "is_jackpot": is_jackpot,
+        "result_text": result_text,
+    }
+
+
+@app.post("/api/games/daily-case")
+async def play_daily_case(
+    payload: GamePlayPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "daily_case")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+
+        reward = weighted_choice(
+            config.get("rewards", [1, 2, 5]),
+            config.get("weights", [60, 30, 10]),
+        )
+        result_text = f"Щоденний кейс: +{reward} RH ⭐"
+
+        add_balance(db, user_id, reward, "Щоденний кейс", 5)
+        add_mission_progress(db, user_id, "games", 1)
+        add_mission_progress(db, user_id, "earned", reward)
+        add_tournament_score(db, user_id, reward)
+        save_game_play(
+            db,
+            user_id,
+            "daily_case",
+            0,
+            reward,
+            result_text,
+        )
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "reward": reward,
+        "balance": balance,
+        "result_text": result_text,
+    }
+
+
+@app.post("/api/games/slot")
+async def play_slot(
+    payload: GamePlayPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    import random
+
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    bet = payload.bet
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "slot")
+        game_access_check(db, user_id, setting)
+
+        if bet < setting["min_bet"] or bet > setting["max_bet"]:
+            raise HTTPException(
+                400,
+                f"Ставка від {setting['min_bet']} до {setting['max_bet']} RH ⭐",
+            )
+
+        balance_row = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+        if not balance_row or balance_row["balance"] < bet:
+            raise HTTPException(400, "Недостатньо RH ⭐")
+
+        config = json.loads(setting["config_json"] or "{}")
+        symbols = config.get(
+            "symbols",
+            ["🍒", "🍋", "🔔", "⭐", "💎"],
+        )
+        win_chance = float(config.get("win_chance", 0.24))
+        roll = random.random()
+        reward = 0
+
+        if roll < win_chance * 0.12:
+            symbol = random.choices(
+                symbols,
+                weights=[45, 28, 15, 9, 3],
+                k=1,
+            )[0]
+            result = [symbol, symbol, symbol]
+            multipliers = config.get(
+                "triple_multipliers",
+                {"🍒": 2, "🍋": 2.5, "🔔": 4, "⭐": 6, "💎": 10},
+            )
+            reward = int(bet * float(multipliers.get(symbol, 2)))
+        elif roll < win_chance:
+            pair = random.choice(symbols[:-1])
+            other = random.choice([s for s in symbols if s != pair])
+            result = random.choice([
+                [pair, pair, other],
+                [pair, other, pair],
+                [other, pair, pair],
+            ])
+            reward = int(bet * float(config.get("double_multiplier", 1.2)))
+        else:
+            result = random.sample(symbols, 3)
+
+        add_balance(
+            db,
+            user_id,
+            -bet,
+            "Ставка у слоті",
+        )
+
+        if reward:
+            add_balance(db, user_id, reward, "Виграш у слоті", 2)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+        add_mission_progress(db, user_id, "games", 1)
+        unlock_achievements(db, user_id)
+
+        result_text = f"{' '.join(result)} — виграш {reward} RH ⭐"
+        save_game_play(
+            db,
+            user_id,
+            "slot",
+            bet,
+            reward,
+            result_text,
+        )
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "symbols": result,
+        "reward": reward,
+        "balance": balance,
+        "result_text": result_text,
+    }
+
+
+
+@app.post("/api/games/coin-flip")
+async def play_coin_flip(
+    payload: CoinFlipPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    import random
+
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    choice = payload.choice.lower().strip()
+
+    if choice not in {"heads", "tails"}:
+        raise HTTPException(400, "Обери heads або tails")
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "coin_flip")
+        game_access_check(db, user_id, setting)
+
+        if payload.bet < setting["min_bet"] or payload.bet > setting["max_bet"]:
+            raise HTTPException(
+                400,
+                f"Ставка від {setting['min_bet']} до {setting['max_bet']} RH ⭐",
+            )
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+        if balance < payload.bet:
+            raise HTTPException(400, "Недостатньо RH ⭐")
+
+        config = json.loads(setting["config_json"] or "{}")
+        win = random.random() < float(config.get("win_chance", 0.46))
+        result = choice if win else ("tails" if choice == "heads" else "heads")
+        reward = int(payload.bet * float(config.get("multiplier", 1.85))) if win else 0
+
+        add_balance(db, user_id, -payload.bet, "Ставка: Орел чи решка")
+        if reward:
+            add_balance(db, user_id, reward, "Виграш: Орел чи решка", 2)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+
+        add_mission_progress(db, user_id, "games", 1)
+        save_game_play(
+            db,
+            user_id,
+            "coin_flip",
+            payload.bet,
+            reward,
+            f"{'Орел' if result == 'heads' else 'Решка'} — {'виграш' if win else 'програш'}",
+        )
+        db.commit()
+        new_balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "result": result,
+        "win": win,
+        "reward": reward,
+        "balance": new_balance,
+    }
+
+
+@app.post("/api/games/number-guess")
+async def play_number_guess(
+    payload: NumberGuessPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    import random
+
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "number_guess")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+
+        minimum = int(config.get("min_number", 1))
+        maximum = int(config.get("max_number", 5))
+        if payload.number < minimum or payload.number > maximum:
+            raise HTTPException(400, f"Обери число від {minimum} до {maximum}")
+
+        answer = random.randint(minimum, maximum)
+        win = payload.number == answer
+        reward = int(config.get("reward", 8)) if win else 0
+
+        if reward:
+            add_balance(db, user_id, reward, "Виграш: Вгадай число", 4)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+
+        add_mission_progress(db, user_id, "games", 1)
+        save_game_play(
+            db,
+            user_id,
+            "number_guess",
+            0,
+            reward,
+            f"Твоє число {payload.number}, правильне {answer}",
+        )
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "answer": answer,
+        "win": win,
+        "reward": reward,
+        "balance": balance,
+    }
+
+
+@app.post("/api/games/scratch")
+async def play_scratch(
+    payload: GamePlayPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "scratch")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+
+        reward = weighted_choice(
+            config.get("rewards", [0, 1, 2, 5]),
+            config.get("weights", [45, 30, 20, 5]),
+        )
+
+        if reward:
+            add_balance(db, user_id, reward, "Скретч-картка", 3)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+
+        add_mission_progress(db, user_id, "games", 1)
+        save_game_play(
+            db,
+            user_id,
+            "scratch",
+            0,
+            reward,
+            f"Скретч-картка: +{reward} RH ⭐",
+        )
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "reward": reward,
+        "balance": balance,
+    }
+
+
+@app.post("/api/games/safe-crack")
+async def play_safe_crack(
+    payload: SafeCrackPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    import random
+
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "safe_crack")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+
+        maximum = int(config.get("range", 6))
+        if payload.number < 1 or payload.number > maximum:
+            raise HTTPException(400, f"Обери комірку від 1 до {maximum}")
+
+        correct = random.randint(1, maximum)
+        win = payload.number == correct
+        reward = int(config.get("reward", 12)) if win else 0
+
+        if reward:
+            add_balance(db, user_id, reward, "Злам сейфа", 5)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+
+        add_mission_progress(db, user_id, "games", 1)
+        save_game_play(
+            db,
+            user_id,
+            "safe_crack",
+            0,
+            reward,
+            f"Обрано {payload.number}, код сейфа {correct}",
+        )
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "correct": correct,
+        "win": win,
+        "reward": reward,
+        "balance": balance,
+    }
+
+
+@app.get("/api/games/history")
+async def games_history(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT game_key, bet, reward, result_text, created_at
+            FROM game_plays
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (user_id,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+
+
+@app.get("/api/season")
+async def season_data(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        season = active_season(db)
+        if not season:
+            return {"active": False}
+
+        progress = db.execute(
+            """
+            SELECT season_xp FROM season_progress
+            WHERE season_id = ? AND user_id = ?
+            """,
+            (season["id"], user_id),
+        ).fetchone()
+
+        season_xp = progress["season_xp"] if progress else 0
+        current_level = min(
+            season["max_level"],
+            season_xp // season["xp_per_level"] + 1,
+        )
+        level_progress = season_xp % season["xp_per_level"]
+
+        rewards = db.execute(
+            """
+            SELECT season_rewards.*,
+                   CASE WHEN season_reward_claims.id IS NULL THEN 0 ELSE 1 END AS claimed
+            FROM season_rewards
+            LEFT JOIN season_reward_claims
+              ON season_reward_claims.reward_id = season_rewards.id
+             AND season_reward_claims.user_id = ?
+            WHERE season_rewards.season_id = ?
+            ORDER BY season_rewards.level
+            """,
+            (user_id, season["id"]),
+        ).fetchall()
+
+        missions = db.execute(
+            """
+            SELECT season_missions.*,
+                   COALESCE(season_mission_progress.progress, 0) AS progress,
+                   COALESCE(season_mission_progress.claimed, 0) AS claimed
+            FROM season_missions
+            LEFT JOIN season_mission_progress
+              ON season_mission_progress.mission_id = season_missions.id
+             AND season_mission_progress.user_id = ?
+             AND season_mission_progress.season_id = ?
+            WHERE season_missions.season_id = ?
+              AND season_missions.is_active = 1
+            ORDER BY season_missions.id
+            """,
+            (user_id, season["id"], season["id"]),
+        ).fetchall()
+
+    return {
+        "active": True,
+        "season": dict(season),
+        "season_xp": season_xp,
+        "current_level": current_level,
+        "level_progress": level_progress,
+        "xp_per_level": season["xp_per_level"],
+        "seconds_remaining": max(0, season["ends_at"] - now),
+        "rewards": [dict(row) for row in rewards],
+        "missions": [dict(row) for row in missions],
+    }
+
+
+@app.post("/api/season/missions/{mission_id}/claim")
+async def claim_season_mission(
+    mission_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        season = active_season(db)
+        if not season:
+            raise HTTPException(400, "Активного сезону немає")
+
+        mission = db.execute(
+            """
+            SELECT season_missions.*,
+                   season_mission_progress.progress,
+                   season_mission_progress.claimed
+            FROM season_missions
+            JOIN season_mission_progress
+              ON season_mission_progress.mission_id = season_missions.id
+            WHERE season_missions.id = ?
+              AND season_mission_progress.user_id = ?
+              AND season_mission_progress.season_id = ?
+            """,
+            (mission_id, user_id, season["id"]),
+        ).fetchone()
+
+        if not mission or mission["progress"] < mission["target_value"]:
+            raise HTTPException(400, "Сезонну місію ще не виконано")
+        if mission["claimed"]:
+            raise HTTPException(409, "Сезонний XP вже отримано")
+
+        db.execute(
+            """
+            UPDATE season_mission_progress
+            SET claimed = 1
+            WHERE season_id = ? AND user_id = ? AND mission_id = ?
+            """,
+            (season["id"], user_id, mission_id),
+        )
+        grant_season_xp(
+            db,
+            season["id"],
+            user_id,
+            mission["season_xp_reward"],
+        )
+        db.commit()
+
+    return {
+        "ok": True,
+        "season_xp_reward": mission["season_xp_reward"],
+    }
+
+
+
+@app.post("/api/season/rewards/claim-all")
+async def claim_all_season_rewards(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        season = active_season(db)
+        if not season:
+            raise HTTPException(400, "Активного сезону немає")
+
+        progress = db.execute(
+            """
+            SELECT season_xp FROM season_progress
+            WHERE season_id = ? AND user_id = ?
+            """,
+            (season["id"], user_id),
+        ).fetchone()
+        season_xp = progress["season_xp"] if progress else 0
+        current_level = min(
+            season["max_level"],
+            season_xp // season["xp_per_level"] + 1,
+        )
+
+        rewards = db.execute(
+            """
+            SELECT season_rewards.*
+            FROM season_rewards
+            LEFT JOIN season_reward_claims
+              ON season_reward_claims.reward_id = season_rewards.id
+             AND season_reward_claims.user_id = ?
+            WHERE season_rewards.season_id = ?
+              AND season_rewards.level <= ?
+              AND season_reward_claims.id IS NULL
+            ORDER BY season_rewards.level
+            """,
+            (user_id, season["id"], current_level),
+        ).fetchall()
+
+        if not rewards:
+            raise HTTPException(409, "Немає доступних нагород")
+
+        total_reward = sum(int(reward["reward_value"] or 0) for reward in rewards)
+        claimed_at = int(time.time())
+        db.executemany(
+            """
+            INSERT INTO season_reward_claims(
+                season_id, user_id, reward_id, claimed_at
+            ) VALUES (?, ?, ?, ?)
+            """,
+            [
+                (season["id"], user_id, reward["id"], claimed_at)
+                for reward in rewards
+            ],
+        )
+        db.execute(
+            """
+            UPDATE users
+            SET balance = balance + ?,
+                total_earned = total_earned + ?
+            WHERE telegram_id = ?
+            """,
+            (total_reward, total_reward, user_id),
+        )
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()["balance"]
+        db.commit()
+
+    return {
+        "ok": True,
+        "claimed_count": len(rewards),
+        "reward_value": total_reward,
+        "balance": balance,
+    }
+
+
+@app.post("/api/season/rewards/{reward_id}/claim")
+async def claim_season_reward(
+    reward_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        season = active_season(db)
+        if not season:
+            raise HTTPException(400, "Активного сезону немає")
+
+        progress = db.execute(
+            """
+            SELECT season_xp FROM season_progress
+            WHERE season_id = ? AND user_id = ?
+            """,
+            (season["id"], user_id),
+        ).fetchone()
+        season_xp = progress["season_xp"] if progress else 0
+        current_level = min(
+            season["max_level"],
+            season_xp // season["xp_per_level"] + 1,
+        )
+
+        reward = db.execute(
+            """
+            SELECT * FROM season_rewards
+            WHERE id = ? AND season_id = ?
+            """,
+            (reward_id, season["id"]),
+        ).fetchone()
+        if not reward:
+            raise HTTPException(404, "Нагороду не знайдено")
+        if reward["level"] > current_level:
+            raise HTTPException(400, "Цей рівень сезону ще не відкрито")
+
+        claimed = db.execute(
+            """
+            SELECT 1 FROM season_reward_claims
+            WHERE user_id = ? AND reward_id = ?
+            """,
+            (user_id, reward_id),
+        ).fetchone()
+        if claimed:
+            raise HTTPException(409, "Нагороду вже отримано")
+
+        if reward["reward_type"] == "rh":
+            add_balance(
+                db,
+                user_id,
+                reward["reward_value"],
+                f"Сезонна нагорода: {reward['title']}",
+                max(2, reward["reward_value"] // 3),
+            )
+
+        db.execute(
+            """
+            INSERT INTO season_reward_claims(
+                season_id, user_id, reward_id, claimed_at
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                season["id"],
+                user_id,
+                reward_id,
+                int(time.time()),
+            ),
+        )
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True,
+        "balance": balance,
+        "reward_value": reward["reward_value"],
+    }
+
+
+
+
+@app.get("/api/achievements")
+async def achievements(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        unlock_achievements(db, user_id)
+        db.commit()
+        rows = db.execute(
+            """
+            SELECT achievements.*,
+                   user_achievements.unlocked_at,
+                   COALESCE(user_achievements.claimed, 0) AS claimed
+            FROM achievements
+            LEFT JOIN user_achievements
+              ON user_achievements.achievement_id = achievements.id
+             AND user_achievements.user_id = ?
+            WHERE achievements.is_active = 1
+            ORDER BY achievements.id
+            """,
+            (user_id,),
+        ).fetchall()
+
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["progress"] = achievement_value(db, user_id, row)
+            item["unlocked"] = row["unlocked_at"] is not None
+            result.append(item)
+
+    return result
+
+
+@app.post("/api/achievements/{achievement_id}/claim")
+async def claim_achievement(
+    achievement_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        row = db.execute(
+            """
+            SELECT achievements.*, user_achievements.claimed
+            FROM achievements
+            JOIN user_achievements
+              ON user_achievements.achievement_id = achievements.id
+            WHERE achievements.id = ?
+              AND user_achievements.user_id = ?
+            """,
+            (achievement_id, user_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(400, "Досягнення ще не відкрито")
+        if row["claimed"]:
+            raise HTTPException(409, "Нагороду вже отримано")
+
+        db.execute(
+            """
+            UPDATE user_achievements
+            SET claimed = 1, claimed_at = ?
+            WHERE user_id = ? AND achievement_id = ?
+            """,
+            (int(time.time()), user_id, achievement_id),
+        )
+        add_balance(
+            db,
+            user_id,
+            row["reward"],
+            f"Досягнення: {row['title']}",
+            row["xp_reward"],
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/missions")
+async def missions(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT daily_missions.*,
+                   COALESCE(mission_progress.progress, 0) AS progress,
+                   COALESCE(mission_progress.claimed, 0) AS claimed
+            FROM daily_missions
+            LEFT JOIN mission_progress
+              ON mission_progress.mission_id = daily_missions.id
+             AND mission_progress.user_id = ?
+             AND mission_progress.mission_date = ?
+            WHERE daily_missions.is_active = 1
+            ORDER BY daily_missions.id
+            """,
+            (user_id, today_key()),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/missions/{mission_id}/claim")
+async def claim_mission(
+    mission_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        row = db.execute(
+            """
+            SELECT daily_missions.*,
+                   mission_progress.progress,
+                   mission_progress.claimed
+            FROM daily_missions
+            JOIN mission_progress
+              ON mission_progress.mission_id = daily_missions.id
+            WHERE daily_missions.id = ?
+              AND mission_progress.user_id = ?
+              AND mission_progress.mission_date = ?
+            """,
+            (mission_id, user_id, today_key()),
+        ).fetchone()
+        if not row or row["progress"] < row["target_value"]:
+            raise HTTPException(400, "Місію ще не виконано")
+        if row["claimed"]:
+            raise HTTPException(409, "Нагороду вже отримано")
+
+        db.execute(
+            """
+            UPDATE mission_progress
+            SET claimed = 1
+            WHERE user_id = ? AND mission_id = ? AND mission_date = ?
+            """,
+            (user_id, mission_id, today_key()),
+        )
+        add_balance(
+            db,
+            user_id,
+            row["reward"],
+            f"Місія: {row['title']}",
+            row["xp_reward"],
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/tournaments")
+async def tournaments(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        auto_finalized = finalize_expired_tournaments(db)
+        db.commit()
+
+        rows = db.execute(
+            "SELECT * FROM tournaments ORDER BY id DESC"
+        ).fetchall()
+        result = []
+
+        for tournament in rows:
+            if tournament["is_finalized"]:
+                board = db.execute(
+                    """
+                    SELECT tournament_results.place,
+                           tournament_results.score,
+                           tournament_results.reward,
+                           users.telegram_id,
+                           users.first_name,
+                           users.username
+                    FROM tournament_results
+                    JOIN users ON users.telegram_id = tournament_results.user_id
+                    WHERE tournament_results.tournament_id = ?
+                    ORDER BY tournament_results.place ASC
+                    LIMIT 20
+                    """,
+                    (tournament["id"],),
+                ).fetchall()
+            else:
+                board = db.execute(
+                    """
+                    SELECT tournament_scores.score,
+                           users.telegram_id,
+                           users.first_name,
+                           users.username
+                    FROM tournament_scores
+                    JOIN users ON users.telegram_id = tournament_scores.user_id
+                    WHERE tournament_scores.tournament_id = ?
+                    ORDER BY tournament_scores.score DESC,
+                             tournament_scores.updated_at ASC
+                    LIMIT 20
+                    """,
+                    (tournament["id"],),
+                ).fetchall()
+
+            mine = db.execute(
+                "SELECT score FROM tournament_scores WHERE tournament_id = ? AND user_id = ?",
+                (tournament["id"], user_id),
+            ).fetchone()
+
+            item = dict(tournament)
+            item["leaderboard"] = [dict(row) for row in board]
+            item["my_score"] = mine["score"] if mine else 0
+
+            if tournament["is_cancelled"]:
+                item["status"] = "cancelled"
+                item["seconds_remaining"] = 0
+            elif tournament["is_finalized"]:
+                item["status"] = "finished"
+                item["seconds_remaining"] = 0
+            elif now < tournament["starts_at"]:
+                item["status"] = "upcoming"
+                item["seconds_remaining"] = tournament["starts_at"] - now
+            else:
+                item["status"] = "active"
+                item["seconds_remaining"] = max(0, tournament["ends_at"] - now)
+
+            result.append(item)
+
+    for tournament_id, winners in auto_finalized:
+        await notify_tournament_winners(tournament_id, winners)
+
+    return result
+
+
+@app.post("/api/admin/tournaments")
+async def admin_create_tournament(
+    payload: dict,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT INTO tournaments(
+                title, description, starts_at, ends_at,
+                prize_1, prize_2, prize_3
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(payload.get("title", "")).strip(),
+                str(payload.get("description", "")).strip(),
+                int(payload.get("starts_at", 0)),
+                int(payload.get("ends_at", 0)),
+                int(payload.get("prize_1", 0)),
+                int(payload.get("prize_2", 0)),
+                int(payload.get("prize_3", 0)),
+            ),
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/tournaments")
+async def admin_tournaments(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    with connect_db() as db:
+        finalize_expired_tournaments(db)
+        db.commit()
+        rows = db.execute(
+            """
+            SELECT tournaments.*,
+                   COUNT(DISTINCT tournament_scores.user_id) AS participants_count,
+                   COALESCE(MAX(tournament_scores.score), 0) AS top_score
+            FROM tournaments
+            LEFT JOIN tournament_scores
+              ON tournament_scores.tournament_id = tournaments.id
+            GROUP BY tournaments.id
+            ORDER BY tournaments.id DESC
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/admin/tournaments/{tournament_id}/finish")
+async def admin_finish_tournament(
+    tournament_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    admin_id = int(user["id"])
+    require_admin(admin_id)
+
+    with connect_db() as db:
+        winners = finalize_tournament(db, tournament_id)
+        log_admin_action(
+            db,
+            admin_id,
+            "tournament_finished",
+            f"Достроково завершено турнір #{tournament_id}",
+        )
+        db.commit()
+
+    notified = await notify_tournament_winners(tournament_id, winners)
+    return {
+        "ok": True,
+        "winners_count": len(winners),
+        "notified": notified,
+    }
+
+
+@app.post("/api/admin/tournaments/{tournament_id}/cancel")
+async def admin_cancel_tournament(
+    tournament_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    admin_id = int(user["id"])
+    require_admin(admin_id)
+
+    with connect_db() as db:
+        tournament = db.execute(
+            "SELECT * FROM tournaments WHERE id = ?",
+            (tournament_id,),
+        ).fetchone()
+        if not tournament:
+            raise HTTPException(404, "Турнір не знайдено")
+        if tournament["is_finalized"]:
+            raise HTTPException(409, "Завершений турнір не можна скасувати")
+        if tournament["is_cancelled"]:
+            raise HTTPException(409, "Турнір уже скасовано")
+
+        now = int(time.time())
+        db.execute(
+            """
+            UPDATE tournaments
+            SET is_cancelled = 1,
+                is_active = 0,
+                cancelled_at = ?
+            WHERE id = ?
+            """,
+            (now, tournament_id),
+        )
+        log_admin_action(
+            db,
+            admin_id,
+            "tournament_cancelled",
+            f"Скасовано турнір #{tournament_id}",
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+
+
+@app.post("/api/admin/promos")
+async def admin_create_promo(
+    payload: dict,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    code_value = str(payload.get("code", "")).strip().upper()
+    discount = int(payload.get("discount_percent", 0))
+    if not code_value or discount < 1 or discount > 90:
+        raise HTTPException(400, "Перевір код і знижку")
+
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT INTO promo_codes(
+                code, discount_percent, max_uses, expires_at
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                code_value,
+                discount,
+                int(payload.get("max_uses", 0)),
+                int(payload.get("expires_at", 0)),
+            ),
+        )
+        db.commit()
+
+    return {"ok": True}
+
+
+
+
+@app.get("/api/history")
+async def history(x_telegram_init_data: str | None = Header(default=None)):
+    user = current_user(x_telegram_init_data)
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT amount, note, created_at
+            FROM ledger
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 30
+            """,
+            (int(user["id"]),),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8080")),
+        reload=False,
+    )

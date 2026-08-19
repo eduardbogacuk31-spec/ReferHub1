@@ -1,0 +1,16 @@
+REFERHUB TELEGRAM MOBILE FIX
+
+Виправлено:
+- Telegram initData тепер береться під час кожного API-запиту;
+- Telegram bootstrap завантажується до app.js;
+- прибрано дубль Telegram WebApp SDK;
+- нижнє меню на телефоні більше не накладає 7 кнопок;
+- прибрано підстрибування активної кнопки на вузьких екранах;
+- враховано Telegram viewport та safe area;
+- Railway startCommand закріплено на 0.0.0.0:$PORT.
+
+У Railway Variables мають бути:
+BOT_TOKEN=<токен бота>
+WEBAPP_URL=https://web-production-8dfc80.up.railway.app
+
+Для постійної SQLite бази окремо підключи Railway Volume і DATA_DIR до mount path.

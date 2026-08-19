@@ -1846,7 +1846,12 @@ async def index():
 
 @app.get("/health")
 async def health():
-    return {"ok": True}
+    return {
+        "ok": True,
+        "telegram_bot_configured": bool(BOT_TOKEN),
+        "webapp_url_configured": bool(WEBAPP_URL),
+        "data_dir": str(DATA_DIR),
+    }
 
 
 @app.get("/api/me")

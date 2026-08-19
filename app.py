@@ -27,7 +27,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DB_PATH = DATA_DIR / "rewards.db"
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+BOT_TOKEN = (os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
 BOT_USERNAME = os.getenv("BOT_USERNAME", "ReferHubRewardsBot").strip().lstrip("@")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
 DEBUG_USER_ID = int(os.getenv("DEBUG_USER_ID", "0") or 0)
@@ -1848,8 +1848,9 @@ async def index():
 async def health():
     return {
         "ok": True,
-        "telegram_bot_configured": bool(BOT_TOKEN),
+        "bot_token_configured": bool(BOT_TOKEN),
         "webapp_url_configured": bool(WEBAPP_URL),
+        "bot_username": BOT_USERNAME,
         "data_dir": str(DATA_DIR),
     }
 
@@ -5106,7 +5107,7 @@ async def history(x_telegram_init_data: str | None = Header(default=None)):
 if __name__ == "__main__":
     uvicorn.run(
         "app:app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=int(os.getenv("PORT", "8080")),
         reload=False,
     )

@@ -6,12 +6,18 @@ tg?.setHeaderColor?.("#06070a");
 tg?.setBackgroundColor?.("#06070a");
 
 function telegramInitData(){
-  return window.Telegram?.WebApp?.initData || window.REFERHUB_TG_INIT_DATA || "";
+  return window.Telegram?.WebApp?.initData
+    || window.REFERHUB_TG_INIT_DATA
+    || "";
 }
 
-const headers={
-  "Content-Type":"application/json"
-};
+function apiHeaders(extra={}){
+  return {
+    "Content-Type":"application/json",
+    "X-Telegram-Init-Data":telegramInitData(),
+    ...extra
+  };
+}
 
 let me;
 let rotation=0;
@@ -21,33 +27,16 @@ const content=document.getElementById("content");
 const toastBox=document.getElementById("toast");
 
 async function api(path,options={}){
-  // Telegram may populate initData a moment after the document starts in some WebViews.
-  let initData=telegramInitData();
-  if(!initData && window.Telegram?.WebApp){
-    for(let i=0;i<12 && !initData;i++){
-      await new Promise(resolve=>setTimeout(resolve,50));
-      initData=telegramInitData();
-    }
-  }
-
   const response=await fetch(path,{
     ...options,
-    headers:{
-      ...headers,
-      "X-Telegram-Init-Data":initData,
-      ...(options.headers||{})
-    }
+    headers:apiHeaders(options.headers||{})
   });
 
   let data={};
   try{data=await response.json()}catch{}
 
   if(!response.ok){
-    const message=typeof data.detail==="string"?data.detail:"Помилка сервера";
-    if(response.status===401 && window.Telegram?.WebApp && !initData){
-      throw new Error("Telegram не передав авторизацію. Закрий Mini App і відкрий його кнопкою бота ще раз.");
-    }
-    throw new Error(message);
+    throw new Error(typeof data.detail==="string"?data.detail:"Помилка сервера");
   }
 
   return data;

@@ -1496,7 +1496,145 @@ function initGC90Motion(){
   },{passive:true});
   shell.addEventListener('pointerleave',()=>{shell.style.setProperty('--gc90-x','0px');shell.style.setProperty('--gc90-y','0px')});
 }
+
+const gc13Catalog = [
+  {id:"roulette", icon:"🎡", name:"Premium Roulette", type:"ЩОДЕННА", tag:"Удача", desc:"Крути колесо та забирай випадкову нагороду RH.", reward:"до 200 RH", cls:"purple"},
+  {id:"daily_case", icon:"🎁", name:"Daily Case", type:"ЩОДЕННА", tag:"Drop", desc:"Відкрий щоденний кейс і перевір свій дроп.", reward:"Epic шанс", cls:"green"},
+  {id:"slot", icon:"🎰", name:"Slots", type:"АРКАДА", tag:"Ризик", desc:"Класичний слот-режим із комбінаціями та RH.", reward:"комбо RH", cls:"red"},
+  {id:"coin_flip", icon:"🪙", name:"Coin Flip", type:"ШВИДКА", tag:"50 / 50", desc:"Обери сторону монети та перевір удачу.", reward:"швидка гра", cls:"gold"},
+  {id:"number_guess", icon:"🔢", name:"Вгадай число", type:"ЛОГІКА", tag:"Guess", desc:"Знайди правильне число за обмежену кількість спроб.", reward:"за точність", cls:"blue"},
+  {id:"scratch", icon:"✨", name:"Scratch", type:"ЩОДЕННА", tag:"Reveal", desc:"Стирай покриття та відкривай приховану нагороду.", reward:"рандом RH", cls:"pink"},
+  {id:"safe_crack", icon:"🔐", name:"Злам сейфа", type:"ЛОГІКА", tag:"Vault", desc:"Підбери код сейфа та забери нагороду.", reward:"великий куш", cls:"steel"},
+];
+
+function gc13Meta(id){
+  return gc13Catalog.find(x=>x.id===id)||gc13Catalog[0];
+}
+
 async function gamesPage(){
+  let status={};
+  try{ status=await api("/api/game-status"); }catch(_){}
+
+  content.innerHTML=`
+    <section class="gc13-hero">
+      <span>REFERHUB GAME CENTER</span>
+      <h2>Обери гру</h2>
+      <p>Тут тільки каталог. Натисни на гру — відкриється її власна сторінка з правилами, нагородами та ігровим режимом.</p>
+      <div class="gc13-balance"><small>Твій баланс</small><b>${Number(me.balance||0)} RH</b></div>
+    </section>
+
+    <div class="gc13-filter">
+      <span>7 РЕЖИМІВ</span>
+      <small>Грай → заробляй RH → купуй квитки</small>
+    </div>
+
+    <section class="gc13-catalog">
+      ${gc13Catalog.map(g=>`
+        <button class="gc13-card ${g.cls}" onclick="openGameDetail('${g.id}')">
+          <div class="gc13-card-art"><i>${g.icon}</i><em></em></div>
+          <div class="gc13-card-copy">
+            <div><span>${g.type}</span><small>${g.tag}</small></div>
+            <h3>${g.name}</h3>
+            <p>${g.desc}</p>
+            <footer><b>${g.reward}</b><strong>Відкрити →</strong></footer>
+          </div>
+        </button>
+      `).join("")}
+    </section>
+  `;
+}
+
+async function openGameDetail(gameId){
+  const g=gc13Meta(gameId);
+  let status={};
+  try{ status=await api("/api/game-status"); }catch(_){}
+  const s=status?.[gameId]||{};
+
+  content.innerHTML=`
+    <section class="gc13-detail ${g.cls}">
+      <button class="gc13-back" onclick="gamesPage()">← До всіх ігор</button>
+
+      <div class="gc13-detail-top">
+        <div class="gc13-detail-art"><i>${g.icon}</i><em></em></div>
+        <div>
+          <span>${g.type} · ${g.tag}</span>
+          <h2>${g.name}</h2>
+          <p>${g.desc}</p>
+        </div>
+      </div>
+
+      <div class="gc13-info-grid">
+        <article>
+          <span>📖</span><div><small>ЯК ГРАТИ</small><b>${gc13HowTo(gameId)}</b></div>
+        </article>
+        <article>
+          <span>🏆</span><div><small>НАГОРОДИ</small><b>${gc13Reward(gameId)}</b></div>
+        </article>
+        <article>
+          <span>⚡</span><div><small>СПРОБИ</small><b>${gc13Attempts(s)}</b></div>
+        </article>
+      </div>
+
+      <section class="gc13-stage">
+        <div class="gc13-stage-head">
+          <div><span>GAME MODE</span><h3>Готовий грати?</h3></div>
+          <b>${Number(me.balance||0)} RH</b>
+        </div>
+        <p>Натисни кнопку нижче — відкриється сам ігровий режим. Після гри можеш повернутися назад у це меню.</p>
+        <button class="gc13-play" onclick="launchLegacyGame('${gameId}')">▶ ГРАТИ В ${g.name.toUpperCase()}</button>
+      </section>
+
+      <section class="gc13-more">
+        <div><span>ЩЕ ІГРИ</span><small>Спробуй інший режим</small></div>
+        <div class="gc13-more-row">
+          ${gc13Catalog.filter(x=>x.id!==gameId).slice(0,4).map(x=>`
+            <button onclick="openGameDetail('${x.id}')"><i>${x.icon}</i><span>${x.name}</span></button>
+          `).join("")}
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function gc13HowTo(id){
+  return ({
+    roulette:"Натисни Spin. Колесо випадково визначить сектор і нагороду.",
+    daily_case:"Відкрий кейс і дочекайся, поки система визначить твій drop.",
+    slot:"Запусти барабани та збирай виграшні комбінації.",
+    coin_flip:"Обери орла або решку та підкинь монету.",
+    number_guess:"Вводь числа й використовуй підказки, щоб знайти правильне.",
+    scratch:"Стирай поле, доки не відкриєш прихований результат.",
+    safe_crack:"Підбирай код сейфа за підказками системи."
+  })[id]||"Виконай умови гри та отримай результат.";
+}
+
+function gc13Reward(id){
+  return ({
+    roulette:"Випадкова кількість RH залежно від сектора.",
+    daily_case:"Щоденний drop із шансом на рідкісну нагороду.",
+    slot:"RH за виграшні комбінації.",
+    coin_flip:"Нагорода за правильний вибір.",
+    number_guess:"RH за успішно вгадане число.",
+    scratch:"Прихована випадкова нагорода RH.",
+    safe_crack:"RH за успішно відкритий сейф."
+  })[id]||"Нагорода RH.";
+}
+
+function gc13Attempts(s){
+  if(s?.cooldown_left>0)return `Відновлення через ${Math.ceil(Number(s.cooldown_left)/60)} хв`;
+  if(s?.plays_left!==undefined)return `${s.plays_left} доступно`;
+  if(s?.left_today!==undefined)return `${s.left_today} сьогодні`;
+  return "Готово";
+}
+
+async function launchLegacyGame(gameId){
+  await gamesLegacyPage();
+  setTimeout(()=>{
+    if(typeof gc90ScrollToGame==="function") gc90ScrollToGame(gameId);
+  },60);
+}
+
+async function gamesLegacyPage(){
   content.innerHTML=`<div class="loader"></div>`;
 
   let games=[];

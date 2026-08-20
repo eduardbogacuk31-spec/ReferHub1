@@ -361,6 +361,14 @@ def init_database():
                 details TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS reaction_challenges (
+                token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                ready_at_ms INTEGER NOT NULL,
+                expires_at_ms INTEGER NOT NULL,
+                used INTEGER NOT NULL DEFAULT 0
+            );
             """
         )
 
@@ -765,6 +773,28 @@ def init_database():
             (
                 "safe_crack", 1, 0, 0, 3, 21600,
                 json.dumps({"reward": 12, "range": 6}),
+            ),
+            (
+                "dice_duel", 1, 0, 0, 10, 20,
+                json.dumps({"reward": 4}),
+            ),
+            (
+                "rps", 1, 0, 0, 15, 10,
+                json.dumps({"win_reward": 5, "draw_reward": 2}),
+            ),
+            (
+                "treasure_grid", 1, 0, 0, 3, 3600,
+                json.dumps({"reward": 15, "cells": 9}),
+            ),
+            (
+                "reaction", 1, 0, 0, 10, 15,
+                json.dumps({
+                    "great_ms": 260,
+                    "good_ms": 380,
+                    "great_reward": 10,
+                    "good_reward": 6,
+                    "base_reward": 3
+                }),
             ),
         ]
         for game in extra_games:
@@ -1249,6 +1279,18 @@ class NumberGuessPayload(BaseModel):
 
 class SafeCrackPayload(BaseModel):
     number: int = Field(ge=1, le=100)
+
+
+class SimpleChoicePayload(BaseModel):
+    choice: str = Field(min_length=2, max_length=20)
+
+
+class TreasureGridPayload(BaseModel):
+    cell: int = Field(ge=1, le=9)
+
+
+class ReactionFinishPayload(BaseModel):
+    token: str = Field(min_length=16, max_length=128)
 
 
 class GameSettingsPayload(BaseModel):
@@ -2116,6 +2158,228 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 @app.get("/")
 async def index():
     return FileResponse(BASE_DIR / "static" / "index.html")
+
+
+
+@app.post("/api/games/dice-duel")
+async def play_dice_duel(
+    payload: SimpleChoicePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    choice = payload.choice.lower().strip()
+    if choice not in {"low", "high"}:
+        raise HTTPException(400, "Обери low або high")
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "dice_duel")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+        roll = random.randint(1, 6)
+        win = (choice == "low" and roll <= 3) or (choice == "high" and roll >= 4)
+        reward = int(config.get("reward", 4)) if win else 0
+        if reward:
+            add_balance(db, user_id, reward, "Dice Duel", 2)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+        add_mission_progress(db, user_id, "games", 1)
+        result_text = f"Dice Duel: {roll} — {'виграш' if win else 'програш'}"
+        save_game_play(db, user_id, "dice_duel", 0, reward, result_text)
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+    return {
+        "ok": True, "roll": roll, "win": win,
+        "reward": reward, "balance": balance,
+        "result_text": result_text,
+    }
+
+
+@app.post("/api/games/rps")
+async def play_rps(
+    payload: SimpleChoicePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    choice = payload.choice.lower().strip()
+    options = ["rock", "paper", "scissors"]
+    if choice not in options:
+        raise HTTPException(400, "Обери rock, paper або scissors")
+
+    with connect_db() as db:
+        setting = get_game_setting(db, "rps")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+        bot_choice = secrets.choice(options)
+        win = (choice, bot_choice) in {
+            ("rock", "scissors"),
+            ("paper", "rock"),
+            ("scissors", "paper"),
+        }
+        draw = choice == bot_choice
+        reward = (
+            int(config.get("win_reward", 5))
+            if win else
+            int(config.get("draw_reward", 2)) if draw else 0
+        )
+        if reward:
+            add_balance(db, user_id, reward, "RPS Arena", 2)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+        add_mission_progress(db, user_id, "games", 1)
+        outcome = "перемога" if win else ("нічия" if draw else "програш")
+        result_text = f"RPS: {choice} vs {bot_choice} — {outcome}"
+        save_game_play(db, user_id, "rps", 0, reward, result_text)
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+    return {
+        "ok": True, "player": choice, "bot": bot_choice,
+        "win": win, "draw": draw, "reward": reward,
+        "balance": balance, "result_text": result_text,
+    }
+
+
+@app.post("/api/games/treasure-grid")
+async def play_treasure_grid(
+    payload: TreasureGridPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    with connect_db() as db:
+        setting = get_game_setting(db, "treasure_grid")
+        game_access_check(db, user_id, setting)
+        config = json.loads(setting["config_json"] or "{}")
+        cells = int(config.get("cells", 9))
+        treasure = secrets.randbelow(cells) + 1
+        win = int(payload.cell) == treasure
+        reward = int(config.get("reward", 15)) if win else 0
+        if reward:
+            add_balance(db, user_id, reward, "Treasure Grid", 5)
+            add_mission_progress(db, user_id, "earned", reward)
+            add_tournament_score(db, user_id, reward)
+        add_mission_progress(db, user_id, "games", 1)
+        result_text = f"Treasure Grid: обрано {payload.cell}, скарб у {treasure}"
+        save_game_play(db, user_id, "treasure_grid", 0, reward, result_text)
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+    return {
+        "ok": True, "treasure": treasure, "win": win,
+        "reward": reward, "balance": balance,
+        "result_text": result_text,
+    }
+
+
+@app.post("/api/games/reaction/start")
+async def reaction_start(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    with connect_db() as db:
+        setting = get_game_setting(db, "reaction")
+        game_access_check(db, user_id, setting)
+        now_ms = int(time.time() * 1000)
+        delay_ms = 1400 + secrets.randbelow(2200)
+        token = secrets.token_urlsafe(24)
+        ready_at = now_ms + delay_ms
+        expires_at = ready_at + 5000
+        db.execute(
+            "DELETE FROM reaction_challenges WHERE user_id = ?",
+            (user_id,),
+        )
+        db.execute(
+            """
+            INSERT INTO reaction_challenges(
+                token, user_id, ready_at_ms, expires_at_ms, used
+            )
+            VALUES (?, ?, ?, ?, 0)
+            """,
+            (token, user_id, ready_at, expires_at),
+        )
+        db.commit()
+    return {"ok": True, "token": token, "delay_ms": delay_ms}
+
+
+@app.post("/api/games/reaction/finish")
+async def reaction_finish(
+    payload: ReactionFinishPayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now_ms = int(time.time() * 1000)
+
+    with connect_db() as db:
+        row = db.execute(
+            """
+            SELECT * FROM reaction_challenges
+            WHERE token = ? AND user_id = ?
+            """,
+            (payload.token, user_id),
+        ).fetchone()
+        if not row or row["used"]:
+            raise HTTPException(409, "Спроба реакції недійсна")
+        if now_ms < int(row["ready_at_ms"]):
+            db.execute(
+                "UPDATE reaction_challenges SET used = 1 WHERE token = ?",
+                (payload.token,),
+            )
+            db.commit()
+            raise HTTPException(400, "Зарано! Дочекайся зеленого сигналу")
+        if now_ms > int(row["expires_at_ms"]):
+            db.execute(
+                "UPDATE reaction_challenges SET used = 1 WHERE token = ?",
+                (payload.token,),
+            )
+            db.commit()
+            raise HTTPException(400, "Запізно — спроба завершилась")
+
+        setting = get_game_setting(db, "reaction")
+        config = json.loads(setting["config_json"] or "{}")
+        reaction_ms = now_ms - int(row["ready_at_ms"])
+
+        if reaction_ms <= int(config.get("great_ms", 260)):
+            reward = int(config.get("great_reward", 10))
+            grade = "БЛИСКАВКА"
+        elif reaction_ms <= int(config.get("good_ms", 380)):
+            reward = int(config.get("good_reward", 6))
+            grade = "ШВИДКО"
+        else:
+            reward = int(config.get("base_reward", 3))
+            grade = "ЗАРАХОВАНО"
+
+        db.execute(
+            "UPDATE reaction_challenges SET used = 1 WHERE token = ?",
+            (payload.token,),
+        )
+        add_balance(db, user_id, reward, "Reaction Test", 3)
+        add_mission_progress(db, user_id, "games", 1)
+        add_mission_progress(db, user_id, "earned", reward)
+        add_tournament_score(db, user_id, reward)
+        result_text = f"Reaction: {reaction_ms} ms — {grade}"
+        save_game_play(db, user_id, "reaction", 0, reward, result_text)
+        db.commit()
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {
+        "ok": True, "reaction_ms": reaction_ms,
+        "grade": grade, "reward": reward,
+        "balance": balance, "result_text": result_text,
+    }
 
 
 @app.get("/health")

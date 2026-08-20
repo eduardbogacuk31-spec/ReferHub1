@@ -747,3 +747,50 @@
   .gc13-info-grid{grid-template-columns:1fr}
   .gc13-more-row{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* ============================================================
+   REFERHUB LOTTERY v1.4 — TRUE SEPARATE GAME SCREENS
+   ============================================================ */
+.gc14-page{padding-bottom:18px}
+.gc14-topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.gc14-topbar>button{padding:9px 12px;border:1px solid #34303c;border-radius:11px;background:#11141a;color:#aa9cba;font-size:10px}
+.gc14-topbar>div{text-align:right}.gc14-topbar>div span,.gc14-topbar>div small{display:block}.gc14-topbar>div span{color:#e9c45e;font-size:13px;font-weight:900}.gc14-topbar>div small{margin-top:2px;color:#79818f!important;font-size:8px}
+
+.gc14-hero{
+  display:grid;grid-template-columns:165px 1fr;gap:22px;align-items:center;
+  padding:23px;border:1px solid rgba(255,255,255,.07);border-radius:27px;
+  background:radial-gradient(circle at 15% 20%,rgba(144,82,221,.14),transparent 30%),linear-gradient(145deg,#19141f,#0f1218);
+}
+.gc14-cover{position:relative;width:165px;height:165px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);border-radius:38px;background:#17131d;box-shadow:0 24px 48px rgba(0,0,0,.28)}
+.gc14-cover i{position:relative;z-index:2;font-style:normal;font-size:84px;filter:drop-shadow(0 12px 10px rgba(0,0,0,.28))}
+.gc14-cover em{position:absolute;width:125px;height:125px;border:1px solid rgba(191,139,255,.18);border-radius:50%}
+.gc14-copy>span{color:#9d7bc7;font-size:9px;font-weight:950;letter-spacing:.12em}.gc14-copy h1{margin:6px 0;font-size:clamp(34px,6vw,55px);line-height:.96}.gc14-copy>p{max-width:620px;margin:0;color:#9099a7!important;font-size:13px;line-height:1.5}
+.gc14-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:15px}.gc14-stats>div{padding:10px;border:1px solid rgba(255,255,255,.05);border-radius:12px;background:#101318}.gc14-stats small,.gc14-stats b{display:block}.gc14-stats small{color:#747d8b!important;font-size:8px}.gc14-stats b{margin-top:3px;font-size:13px}
+
+.gc14-guide{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.gc14-guide article{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.055);border-radius:14px;background:#13161c}.gc14-guide article>i{width:29px;height:29px;display:grid;place-items:center;border-radius:9px;background:#241a30;color:#ad8bd3;font-style:normal;font-size:11px}.gc14-guide span{color:#786686;font-size:8px;font-weight:950}.gc14-guide p{margin:3px 0 0;color:#a0a7b1!important;font-size:10px;line-height:1.4}
+
+.gc14-game-shell{padding:18px;border:1px solid rgba(159,96,230,.17);border-radius:21px;background:linear-gradient(145deg,#17131e,#0f1218);box-shadow:0 18px 40px rgba(0,0,0,.19)}
+.gc14-game-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:14px}.gc14-game-head span{color:#9572bd;font-size:8px;font-weight:950;letter-spacing:.12em}.gc14-game-head h2{margin:3px 0 0;font-size:23px}.gc14-game-head>b{padding:6px 9px;border:1px solid rgba(86,202,145,.15);border-radius:9px;background:#111a17;color:#64d99b;font-size:9px}
+
+.gc14-main-button{width:100%;min-height:53px;margin-top:12px;border:1px solid #9256d5;border-radius:14px;background:linear-gradient(180deg,#8950d2,#5b2d95);color:#fff;font-size:12px;font-weight:950;box-shadow:0 13px 28px rgba(103,49,170,.22)}
+.gc14-main-button:disabled{opacity:.48;box-shadow:none}
+
+.gc14-roulette{max-width:620px;margin:auto;text-align:center}.gc14-roulette .rr99-wheel-wrap{width:min(470px,82vw)}
+.gc14-case{text-align:center}.gc14-case-box{min-height:260px;display:grid;place-items:center;align-content:center;border:1px solid rgba(255,255,255,.06);border-radius:20px;background:radial-gradient(circle at 50% 45%,rgba(83,212,170,.10),transparent 34%),#10151a}.gc14-case-icon{font-size:88px;filter:drop-shadow(0 15px 14px rgba(0,0,0,.28))}.gc14-case-box>span{margin-top:8px;color:#72bba2;font-size:8px;font-weight:950;letter-spacing:.14em}.gc14-case-box>strong{margin-top:4px;font-size:17px}
+.gc14-slot{max-width:650px;margin:auto}.gc14-slot-machine{min-height:210px;display:grid;place-items:center;align-content:center;border:1px solid rgba(255,255,255,.07);border-radius:23px;background:radial-gradient(circle at 50% 20%,rgba(232,87,132,.13),transparent 31%),#171216}.gc14-slot-machine .gc3-slot-preview{font-size:clamp(38px,8vw,63px)}.gc14-slot-machine small{margin-top:12px;color:#aa6c83!important;font-size:8px;letter-spacing:.18em}.gc14-control-row{display:grid;grid-template-columns:150px 1fr;gap:9px;margin-top:10px}.gc14-control-row label,.gc14-input{display:grid;gap:5px}.gc14-control-row label span,.gc14-input span{color:#818997;font-size:8px}.gc14-control-row input,.gc14-input input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #343945;border-radius:12px;background:#0d1016;color:#fff}.gc14-control-row .gc14-main-button{margin-top:17px}
+.gc14-coin{text-align:center}.gc14-coin-art{margin:12px auto 18px;font-size:110px;filter:drop-shadow(0 18px 13px rgba(0,0,0,.28))}.gc14-coin .gc14-input{max-width:300px;margin:auto}.gc14-choice{max-width:430px;margin:11px auto 0}.gc14-choice button{min-height:54px!important}
+.gc14-guess{text-align:center}.gc14-question{width:135px;height:135px;margin:8px auto 12px;display:grid;place-items:center;border:1px solid rgba(89,140,222,.2);border-radius:36px;background:#141e2d;color:#7da8ea;font-size:73px;font-weight:950}.gc14-guess>p{color:#87909d!important;font-size:11px}.gc14-numbers{max-width:520px;margin:15px auto 0}.gc14-numbers button{min-height:58px!important;font-size:18px!important}
+.gc14-scratch{text-align:center}.gc14-scratch-surface{max-width:620px;min-height:260px;margin:auto;border-radius:23px!important;font-size:16px!important}.gc14-scratch>p{color:#868f9c!important;font-size:10px}
+.gc14-safe{text-align:center}.gc14-safe-door{width:180px;height:180px;margin:4px auto 13px;display:grid;place-items:center;align-content:center;border:9px solid #2a3237;border-radius:35px;background:radial-gradient(circle,#263136,#111619);box-shadow:inset 0 0 0 3px #101417,0 20px 34px rgba(0,0,0,.29)}.gc14-safe-door span{font-size:57px}.gc14-safe-door b{margin-top:4px;color:#84949a;font-size:9px;letter-spacing:.12em}.gc14-safe>p{color:#828b98!important;font-size:10px}.gc14-safe-grid{max-width:520px;margin:auto}
+
+.gc14-history,.gc14-more{margin-top:13px;padding:14px;border:1px solid rgba(255,255,255,.055);border-radius:17px;background:#12151b}.gc14-section-head{display:flex;justify-content:space-between;gap:10px}.gc14-section-head span{color:#9174b4;font-size:8px;font-weight:950;letter-spacing:.1em}.gc14-section-head small{color:#737c89!important;font-size:8px}.gc14-history-list{margin-top:8px}.gc14-history-list>div{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:9px 0;border-top:1px solid rgba(255,255,255,.045)}.gc14-history-list>div:first-child{border-top:0}.gc14-history-list i{font-style:normal;font-size:20px}.gc14-history-list span b,.gc14-history-list span small{display:block}.gc14-history-list span b{font-size:10px}.gc14-history-list span small{margin-top:2px;color:#6f7886!important;font-size:7px}.gc14-history-list strong{color:#737b88;font-size:9px}.gc14-history-list strong.win{color:#61d399}.gc14-history-list>p{color:#77808e!important;font-size:10px}
+.gc14-more>div:last-child{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}.gc14-more button{min-width:0;padding:9px;border:1px solid rgba(255,255,255,.05);border-radius:11px;background:#101318;color:#fff}.gc14-more button i,.gc14-more button span{display:block}.gc14-more button i{font-style:normal;font-size:22px}.gc14-more button span{margin-top:4px;overflow:hidden;font-size:7px;text-overflow:ellipsis;white-space:nowrap}
+
+@media(max-width:650px){
+  .gc14-hero{grid-template-columns:1fr;text-align:center;padding:18px}.gc14-cover{width:130px;height:130px;margin:auto}.gc14-cover i{font-size:66px}.gc14-cover em{width:95px;height:95px}
+  .gc14-guide{grid-template-columns:1fr}
+  .gc14-stats{grid-template-columns:repeat(3,1fr)}
+  .gc14-control-row{grid-template-columns:1fr}.gc14-control-row .gc14-main-button{margin-top:0}
+  .gc14-more>div:last-child{grid-template-columns:repeat(3,1fr)}.gc14-more button:nth-child(n+4){display:none}
+}

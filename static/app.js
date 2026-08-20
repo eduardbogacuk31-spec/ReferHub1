@@ -1546,92 +1546,202 @@ async function gamesPage(){
 
 async function openGameDetail(gameId){
   const g=gc13Meta(gameId);
-  let status={};
-  try{ status=await api("/api/game-status"); }catch(_){}
-  const s=status?.[gameId]||{};
+
+  content.innerHTML=`<div class="loader"></div>`;
+
+  let games=[],history=[];
+  try{
+    [games,history]=await Promise.all([
+      api("/api/games"),
+      api("/api/games/history")
+    ]);
+  }catch(error){
+    content.innerHTML=`<div class="gc3-error"><div>⚠️</div><h2>Не вдалося завантажити гру</h2><p>${esc(error.message)}</p><button onclick="gamesPage()">Назад</button></div>`;
+    return;
+  }
+
+  const map=Object.fromEntries(games.map(item=>[item.game_key,item]));
+  const game=map[gameId]||{};
+  const gameHistory=history.filter(item=>item.game_key===gameId);
+  const left=game?.daily_limit ? Math.max(0,Number(game.daily_limit)-Number(game.plays_today||0)) : "∞";
+  const record=Math.max(0,...gameHistory.map(item=>Number(item.reward||0)));
+  const status=game?.cooldown_remaining
+    ? formatCooldown(game.cooldown_remaining)
+    : (game?.daily_limit&&Number(game.plays_today||0)>=Number(game.daily_limit) ? "Ліміт" : "Готово");
 
   content.innerHTML=`
-    <section class="gc13-detail ${g.cls}">
-      <button class="gc13-back" onclick="gamesPage()">← До всіх ігор</button>
+    <section class="gc14-page ${g.cls}">
+      <div class="gc14-topbar">
+        <button onclick="gamesPage()">← Каталог ігор</button>
+        <div><span>${Number(me.balance||0)} RH</span><small>${status}</small></div>
+      </div>
 
-      <div class="gc13-detail-top">
-        <div class="gc13-detail-art"><i>${g.icon}</i><em></em></div>
-        <div>
+      <section class="gc14-hero">
+        <div class="gc14-cover"><i>${g.icon}</i><em></em></div>
+        <div class="gc14-copy">
           <span>${g.type} · ${g.tag}</span>
-          <h2>${g.name}</h2>
+          <h1>${g.name}</h1>
           <p>${g.desc}</p>
+          <div class="gc14-stats">
+            <div><small>Спроб</small><b>${left}</b></div>
+            <div><small>Рекорд</small><b>${record} RH</b></div>
+            <div><small>Зіграно</small><b>${gameHistory.length}</b></div>
+          </div>
         </div>
-      </div>
-
-      <div class="gc13-info-grid">
-        <article>
-          <span>📖</span><div><small>ЯК ГРАТИ</small><b>${gc13HowTo(gameId)}</b></div>
-        </article>
-        <article>
-          <span>🏆</span><div><small>НАГОРОДИ</small><b>${gc13Reward(gameId)}</b></div>
-        </article>
-        <article>
-          <span>⚡</span><div><small>СПРОБИ</small><b>${gc13Attempts(s)}</b></div>
-        </article>
-      </div>
-
-      <section class="gc13-stage">
-        <div class="gc13-stage-head">
-          <div><span>GAME MODE</span><h3>Готовий грати?</h3></div>
-          <b>${Number(me.balance||0)} RH</b>
-        </div>
-        <p>Натисни кнопку нижче — відкриється сам ігровий режим. Після гри можеш повернутися назад у це меню.</p>
-        <button class="gc13-play" onclick="launchLegacyGame('${gameId}')">▶ ГРАТИ В ${g.name.toUpperCase()}</button>
       </section>
 
-      <section class="gc13-more">
-        <div><span>ЩЕ ІГРИ</span><small>Спробуй інший режим</small></div>
-        <div class="gc13-more-row">
-          ${gc13Catalog.filter(x=>x.id!==gameId).slice(0,4).map(x=>`
+      <section class="gc14-guide">
+        <article><i>①</i><div><span>ЯК ГРАТИ</span><p>${gc13HowTo(gameId)}</p></div></article>
+        <article><i>②</i><div><span>НАГОРОДИ</span><p>${gc13Reward(gameId)}</p></div></article>
+        <article><i>③</i><div><span>ПОРАДА</span><p>${gc14Tip(gameId)}</p></div></article>
+      </section>
+
+      <section class="gc14-game-shell">
+        <div class="gc14-game-head">
+          <div><span>LIVE GAME</span><h2>${g.name}</h2></div>
+          <b>${status}</b>
+        </div>
+        ${gc14GameMarkup(gameId,game,gameHistory)}
+      </section>
+
+      <section class="gc14-history">
+        <div class="gc14-section-head"><span>ОСТАННІ РЕЗУЛЬТАТИ</span><small>${gameHistory.length} ігор</small></div>
+        <div class="gc14-history-list">
+          ${gameHistory.length ? gameHistory.slice(0,6).map(item=>`
+            <div>
+              <i>${g.icon}</i>
+              <span><b>${esc(item.result_text)}</b><small>${new Date(item.created_at*1000).toLocaleString("uk-UA")}</small></span>
+              <strong class="${Number(item.reward||0)>0?"win":""}">${Number(item.reward||0)>0?`+${item.reward} RH`:"0 RH"}</strong>
+            </div>`).join("") : `<p>Ще немає зіграних партій.</p>`}
+        </div>
+      </section>
+
+      <section class="gc14-more">
+        <div class="gc14-section-head"><span>ЩЕ ІГРИ</span><small>Зміни режим</small></div>
+        <div>
+          ${gc13Catalog.filter(x=>x.id!==gameId).slice(0,5).map(x=>`
             <button onclick="openGameDetail('${x.id}')"><i>${x.icon}</i><span>${x.name}</span></button>
           `).join("")}
         </div>
       </section>
     </section>
   `;
+
+  if(gameId==="scratch" && !game?.cooldown_remaining){
+    const surface=document.getElementById("scratchSurface");
+    if(surface) startScratchInteraction(surface);
+  }
+
+  addCrispMotion?.();
+  setupMotionForPage?.();
 }
 
-function gc13HowTo(id){
+function gc14Tip(id){
   return ({
-    roulette:"Натисни Spin. Колесо випадково визначить сектор і нагороду.",
-    daily_case:"Відкрий кейс і дочекайся, поки система визначить твій drop.",
-    slot:"Запусти барабани та збирай виграшні комбінації.",
-    coin_flip:"Обери орла або решку та підкинь монету.",
-    number_guess:"Вводь числа й використовуй підказки, щоб знайти правильне.",
-    scratch:"Стирай поле, доки не відкриєш прихований результат.",
-    safe_crack:"Підбирай код сейфа за підказками системи."
-  })[id]||"Виконай умови гри та отримай результат.";
+    roulette:"Кожен сектор має свій результат. Після старту просто дочекайся повної зупинки колеса.",
+    daily_case:"Daily Case доступний раз на добу — не пропускай щоденне відкриття.",
+    slot:"Не піднімай ставку вище балансу, який готовий витратити за кілька обертів.",
+    coin_flip:"Це швидкий режим: обери сторону, ставку та одразу отримай результат.",
+    number_guess:"У тебе одна з п’яти відповідей — обирай число й перевір інтуїцію.",
+    scratch:"Проведи пальцем по картці. Результат визначає сервер на першому стиранні.",
+    safe_crack:"Обери одну з шести комірок. Правильний код прихований до вибору."
+  })[id]||"Грай уважно та слідкуй за денним лімітом.";
 }
 
-function gc13Reward(id){
-  return ({
-    roulette:"Випадкова кількість RH залежно від сектора.",
-    daily_case:"Щоденний drop із шансом на рідкісну нагороду.",
-    slot:"RH за виграшні комбінації.",
-    coin_flip:"Нагорода за правильний вибір.",
-    number_guess:"RH за успішно вгадане число.",
-    scratch:"Прихована випадкова нагорода RH.",
-    safe_crack:"RH за успішно відкритий сейф."
-  })[id]||"Нагорода RH.";
-}
+function gc14GameMarkup(id,game,history){
+  if(id==="roulette"){
+    const rouletteHistory=history;
+    return `
+      <div class="gc14-roulette">
+        <div class="rr99-wheel-wrap">
+          <div class="rr99-pointer"><span></span></div>
+          <div id="rw97Wheel" class="rr99-wheel">${rouletteSegments()}</div>
+        </div>
+        <div id="premium71Result" class="rr99-result"><span>ВИГРАШ</span><strong>+0 ⭐</strong><small>Зірки зарахуються автоматично</small></div>
+        <button id="rhcRouletteButton" class="gc14-main-button" onclick="playRoulette()" ${game?.cooldown_remaining?'disabled':''}>
+          ${game?.cooldown_remaining?formatCooldown(game.cooldown_remaining):"🎡 КРУТИТИ РУЛЕТКУ"}
+        </button>
+      </div>`;
+  }
 
-function gc13Attempts(s){
-  if(s?.cooldown_left>0)return `Відновлення через ${Math.ceil(Number(s.cooldown_left)/60)} хв`;
-  if(s?.plays_left!==undefined)return `${s.plays_left} доступно`;
-  if(s?.left_today!==undefined)return `${s.left_today} сьогодні`;
-  return "Готово";
-}
+  if(id==="daily_case"){
+    return `
+      <div class="gc14-case">
+        <div id="rhcCaseStage" class="gc14-case-box">
+          <div class="gc14-case-icon">🎁</div>
+          <span>DAILY CASE</span>
+          <strong>${game?.cooldown_remaining?"Наступний кейс пізніше":"Нагорода вже всередині"}</strong>
+          <div id="rhcCaseResult" class="case81-result">
+            <span class="case81-result-icon">◆</span><small>DAILY REWARD</small><strong>ВІДКРИЙ КЕЙС</strong><p>Сервер визначить нагороду</p>
+          </div>
+        </div>
+        <button id="rhcCaseButton" class="gc14-main-button" onclick="openDailyCase()" ${game?.cooldown_remaining?'disabled':''}>
+          ${game?.cooldown_remaining?formatCooldown(game.cooldown_remaining):"🎁 ВІДКРИТИ КЕЙС"}
+        </button>
+      </div>`;
+  }
 
-async function launchLegacyGame(gameId){
-  await gamesLegacyPage();
-  setTimeout(()=>{
-    if(typeof gc90ScrollToGame==="function") gc90ScrollToGame(gameId);
-  },60);
+  if(id==="slot"){
+    return `
+      <div class="gc14-slot">
+        <div class="gc14-slot-machine">
+          <div id="slotResult" class="gc3-slot-preview">❔ ❔ ❔</div>
+          <small>NEON SLOT</small>
+        </div>
+        <div class="gc14-control-row">
+          <label><span>Ставка RH</span><input id="slotBet" type="number" value="${game?.min_bet||5}" min="${game?.min_bet||5}" max="${game?.max_bet||100}"></label>
+          <button class="gc14-main-button" onclick="playSlot()" ${game?.cooldown_remaining?'disabled':''}>
+            ${game?.cooldown_remaining?formatCooldown(game.cooldown_remaining):"🎰 ЗАПУСТИТИ"}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  if(id==="coin_flip"){
+    return `
+      <div class="gc14-coin">
+        <div class="gc14-coin-art">🪙</div>
+        <label class="gc14-input"><span>Ставка RH</span><input id="coinBet" type="number" value="${game?.min_bet||5}" min="${game?.min_bet||5}" max="${game?.max_bet||50}"></label>
+        <div class="gc3-double gc14-choice">
+          <button onclick="playCoinFlip('heads')">ОРЕЛ</button>
+          <button onclick="playCoinFlip('tails')">РЕШКА</button>
+        </div>
+      </div>`;
+  }
+
+  if(id==="number_guess"){
+    return `
+      <div class="gc14-guess">
+        <div class="gc14-question">?</div>
+        <p>Яке число загадала система?</p>
+        <div class="gc3-number-row gc14-numbers">
+          ${[1,2,3,4,5].map(n=>`<button onclick="playNumberGuess(${n})">${n}</button>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  if(id==="scratch"){
+    return `
+      <div class="gc14-scratch">
+        <div id="scratchSurface" class="gc3-scratch-surface gc14-scratch-surface ${game?.cooldown_remaining?"disabled":""}">
+          ${game?.cooldown_remaining?`ДОСТУПНО ЧЕРЕЗ ${formatCooldown(game.cooldown_remaining)}`:"СТИРАЙ ПАЛЬЦЕМ"}
+        </div>
+        <p>${game?.cooldown_remaining?"Сьогоднішню картку вже використано.":"Стирай покриття прямо тут — результат визначиться сервером."}</p>
+      </div>`;
+  }
+
+  if(id==="safe_crack"){
+    return `
+      <div class="gc14-safe">
+        <div class="gc14-safe-door"><span>🔐</span><b>RH VAULT</b></div>
+        <p>Обери одну комірку:</p>
+        <div class="gc3-safe-grid gc14-safe-grid">
+          ${[1,2,3,4,5,6].map(n=>`<button onclick="playSafeCrack(${n})">${n}</button>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  return `<div class="empty">Гру не знайдено.</div>`;
 }
 
 async function gamesLegacyPage(){
@@ -2087,7 +2197,7 @@ async function playCoinFlip(choice){
     if(typeof coinAnimation==="function")coinAnimation(result.result);
     if(result.win&&typeof celebrateUltra==="function")celebrateUltra("coin");
     toast(result.win?`Виграш ${result.reward} RH ⭐`:`Випала ${result.result==="heads"?"орел":"решка"}`);
-    setTimeout(()=>gamesPage(),850);
+    setTimeout(()=>openGameDetail('coin_flip'),850);
   }catch(error){
     buttons.forEach(button=>button.disabled=false);
     toast(error.message);
@@ -2112,7 +2222,7 @@ async function playNumberGuess(number){
     });
     if(result.win&&typeof celebrateUltra==="function")celebrateUltra("guess");
     toast(result.win?`Вгадав! +${result.reward} RH ⭐`:`Правильне число: ${result.answer}`);
-    setTimeout(()=>gamesPage(),1100);
+    setTimeout(()=>openGameDetail('number_guess'),1100);
   }catch(error){
     buttons.forEach(button=>button.disabled=false);
     toast(error.message);
@@ -2146,7 +2256,7 @@ async function playSafeCrack(number){
     if(result.win&&typeof safeUnlockAnimation==="function")safeUnlockAnimation();
     if(result.win&&typeof celebrateUltra==="function")celebrateUltra("safe");
     toast(result.win?`Сейф відкрито! +${result.reward} RH ⭐`:`Код був у комірці ${result.correct}`);
-    setTimeout(()=>gamesPage(),1100);
+    setTimeout(()=>openGameDetail('safe_crack'),1100);
   }catch(error){
     buttons.forEach(button=>button.disabled=false);
     toast(error.message);
@@ -2194,7 +2304,7 @@ async function playRoulette(){
       luxuryWinBurst("win");
     }
     toast(result.result_text);
-    setTimeout(()=>gamesPage(),850);
+    setTimeout(()=>openGameDetail('roulette'),850);
   }catch(error){
     if(button)button.disabled=false;
     toast(error.message);
@@ -2223,7 +2333,7 @@ async function playSlot(){
     if(result.reward>=bet*4&&typeof celebrateUltra==="function")celebrateUltra("jackpot");
     else if(result.reward&&typeof celebrateUltra==="function")celebrateUltra("slot");
     toast(result.reward?`Виграш: ${result.reward} RH ⭐`:"Цього разу без виграшу");
-    setTimeout(()=>gamesPage(),1300);
+    setTimeout(()=>openGameDetail('slot'),1300);
   }catch(error){
     slotResult?.classList.remove("slot-spinning");
     if(button)button.disabled=false;
@@ -2249,7 +2359,7 @@ async function openDailyCase(){
     if(Number(result.reward)>=5)luxuryWinBurst("jackpot");
     else luxuryWinBurst("win");
     toast(result.result_text);
-    setTimeout(()=>gamesPage(),950);
+    setTimeout(()=>openGameDetail('daily_case'),950);
   }catch(error){
     if(button)button.disabled=false;
     toast(error.message);

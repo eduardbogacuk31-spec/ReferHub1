@@ -4751,6 +4751,7 @@ async function openPage(page){
   document.body.classList.toggle("rhx-home-active",page==="home");
   const pages={
     home:homePage,
+    lotteries:lotteryPage,
     tasks:tasksPage,
     friends:friendsPage,
     games:gamesPage,

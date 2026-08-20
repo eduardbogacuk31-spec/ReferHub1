@@ -63,3 +63,608 @@
   .lotv1-admin textarea,.lotv1-admin button{grid-column:auto}
   .lotv1-prize{grid-template-columns:58px 1fr}.lotv1-prize-art{width:58px;height:58px;font-size:29px}
 }
+
+
+/* ============================================================
+   REFERHUB LOTTERY v1.1 — PREMIUM EXPERIENCE
+   ============================================================ */
+
+.lot11-home-hero{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);
+  gap:28px;
+  align-items:center;
+  min-height:430px;
+  padding:32px;
+  border:1px solid rgba(155,92,232,.28);
+  border-radius:30px;
+  background:
+    radial-gradient(circle at 85% 15%,rgba(156,84,255,.24),transparent 29%),
+    radial-gradient(circle at 16% 88%,rgba(255,193,77,.10),transparent 30%),
+    linear-gradient(145deg,#1c1327 0%,#0d1017 56%,#0b0d12 100%);
+  box-shadow:
+    0 32px 70px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+.lot11-home-hero:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.014) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);
+  background-size:38px 38px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);
+}
+.lot11-hero-copy,.lot11-hero-prize{position:relative;z-index:2}
+.lot11-live{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:#b997ef;
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.14em;
+}
+.lot11-live i{
+  width:7px;height:7px;border-radius:50%;
+  background:#52e49c;
+  box-shadow:0 0 13px rgba(82,228,156,.8);
+  animation:lot11Pulse 1.7s ease-in-out infinite;
+}
+@keyframes lot11Pulse{50%{opacity:.4;transform:scale(.75)}}
+
+.lot11-hero-copy h1{
+  max-width:680px;
+  margin:10px 0 10px;
+  font-size:clamp(38px,6vw,68px);
+  line-height:.96;
+  letter-spacing:-.04em;
+}
+.lot11-hero-copy>p{
+  max-width:650px;
+  margin:0;
+  color:#a7afbc!important;
+  font-size:16px;
+  line-height:1.55;
+}
+
+.lot11-hero-stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  max-width:620px;
+  margin-top:24px;
+}
+.lot11-hero-stats>div{
+  padding:13px 14px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:15px;
+  background:rgba(12,15,21,.58);
+  backdrop-filter:blur(12px);
+}
+.lot11-hero-stats small,.lot11-hero-stats strong{display:block}
+.lot11-hero-stats small{color:#7f8796!important;font-size:10px}
+.lot11-hero-stats strong{margin-top:4px;font-size:19px}
+.lot11-hero-stats>div:first-child strong{color:#efc960}
+
+.lot11-hero-actions{
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+}
+.lot11-hero-actions button{
+  min-height:48px;
+  padding:0 17px;
+  border:1px solid #443552;
+  border-radius:14px;
+  background:#151820;
+  color:#e9e4f0;
+  font-size:12px;
+  font-weight:950;
+}
+.lot11-hero-actions button.primary{
+  border-color:#9457dc;
+  background:linear-gradient(180deg,#8a50d5,#5a2c98);
+  box-shadow:0 12px 28px rgba(104,49,174,.28);
+}
+
+.lot11-hero-prize{
+  position:relative;
+  min-height:320px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  text-align:center;
+}
+.lot11-prize-orbit{
+  position:absolute;
+  width:270px;height:270px;
+  border:1px solid rgba(210,166,255,.16);
+  border-radius:50%;
+  box-shadow:
+    0 0 0 34px rgba(255,255,255,.008),
+    0 0 0 72px rgba(255,255,255,.004);
+  animation:lot11Orbit 10s linear infinite;
+}
+.lot11-prize-orbit:before,
+.lot11-prize-orbit:after{
+  content:"";
+  position:absolute;
+  width:9px;height:9px;
+  border-radius:50%;
+  background:#eac766;
+  box-shadow:0 0 18px rgba(234,199,102,.65);
+}
+.lot11-prize-orbit:before{left:15%;top:7%}
+.lot11-prize-orbit:after{right:2%;bottom:28%}
+@keyframes lot11Orbit{to{transform:rotate(360deg)}}
+.lot11-prize-icon{
+  position:relative;
+  z-index:2;
+  width:150px;height:150px;
+  display:grid;place-items:center;
+  border:1px solid rgba(194,142,255,.25);
+  border-radius:42px;
+  background:
+    radial-gradient(circle at 35% 28%,rgba(255,255,255,.07),transparent 40%),
+    linear-gradient(145deg,#2d1b43,#17121e);
+  font-size:78px;
+  box-shadow:
+    0 28px 48px rgba(0,0,0,.34),
+    0 0 45px rgba(130,72,207,.12);
+  transform:rotate(-4deg);
+}
+.lot11-hero-prize>small{
+  margin-top:18px;
+  color:#9f86c9!important;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.13em;
+}
+.lot11-hero-prize>strong{
+  margin-top:4px;
+  max-width:260px;
+  font-size:21px;
+}
+.lot11-countdown{
+  margin-top:13px;
+  padding:10px 14px;
+  border:1px solid rgba(239,193,79,.18);
+  border-radius:13px;
+  background:#151719;
+}
+.lot11-countdown span,.lot11-countdown b{display:block}
+.lot11-countdown span{color:#817761;font-size:9px}
+.lot11-countdown b{margin-top:2px;color:#edc65f;font-size:14px}
+
+.lot11-strip{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin:14px 0 22px;
+}
+.lot11-strip button{
+  min-width:0;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:11px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:17px;
+  background:linear-gradient(145deg,#171a22,#11141a);
+  color:#fff;
+  text-align:left;
+}
+.lot11-strip i{
+  width:39px;height:39px;
+  display:grid;place-items:center;
+  border-radius:12px;
+  background:#241932;
+  font-style:normal;
+  font-size:20px;
+}
+.lot11-strip span{min-width:0}
+.lot11-strip b,.lot11-strip small{display:block}
+.lot11-strip b{font-size:13px}
+.lot11-strip small{margin-top:2px;color:#7f8795!important;font-size:10px}
+.lot11-strip strong{color:#8f75b7;font-size:18px}
+
+.lot11-section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.lot11-section-head span{
+  color:#9275bb;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.12em;
+}
+.lot11-section-head h2{margin:3px 0 0;font-size:27px}
+.lot11-section-head button{
+  border:0;background:transparent;color:#a68acb;font-size:11px
+}
+
+.lot11-active-card{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);
+  gap:16px;
+  padding:17px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:21px;
+  background:linear-gradient(145deg,#161920,#101319);
+}
+.lot11-active-left{
+  display:grid;
+  grid-template-columns:90px 1fr;
+  gap:14px;
+  align-items:center;
+}
+.lot11-big-prize{
+  width:90px;height:90px;
+  display:grid;place-items:center;
+  border-radius:23px;
+  background:#21162e;
+  font-size:46px;
+}
+.lot11-active-left span{color:#9a7bc5;font-size:9px;font-weight:900}
+.lot11-active-left h3{margin:5px 0;font-size:19px}
+.lot11-active-left p{margin:0;color:#848d9b!important;font-size:12px;line-height:1.45}
+.lot11-active-right{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:7px;
+}
+.lot11-active-right>div{
+  padding:11px;
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:12px;
+  background:#0e1117;
+}
+.lot11-active-right small,.lot11-active-right b{display:block}
+.lot11-active-right small{color:#7a8290!important;font-size:9px}
+.lot11-active-right b{margin-top:3px;font-size:14px}
+.lot11-active-right>div:last-child b{color:#e9c35f}
+
+.lot11-bottom-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:18px;
+}
+.lot11-winner-card,.lot11-progress-card{
+  padding:17px;
+  border:1px solid rgba(255,255,255,.065);
+  border-radius:19px;
+  background:#14171e;
+}
+.lot11-winner-card>span,.lot11-progress-card>span{
+  color:#8b739f;
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.12em;
+}
+.lot11-winner-main{
+  display:grid;
+  grid-template-columns:55px 1fr;
+  gap:11px;
+  align-items:center;
+  margin-top:12px;
+}
+.lot11-winner-crown{
+  width:55px;height:55px;display:grid;place-items:center;
+  border-radius:17px;background:#2a2114;font-size:27px
+}
+.lot11-winner-main h3{margin:0;font-size:17px}
+.lot11-winner-main p{margin:3px 0;color:#9099a8!important;font-size:11px}
+.lot11-winner-main small{color:#b5945b!important;font-size:9px}
+.lot11-winner-card button,.lot11-progress-card button{
+  width:100%;margin-top:12px;padding:10px;
+  border:1px solid #3a3145;border-radius:11px;background:#0f1218;color:#a99aba;font-size:10px
+}
+.lot11-empty-winner{margin-top:15px;color:#838c99;font-size:12px}
+.lot11-progress-card h3{margin:10px 0 9px;color:#ecc65f;font-size:29px}
+.lot11-progress-line{
+  height:10px;
+  overflow:hidden;
+  border:1px solid #40334e;
+  border-radius:99px;
+  background:#0d1015;
+}
+.lot11-progress-line i{
+  display:block;height:100%;
+  border-radius:99px;
+  background:linear-gradient(90deg,#7042b2,#b05fe8);
+}
+.lot11-progress-card p{margin:9px 0 0;color:#8e97a5!important;font-size:11px}
+
+.lot11-lottery-hero h2 span{
+  color:#b47af4;
+}
+.lot11-lottery-grid .lotv1-card{
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.lot11-lottery-grid .lotv1-card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(170,103,244,.25);
+  box-shadow:0 20px 42px rgba(0,0,0,.28);
+}
+.lotv1-buy-button{
+  transition:transform .16s ease,filter .16s ease;
+}
+.lotv1-buy-button:active{transform:scale(.985)}
+.lotv1-buy-button:hover{filter:brightness(1.08)}
+
+@media(max-width:850px){
+  .lot11-home-hero{grid-template-columns:1fr;min-height:0;padding:23px}
+  .lot11-hero-prize{min-height:270px}
+  .lot11-active-card{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .lot11-home-hero{padding:19px;border-radius:24px}
+  .lot11-hero-copy h1{font-size:39px}
+  .lot11-hero-copy>p{font-size:14px}
+  .lot11-hero-stats{grid-template-columns:1fr 1fr}
+  .lot11-hero-stats>div:last-child{grid-column:1/3}
+  .lot11-hero-actions{display:grid;grid-template-columns:1fr}
+  .lot11-hero-actions button{width:100%}
+  .lot11-hero-prize{min-height:245px}
+  .lot11-prize-icon{width:125px;height:125px;font-size:65px}
+  .lot11-prize-orbit{width:220px;height:220px}
+  .lot11-strip{grid-template-columns:1fr}
+  .lot11-bottom-grid{grid-template-columns:1fr}
+  .lot11-active-left{grid-template-columns:68px 1fr}
+  .lot11-big-prize{width:68px;height:68px;font-size:35px}
+}
+@media(prefers-reduced-motion:reduce){
+  .lot11-live i,.lot11-prize-orbit{animation:none!important}
+}
+
+
+/* ============================================================
+   REFERHUB LOTTERY v1.2 — NAV + SETTINGS + GAME ART
+   ============================================================ */
+
+/* Floating settings control is obsolete in Lottery UI. */
+.polish91-settings-button{
+  display:none!important;
+}
+
+/* Six equal bottom navigation buttons. */
+.lottery-nav{
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+}
+.lottery-settings-nav .nav-icon-wrap{
+  border-color:rgba(179,133,239,.25)!important;
+}
+.lottery-settings-nav:hover .nav-icon-wrap{
+  border-color:#8e63c6!important;
+  box-shadow:0 0 16px rgba(149,91,213,.25)!important;
+}
+
+@media(max-width:600px){
+  .lottery-nav{
+    left:7px!important;
+    right:7px!important;
+    width:auto!important;
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    padding-left:2px!important;
+    padding-right:2px!important;
+  }
+  .lottery-nav button{
+    min-width:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+  .lottery-nav .nav-icon-wrap{
+    width:27px!important;
+    height:27px!important;
+  }
+  .lottery-nav .nav-icon-wrap svg{
+    width:19px!important;
+    height:19px!important;
+  }
+  .lottery-nav .nav-label{
+    font-size:clamp(5.8px,1.65vw,7.5px)!important;
+  }
+}
+
+/* Settings always above bottom nav and scrolls inside Telegram WebView. */
+.polish91-settings{
+  z-index:200000!important;
+  padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
+}
+.polish91-settings-card{
+  z-index:2!important;
+}
+.polish91-settings-backdrop{
+  z-index:1!important;
+}
+
+/* Richer featured game covers */
+.gc12-featured-grid .gc12-cover{
+  position:relative!important;
+  isolation:isolate;
+  overflow:hidden!important;
+  min-height:154px!important;
+}
+.gc12-featured-grid .gc12-cover:before{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:0;
+  opacity:.8;
+}
+.gc12-featured-grid .roulette:before{
+  background:
+    radial-gradient(circle at 13% 22%,rgba(255,213,93,.20),transparent 24%),
+    radial-gradient(circle at 80% 75%,rgba(119,61,223,.22),transparent 36%);
+}
+.gc12-featured-grid .case:before{
+  background:
+    radial-gradient(circle at 15% 20%,rgba(74,214,169,.17),transparent 24%),
+    radial-gradient(circle at 85% 75%,rgba(63,106,212,.20),transparent 36%);
+}
+.gc12-featured-grid .best:before{
+  background:
+    radial-gradient(circle at 16% 22%,rgba(238,103,165,.16),transparent 25%),
+    radial-gradient(circle at 84% 72%,rgba(121,66,215,.22),transparent 35%);
+}
+.gc12-art{
+  position:relative!important;
+  width:78px!important;
+  height:78px!important;
+  flex:0 0 78px!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:visible!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:24px!important;
+  background:
+    radial-gradient(circle at 38% 30%,rgba(255,255,255,.10),transparent 42%),
+    rgba(12,15,22,.72)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 15px 28px rgba(0,0,0,.28)!important;
+  font-style:normal!important;
+}
+.gc12-art b{
+  position:relative;
+  z-index:2;
+  font-size:39px!important;
+  line-height:1;
+  filter:drop-shadow(0 8px 8px rgba(0,0,0,.28));
+}
+.gc12-art em{
+  position:absolute;
+  width:42px;
+  height:42px;
+  border:1px solid rgba(188,139,255,.22);
+  border-radius:50%;
+  animation:gc12Orb 4.5s linear infinite;
+}
+.gc12-art em:after{
+  content:"";
+  position:absolute;
+  left:3px;top:3px;
+  width:6px;height:6px;
+  border-radius:50%;
+  background:#e8c360;
+  box-shadow:0 0 11px rgba(232,195,96,.65);
+}
+@keyframes gc12Orb{to{transform:rotate(360deg)}}
+
+/* Visual game shelf */
+.gc12-game-shelf{
+  margin:20px 0;
+  padding:18px;
+  border:1px solid rgba(255,255,255,.065);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 50% -30%,rgba(125,72,206,.12),transparent 48%),
+    #11141b;
+}
+.gc12-shelf-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px;
+}
+.gc12-shelf-grid button{
+  position:relative;
+  overflow:hidden;
+  min-width:0;
+  min-height:145px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-end;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.065);
+  border-radius:17px;
+  background:#151820;
+  color:white;
+  text-align:left;
+  transition:transform .18s ease,border-color .18s ease;
+}
+.gc12-shelf-grid button:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:radial-gradient(circle at 50% 10%,rgba(255,255,255,.08),transparent 38%);
+}
+.gc12-shelf-grid button:hover{
+  transform:translateY(-3px);
+  border-color:rgba(169,105,236,.28);
+}
+.gc12-shelf-grid i{
+  position:absolute;
+  left:50%;top:16px;
+  translate:-50% 0;
+  font-style:normal;
+  font-size:45px;
+  filter:drop-shadow(0 10px 12px rgba(0,0,0,.32));
+}
+.gc12-shelf-grid b{
+  position:relative;
+  z-index:2;
+  width:100%;
+  overflow:hidden;
+  font-size:11px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.gc12-shelf-grid span{
+  position:relative;
+  z-index:2;
+  margin-top:3px;
+  color:#7f8897;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.gc12-shelf-grid .spin{background:linear-gradient(160deg,#282037,#15161d)}
+.gc12-shelf-grid .case{background:linear-gradient(160deg,#17302d,#14191c)}
+.gc12-shelf-grid .slot{background:linear-gradient(160deg,#382025,#171519)}
+.gc12-shelf-grid .coin{background:linear-gradient(160deg,#392f1b,#181714)}
+.gc12-shelf-grid .guess{background:linear-gradient(160deg,#1c2940,#14171d)}
+.gc12-shelf-grid .scratch{background:linear-gradient(160deg,#382139,#18151b)}
+.gc12-shelf-grid .safe{background:linear-gradient(160deg,#202c31,#14181b)}
+
+@media(max-width:900px){
+  .gc12-shelf-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+@media(max-width:560px){
+  .gc12-game-shelf{
+    padding:14px;
+    border-radius:20px;
+  }
+  .gc12-shelf-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .gc12-shelf-grid button{
+    min-height:125px;
+  }
+  .gc12-shelf-grid button:last-child{
+    grid-column:1/3;
+    min-height:105px;
+  }
+  .gc12-shelf-grid button:last-child i{
+    left:auto;
+    right:20px;
+    translate:0 0;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .gc12-art em{animation:none!important}
+}

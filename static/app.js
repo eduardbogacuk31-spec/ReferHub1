@@ -773,428 +773,126 @@ async function loadMe(){
 }
 
 async function homePage(){
-  content.innerHTML=`<div class="loader"></div>`;
-
-  const [feed,tasks,missions,tournaments,seasonData,games,history]=await Promise.all([
-    api("/api/feed"),
-    api("/api/tasks"),
-    api("/api/missions"),
-    api("/api/tournaments"),
-    api("/api/season"),
-    api("/api/games"),
-    api("/api/games/history")
-  ]);
-
-  const activeTasks=tasks.filter(task=>!task.claimed).slice(0,3);
-  const activeTournament=tournaments.find(t=>t.status==="active");
-  const lastGame=history[0];
-  const dailyGame=games.find(game=>game.game_key==="daily_case");
-  const roulette=games.find(game=>game.game_key==="roulette");
-
-  const nextLevelText=me.level.next
-    ? `${Math.max(0,me.level.next-me.xp)} XP до рівня ${me.level.number+1}`
-    : "Максимальний рівень";
-
-  const dailyReady=me.daily.available;
-  const seasonProgress=seasonData.active
-    ? Math.min(100,seasonData.level_progress/seasonData.xp_per_level*100)
-    : 0;
+  const summary=await api("/api/lottery-summary");
+  const active=summary.active;
+  const last=summary.last_winner;
 
   content.innerHTML=`
-    <section class="home3-hero">
-      <div class="home3-grid"></div>
-      <div class="home3-glow home3-glow-a"></div>
-      <div class="home3-glow home3-glow-b"></div>
+    <section class="lot11-home-hero">
+      <div class="lot11-hero-copy">
+        <span class="lot11-live"><i></i> REFERHUB LOTTERY LIVE</span>
+        <h1>${active?esc(active.title):"Новий розіграш скоро"}</h1>
+        <p>${active
+          ? esc(active.prize_name)
+          : "Заробляй RH, збирай квитки та готуйся до наступного розіграшу."}</p>
 
-      <div class="home3-topline">
-        <div>
-          <span class="home3-kicker">REFERHUB REWARDS 3.0</span>
-          <h1>Добрий день, ${esc(me.first_name)} 👋</h1>
+        <div class="lot11-hero-stats">
+          <div>
+            <small>Твій баланс</small>
+            <strong>${Number(summary.balance||0)} RH</strong>
+          </div>
+          <div>
+            <small>Твої квитки</small>
+            <strong>${Number(summary.my_total_tickets||0)} 🎟</strong>
+          </div>
+          <div>
+            <small>Розіграшів</small>
+            <strong>${Number(summary.total_draws||0)}</strong>
+          </div>
         </div>
-        <div class="home3-avatar">${me.photo_url?`<img src="${esc(me.photo_url)}">`:esc(me.first_name?.[0]||"R")}</div>
+
+        <div class="lot11-hero-actions">
+          <button class="primary" onclick="openPage('lotteries')">🎟 ВЗЯТИ УЧАСТЬ</button>
+          <button onclick="openPage('games')">🎮 ЗАРОБИТИ RH</button>
+        </div>
       </div>
 
-      <div class="home3-balance-row">
-        <div class="home3-balance">
-          <span>Мій баланс</span>
-          <strong><b id="home3Balance">${me.balance}</b> RH ⭐</strong>
-          <small>${nextLevelText}</small>
-        </div>
-        <div class="home3-level">
-          <span>LVL</span>
-          <strong>${me.level.number}</strong>
-          <small>${esc(me.level.name)}</small>
-        </div>
-      </div>
-
-      <div class="home3-xp-track">
-        <i style="width:${me.level.progress}%"></i>
-      </div>
-    </section>
-
-    <section class="home3-quick-actions">
-      <button onclick="openPage('tasks')" class="home3-action action-purple">
-        <span>📋</span><b>Завдання</b><small>${tasks.filter(t=>!t.claimed).length} доступно</small>
-      </button>
-      <button onclick="openPage('games')" class="home3-action action-pink">
-        <span>🎮</span><b>Ігри</b><small>7 режимів</small>
-      </button>
-      <button onclick="openPage('season')" class="home3-action action-cyan">
-        <span>⚡</span><b>Сезон</b><small>${seasonData.active?`LVL ${seasonData.current_level}`:"Скоро"}</small>
-      </button>
-      <button onclick="openPage('friends')" class="home3-action action-green">
-        <span>👥</span><b>Друзі</b><small>${me.referrals_count} запрошено</small>
-      </button>
-      <button onclick="openPage('shop')" class="home3-action action-gold">
-        <span>🛒</span><b>Магазин</b><small>Подарунки PRO</small>
-      </button>
-      <button onclick="openPage('profile')" class="home3-action action-blue">
-        <span>👤</span><b>Профіль</b><small>#${me.rank} рейтинг</small>
-      </button>
-    </section>
-
-    <section class="home3-daily ${dailyReady?"ready":""}">
-      <div class="home3-daily-icon">
-        <span>🎁</span>
-        <i></i>
-      </div>
-      <div class="home3-daily-copy">
-        <span class="home3-small-label">DAILY REWARD</span>
-        <h2>${dailyReady?"Нагорода готова":"Нагороду вже отримано"}</h2>
-        <p>Серія входів: ${me.daily.streak} днів</p>
-      </div>
-      <button onclick="claimDaily()" ${dailyReady?"":"disabled"}>
-        ${dailyReady?"Забрати":"Завтра"}
-      </button>
-    </section>
-
-    ${seasonData.active?`
-      <section class="home3-season" onclick="openPage('season')">
-        <div class="home3-season-copy">
-          <span>SEASON 01</span>
-          <h2>${esc(seasonData.season.title)}</h2>
-          <p>Рівень ${seasonData.current_level} • ${seasonData.season_xp} Season XP</p>
-          <div class="home3-season-track"><i style="width:${seasonProgress}%"></i></div>
-        </div>
-        <div class="home3-season-badge">⚡</div>
-        <button>Відкрити Battle Pass →</button>
-      </section>`:""}
-
-    ${seasonData.active&&seasonData.rewards?.length?`
-      <section class="home3-reward-road-section">
-        <div class="home3-section-title">
-          <div><span>BATTLE PASS</span><h2>Доріжка нагород</h2></div>
-          <button onclick="openPage('season')">Усі ${seasonData.season.max_level} →</button>
-        </div>
-        <div class="home3-reward-road">
-          ${seasonData.rewards.slice(
-            Math.max(0,seasonData.current_level-2),
-            Math.min(seasonData.rewards.length,seasonData.current_level+5)
-          ).map(reward=>{
-            const unlocked=reward.level<=seasonData.current_level;
-            return `
-              <button class="home3-reward-step ${unlocked?"unlocked":"locked"} ${reward.claimed?"claimed":""}"
-                onclick="openPage('season')">
-                <span class="home3-reward-level">LVL ${reward.level}</span>
-                <i>${reward.icon}</i>
-                <b>${reward.reward_value} RH</b>
-                <small>${reward.claimed?"Отримано":unlocked?"Доступно":"Закрито"}</small>
-              </button>`;
-          }).join("")}
-        </div>
-      </section>`:""}
-
-    <section class="home3-continue">
-      <div class="home3-section-title">
-        <div><span>CONTINUE</span><h2>Продовжити</h2></div>
-        <small>${lastGame?"Остання активність":"Обери гру"}</small>
-      </div>
-      <div class="home3-continue-card" onclick="openPage('games')">
-        <div class="home3-game-cover">
-          <span>${lastGame?gameIcon(lastGame.game_key):"🎰"}</span>
-          <i></i>
-        </div>
-        <div class="grow">
-          <span>${lastGame?"ОСТАННЯ ГРА":"РЕКОМЕНДОВАНО"}</span>
-          <h3>${lastGame?gameName(lastGame.game_key):"Slot Neon"}</h3>
-          <p>${lastGame?esc(lastGame.result_text):"Спробуй новий раунд"}</p>
-        </div>
-        <button>Грати</button>
+      <div class="lot11-hero-prize ${active?'':'empty'}">
+        <span class="lot11-prize-orbit"></span>
+        <div class="lot11-prize-icon">${active?esc(active.prize_emoji||"🎁"):"✨"}</div>
+        <small>${active?"ГОЛОВНИЙ ПРИЗ":"НАСТУПНИЙ РОЗІГРАШ"}</small>
+        <strong>${active?esc(active.prize_name):"Скоро"}</strong>
+        ${active?`
+          <div class="lot11-countdown">
+            <span>До завершення</span>
+            <b>${lotteryTimeLeft(active.ends_at)}</b>
+          </div>`:""}
       </div>
     </section>
 
-    ${activeTournament?`
-      <section class="home3-tournament" onclick="tournamentsPage()">
-        <div>
-          <span>LIVE TOURNAMENT</span>
-          <h2>${esc(activeTournament.title)}</h2>
-          <p>Твій результат: ${activeTournament.my_score}</p>
-        </div>
-        <div class="home3-podium">
-          <i>🥇 ${activeTournament.prize_1}</i>
-          <i>🥈 ${activeTournament.prize_2}</i>
-          <i>🥉 ${activeTournament.prize_3}</i>
-        </div>
-      </section>`:""}
-
-    <section class="home3-overview">
-      <div class="home3-section-title">
-        <div><span>OVERVIEW</span><h2>Статистика</h2></div>
-      </div>
-      <div class="home3-stat-grid">
-        <div><span>Зароблено</span><strong>${me.total_earned}</strong><small>RH ⭐</small></div>
-        <div><span>Рейтинг</span><strong>#${me.rank}</strong><small>глобально</small></div>
-        <div><span>Друзі</span><strong>${me.referrals_count}</strong><small>запрошено</small></div>
-        <div><span>XP</span><strong>${me.xp}</strong><small>загалом</small></div>
-      </div>
+    <section class="lot11-strip">
+      <button onclick="openPage('lotteries')">
+        <i>🎟</i><span><b>Розіграші</b><small>Купити квитки</small></span><strong>→</strong>
+      </button>
+      <button onclick="openPage('games')">
+        <i>🎮</i><span><b>Мініігри</b><small>Заробити RH</small></span><strong>→</strong>
+      </button>
+      <button onclick="openPage('tasks')">
+        <i>⚡</i><span><b>Завдання</b><small>Швидкі нагороди</small></span><strong>→</strong>
+      </button>
     </section>
 
-    <section class="home3-missions">
-      <div class="home3-section-title">
-        <div><span>DAILY MISSIONS</span><h2>Місії дня</h2></div>
-        <small>${missions.filter(m=>!m.claimed).length} активних</small>
-      </div>
-      <div class="home3-mission-list">
-        ${missions.map(m=>`
-          <div class="home3-mission">
-            <div class="home3-mission-icon">🎯</div>
-            <div class="grow">
-              <b>${esc(m.title)}</b>
-              <p>${esc(m.description)}</p>
-              <div class="home3-mission-track"><i style="width:${Math.min(100,m.progress/m.target_value*100)}%"></i></div>
-              <small>${m.progress}/${m.target_value}</small>
+    ${active?`
+      <section class="lot11-active">
+        <div class="lot11-section-head">
+          <div><span>АКТИВНИЙ РОЗІГРАШ</span><h2>Твій шанс уже тут</h2></div>
+          <button onclick="openPage('lotteries')">Відкрити →</button>
+        </div>
+
+        <div class="lot11-active-card">
+          <div class="lot11-active-left">
+            <div class="lot11-big-prize">${esc(active.prize_emoji||"🎁")}</div>
+            <div>
+              <span>${lotteryStatusLabel(active.status)}</span>
+              <h3>${esc(active.title)}</h3>
+              <p>${esc(active.description||"")}</p>
             </div>
-            <button onclick="claimMission(${m.id})" ${m.claimed||m.progress<m.target_value?"disabled":""}>
-              ${m.claimed?"✓":`+${m.reward}`}
-            </button>
-          </div>`).join("")}
-      </div>
-    </section>
+          </div>
 
-    <section class="home3-activity">
-      <div class="home3-section-title">
-        <div><span>LIVE ACTIVITY</span><h2>Останні нагороди</h2></div>
-      </div>
-      <div class="home3-timeline">
-        ${feed.length?feed.slice(0,8).map((item,index)=>`
-          <div class="home3-timeline-item" style="--timeline-index:${index}">
-            <div class="home3-timeline-icon">⭐</div>
-            <div class="grow">
-              <b>${esc(item.first_name)}</b>
-              <p>${esc(item.note)}</p>
-            </div>
-            <strong>+${item.amount}</strong>
-          </div>`).join(""):`<div class="empty">Активності ще немає</div>`}
-      </div>
-    </section>
-
-    ${activeTasks.length?`
-      <section class="home3-tasks">
-        <div class="home3-section-title">
-          <div><span>AVAILABLE</span><h2>Актуальні завдання</h2></div>
-          <button onclick="openPage('tasks')">Усі →</button>
+          <div class="lot11-active-right">
+            <div><small>Квиток</small><b>${Number(active.ticket_price)} RH</b></div>
+            <div><small>У тебе</small><b>${Number(active.my_tickets)} 🎟</b></div>
+            <div><small>Всього</small><b>${Number(active.total_tickets)} 🎟</b></div>
+            <div><small>Шанс</small><b>${Number(active.my_chance_percent||0).toFixed(4)}%</b></div>
+          </div>
         </div>
-        ${activeTasks.map(task=>taskCard(task)).join("")}
       </section>`:""}
-  `;
 
-  addCrispMotion(); setupMotionForPage(); initGC90Motion();
-}
-
-async function claimMission(id){
-  try{
-    await api(`/api/missions/${id}/claim`,{method:"POST"});
-    await loadMe();
-    rewardToast("Місію виконано","Нагороду зараховано","🎯");
-    toast("Нагороду місії отримано");
-    homePage();
-  }catch(error){toast(error.message)}
-}
-
-function categoryIcon(category){
-  return {
-    telegram:"📢",
-    youtube:"▶️",
-    tiktok:"🎵",
-    instagram:"📸",
-    discord:"💬",
-    referral:"👥",
-    other:"⭐"
-  }[category]||"⭐";
-}
-
-function taskCard(task){
-  const openButton=task.link
-    ? `<button class="secondary" onclick="openTask(${task.id},'${String(task.link).replace(/'/g,"\'")}')">Відкрити</button>`
-    : task.verification_type==="visit"
-      ? `<button class="secondary" onclick="openTask(${task.id},null)">Почати</button>`
-      : "";
-
-  return `
-    <div class="card task">
-      <div class="task-icon">${task.icon||categoryIcon(task.category)}</div>
-      <div class="task-main">
-        <div class="muted">${esc(task.category_name||task.category)}</div>
-        <h3>${esc(task.title)}</h3>
-        <p>${esc(task.description)}</p>
-        ${task.max_claims?`<div class="task-limit">Залишилось виконань: ${task.remaining_claims}</div>`:""}
-        <div class="task-actions">
-          ${openButton}
-          <button id="checkTask${task.id}" class="primary" ${task.claimed?"disabled":""} onclick="claimTask(${task.id})">
-            ${task.claimed?"Отримано":"Перевірити"}
-          </button>
-        </div>
+    <section class="lot11-bottom-grid">
+      <div class="lot11-winner-card">
+        <span>ОСТАННІЙ ПЕРЕМОЖЕЦЬ</span>
+        ${last?`
+          <div class="lot11-winner-main">
+            <div class="lot11-winner-crown">👑</div>
+            <div>
+              <h3>${last.winner_username?`@${esc(last.winner_username)}`:esc(last.winner_first_name||"Переможець")}</h3>
+              <p>${esc(last.prize_name)}</p>
+              <small>Квиток #${last.winning_ticket_id??"—"}</small>
+            </div>
+          </div>
+          <button onclick="showLotteryProof(${last.id})">Перевірити результат</button>
+        `:`
+          <div class="lot11-empty-winner">Перший переможець ще попереду ✨</div>
+        `}
       </div>
-      <div class="reward">+${task.reward}</div>
-    </div>
+
+      <div class="lot11-progress-card">
+        <span>НАСТУПНИЙ КВИТОК</span>
+        <h3>${active?`${Number(active.ticket_price)} RH`:"—"}</h3>
+        ${active?`
+          <div class="lot11-progress-line">
+            <i style="width:${Math.min(100,(Number(summary.balance||0)/Number(active.ticket_price||1))*100)}%"></i>
+          </div>
+          <p>${Number(summary.balance||0)>=Number(active.ticket_price||0)
+            ?"У тебе вже вистачає RH на квиток 🔥"
+            :`Ще ${Math.max(0,Number(active.ticket_price||0)-Number(summary.balance||0))} RH до наступного квитка`}</p>
+          <button onclick="openPage('games')">Заробити RH</button>
+        `:`<p>Очікуємо новий розіграш.</p>`}
+      </div>
+    </section>
   `;
 }
 
-function startTaskCountdown(id,seconds){
-  taskCountdowns[id]=seconds;
-  const button=document.getElementById(`checkTask${id}`);
-  if(!button)return;
-
-  const interval=setInterval(()=>{
-    taskCountdowns[id]-=1;
-    if(taskCountdowns[id]<=0){
-      clearInterval(interval);
-      button.disabled=false;
-      button.textContent="Перевірити";
-    }else{
-      button.disabled=true;
-      button.textContent=`Зачекай ${taskCountdowns[id]}с`;
-    }
-  },1000);
-}
-
-async function openTask(id,link){
-  try{
-    const result=await api(`/api/tasks/${id}/open`,{method:"POST"});
-
-    if(link){
-      if(tg?.openTelegramLink && link.startsWith("https://t.me/")){
-        tg.openTelegramLink(link);
-      }else{
-        window.open(link,"_blank");
-      }
-    }
-
-    if(result.wait_seconds){
-      startTaskCountdown(id,result.wait_seconds);
-      toast(`Перевірка через ${result.wait_seconds} сек.`);
-    }else{
-      toast("Можна перевіряти");
-    }
-  }catch(error){
-    toast(error.message);
-  }
-}
-
-async function claimDaily(){
-  try{
-    const old=me.balance;
-    const result=await api("/api/daily",{method:"POST"});
-    me.balance=result.balance;
-    me.daily={available:false,streak:result.streak,next_in:result.next_in};
-    animateBalance(old,result.balance);
-    toast(`+${result.reward} RH ⭐`);
-    homePage();
-  }catch(error){toast(error.message)}
-}
-
-function taskFilters(tasks){
-  const categories=[
-    ["all","Усі"],
-    ["telegram","Telegram"],
-    ["youtube","YouTube"],
-    ["tiktok","TikTok"],
-    ["instagram","Instagram"],
-    ["discord","Discord"],
-    ["referral","Друзі"],
-    ["other","Інше"]
-  ];
-
-  return `<div class="task-filters">${categories.map(([key,label])=>{
-    const count=key==="all"
-      ? tasks.length
-      : tasks.filter(t=>t.category===key).length;
-    if(!count && key!=="all")return "";
-    return `<button class="${activeTaskCategory===key?"active":""}" onclick="setTaskCategory('${key}')">${label} <span>${count}</span></button>`;
-  }).join("")}</div>`;
-}
-
-function setTaskCategory(category){
-  activeTaskCategory=category;
-  tasksPage();
-}
-
-
-const progress82Achievements=[
-  {title:"Перші кроки",desc:"Накопич 100 RH",icon:"◆",goal:100,stat:"balance",rarity:"common"},
-  {title:"Мисливець за друзями",desc:"Запроси 5 друзів",icon:"♟",goal:5,stat:"referrals",rarity:"rare"},
-  {title:"Король рефералів",desc:"Запроси 25 друзів",icon:"♛",goal:25,stat:"referrals",rarity:"epic"},
-  {title:"Game Master",desc:"Зіграй 50 разів",icon:"✦",goal:50,stat:"games",rarity:"rare"},
-  {title:"Колекціонер",desc:"Відкрий 15 кейсів",icon:"▣",goal:15,stat:"cases",rarity:"rare"},
-  {title:"RH Магнат",desc:"Накопич 10 000 RH",icon:"◇",goal:10000,stat:"balance",rarity:"legendary"},
-  {title:"Переможець",desc:"Отримай 25 перемог",icon:"★",goal:25,stat:"wins",rarity:"epic"},
-  {title:"Ветеран",desc:"Досягни 20 рівня",icon:"⚡",goal:20,stat:"level",rarity:"legendary"}
-];
-
-function progress82Value(item,history=[]){
-  if(item.stat==="balance")return Number(me.balance||0);
-  if(item.stat==="referrals")return Number(me.referrals_count||0);
-  if(item.stat==="level")return Number(me.level?.number||0);
-  if(item.stat==="games")return history.length;
-  if(item.stat==="cases")return history.filter(entry=>entry.game_key==="daily_case"||entry.game_key==="daily-case").length;
-  if(item.stat==="wins")return history.filter(entry=>Number(entry.reward||0)>0).length;
-  return 0;
-}
-
-function progress82AchievementCard(item,history){
-  const value=progress82Value(item,history);
-  const progress=Math.min(100,Math.round(value/item.goal*100));
-  const unlocked=value>=item.goal;
-  return `
-    <article class="pc82-achievement rarity-${item.rarity} ${unlocked?"unlocked":""}">
-      <div class="pc82-achievement-icon">${item.icon}</div>
-      <div class="pc82-achievement-copy">
-        <div><span>${item.rarity.toUpperCase()}</span><b>${unlocked?"ВІДКРИТО":`${Math.min(value,item.goal)} / ${item.goal}`}</b></div>
-        <h3>${esc(item.title)}</h3>
-        <p>${esc(item.desc)}</p>
-        <div class="pc82-progress"><i style="width:${progress}%"></i></div>
-      </div>
-      <strong>${unlocked?"✓":`${progress}%`}</strong>
-    </article>`;
-}
-
-function progress82MissionCard(mission){
-  const target=Number(mission.target_value||mission.target||1);
-  const value=Number(mission.progress||0);
-  const progress=Math.min(100,Math.round(value/target*100));
-  const ready=value>=target&&!mission.claimed;
-  return `
-    <article class="pc82-mission ${ready?"ready":""} ${mission.claimed?"claimed":""}">
-      <div class="pc82-mission-icon">${mission.icon||"✦"}</div>
-      <div class="pc82-mission-copy">
-        <div><span>DAILY MISSION</span><b>+${mission.reward||0} RH</b></div>
-        <h3>${esc(mission.title||mission.name||"Місія")}</h3>
-        <p>${esc(mission.description||"Виконай умову й забери нагороду")}</p>
-        <div class="pc82-progress"><i style="width:${progress}%"></i></div>
-        <small>${Math.min(value,target)} / ${target}</small>
-      </div>
-      <button ${ready?"": "disabled"} onclick="${ready?`claimMission(${mission.id})`:""}">
-        ${mission.claimed?"✓":ready?"Забрати":`${progress}%`}
-      </button>
-    </article>`;
-}
-
-function switchProgress82Tab(name,button){
-  document.querySelectorAll(".pc82-tabs button").forEach(node=>node.classList.remove("active"));
-  document.querySelectorAll(".pc82-panel").forEach(node=>node.classList.remove("active"));
-  button.classList.add("active");
-  document.querySelector(`[data-pc82-panel="${name}"]`)?.classList.add("active");
-}
 async function tasksPage(){
   content.innerHTML=`<div class="loader"></div>`;
 
@@ -1893,10 +1591,22 @@ async function gamesPage(){
 
       <section class="gc90-featured">
         <div class="gc90-title"><div><span>FEATURED MODES</span><h2>Головні режими</h2></div><small>Натисни, щоб перейти до гри</small></div>
-        <div class="gc90-featured-grid">
-          <button class="roulette" onclick="gc90ScrollToGame('roulette')"><i>◉</i><div><span>DAILY SPIN</span><h3>Premium Roulette</h3><p>${statusText(roulette)} · ${leftToday(roulette)} спінів</p></div><strong>Грати →</strong></button>
-          <button class="case" onclick="gc90ScrollToGame('daily_case')"><i>▣</i><div><span>DAILY DROP</span><h3>Daily Case</h3><p>${statusText(dailyCase)} · шанс Epic Drop</p></div><strong>Відкрити →</strong></button>
-          <button class="best" onclick="gc90ScrollToGame('${bestGame}')"><i>${gc90GameIcon(bestGame)}</i><div><span>YOUR FAVORITE</span><h3>${gc90GameLabel(bestGame)}</h3><p>Найчастіше обраний режим</p></div><strong>Продовжити →</strong></button>
+        <div class="gc90-featured-grid gc12-featured-grid">
+          <button class="roulette gc12-cover" onclick="gc90ScrollToGame('roulette')">
+            <i class="gc12-art"><b>🎡</b><em></em></i>
+            <div><span>DAILY SPIN</span><h3>Premium Roulette</h3><p>${statusText(roulette)} · ${leftToday(roulette)} спінів</p></div>
+            <strong>Грати →</strong>
+          </button>
+          <button class="case gc12-cover" onclick="gc90ScrollToGame('daily_case')">
+            <i class="gc12-art"><b>🎁</b><em></em></i>
+            <div><span>DAILY DROP</span><h3>Daily Case</h3><p>${statusText(dailyCase)} · шанс Epic Drop</p></div>
+            <strong>Відкрити →</strong>
+          </button>
+          <button class="best gc12-cover" onclick="gc90ScrollToGame('${bestGame}')">
+            <i class="gc12-art"><b>${gc90GameIcon(bestGame)}</b><em></em></i>
+            <div><span>YOUR FAVORITE</span><h3>${gc90GameLabel(bestGame)}</h3><p>Найчастіше обраний режим</p></div>
+            <strong>Продовжити →</strong>
+          </button>
         </div>
       </section>
 
@@ -1915,6 +1625,22 @@ async function gamesPage(){
         <div class="gc90-title"><div><span>GAME ACHIEVEMENTS</span><h2>Ігрові досягнення</h2></div><small>Прогрес оновлюється автоматично</small></div>
         <div class="gc90-achievement-grid">${gc90Achievements(totalPlayed,totalWon,biggestWin,currentStreak,history)}</div>
       </section>
+    </section>
+
+    <section class="gc12-game-shelf">
+      <div class="gc90-title">
+        <div><span>ARCADE COLLECTION</span><h2>Обери свою гру</h2></div>
+        <small>Кожен режим має свій стиль і нагороди RH</small>
+      </div>
+      <div class="gc12-shelf-grid">
+        <button onclick="gc90ScrollToGame('roulette')" class="spin"><i>🎡</i><b>Рулетка</b><span>Daily Spin</span></button>
+        <button onclick="gc90ScrollToGame('daily_case')" class="case"><i>🎁</i><b>Daily Case</b><span>Lucky Drop</span></button>
+        <button onclick="gc90ScrollToGame('slot')" class="slot"><i>🎰</i><b>Slots</b><span>Risk Mode</span></button>
+        <button onclick="gc90ScrollToGame('coin_flip')" class="coin"><i>🪙</i><b>Coin Flip</b><span>50 / 50</span></button>
+        <button onclick="gc90ScrollToGame('number_guess')" class="guess"><i>🔢</i><b>Вгадай число</b><span>Logic</span></button>
+        <button onclick="gc90ScrollToGame('scratch')" class="scratch"><i>✨</i><b>Scratch</b><span>Reveal</span></button>
+        <button onclick="gc90ScrollToGame('safe_crack')" class="safe"><i>🔐</i><b>Злам сейфа</b><span>Vault</span></button>
+      </div>
     </section>
 
     <section class="gc3-hero gc90-legacy-hero">

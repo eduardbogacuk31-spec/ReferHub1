@@ -2063,14 +2063,23 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton(
-                "🚀 Відкрити ReferHub Rewards",
+                "🎟️ Відкрити ReferHub Lottery",
                 web_app=WebAppInfo(url=runtime_webapp_url()),
             )
         ]]
     )
 
     await update.message.reply_text(
-        "⭐ ReferHub Rewards\nВиконуй завдання, крути рулетку та заробляй RH ⭐.",
+        "🎟️ REFERHUB LOTTERY\n\n"
+        "Твій Telegram-центр розіграшів, мініігор та безкоштовних шансів на призи.\n\n"
+        "💰 RH — внутрішня валюта ReferHub. Її НЕ можна купити за гроші: "
+        "заробляй RH у мінііграх, щоденних активностях, завданнях і за друзів.\n\n"
+        "🎫 Витрачай RH тільки на квитки в активних розіграшах. "
+        "Більше квитків = більше шансів, але навіть 1 квиток може стати переможним.\n\n"
+        "🎮 Усередині є Game Center — грай, став рекорди та поповнюй баланс RH.\n\n"
+        "🔎 Розіграші прозорі: до завершення фіксується seed hash, "
+        "а після жеребкування відкриваються дані для перевірки результату.\n\n"
+        "🏆 Заробляй • купуй квитки • бери участь • перевіряй результат.",
         reply_markup=keyboard,
     )
 
@@ -5357,6 +5366,63 @@ async def admin_create_promo(
 
 
 
+
+
+
+@app.get("/api/lottery-summary")
+async def lottery_summary(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+
+    with connect_db() as db:
+        draw_expired_lotteries(db)
+        db.commit()
+
+        active = db.execute(
+            """
+            SELECT * FROM lotteries
+            WHERE status = 'active'
+            ORDER BY ends_at ASC, id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        last_drawn = db.execute(
+            """
+            SELECT * FROM lotteries
+            WHERE status = 'drawn'
+            ORDER BY drawn_at DESC, id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        total_draws = db.execute(
+            "SELECT COUNT(*) FROM lotteries"
+        ).fetchone()[0]
+
+        my_total_tickets = db.execute(
+            """
+            SELECT COUNT(*) FROM lottery_tickets
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()[0]
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()["balance"]
+
+        payload = {
+            "balance": int(balance),
+            "total_draws": int(total_draws),
+            "my_total_tickets": int(my_total_tickets),
+            "active": lottery_public_row(db, active, user_id) if active else None,
+            "last_winner": lottery_public_row(db, last_drawn, user_id) if last_drawn else None,
+        }
+        return payload
 
 
 @app.get("/api/lotteries")

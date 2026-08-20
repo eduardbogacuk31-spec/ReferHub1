@@ -73,9 +73,9 @@ async function lotteryPage(){
   const finished=draws.filter(x=>x.status==="drawn");
 
   content.innerHTML=`
-    <section class="lotv1-hero">
+    <section class="lotv1-hero lot11-lottery-hero">
       <span>REFERHUB LOTTERY</span>
-      <h2>Твій квиток. Твій шанс.</h2>
+      <h2>Твій квиток.<br><span>Твій шанс.</span></h2>
       <p>RH не продаються за гроші. Заробляй їх у застосунку та використовуй тільки для участі в прозорих розіграшах.</p>
       <div class="lotv1-hero-balance">
         <small>Твій баланс</small>
@@ -84,7 +84,7 @@ async function lotteryPage(){
     </section>
 
     ${active.length
-      ? `<div class="lotv1-grid">${active.map((x,i)=>lotteryCard(x,i===0)).join("")}</div>`
+      ? `<div class="lotv1-grid lot11-lottery-grid">${active.map((x,i)=>lotteryCard(x,i===0)).join("")}</div>`
       : `<div class="card empty">Активних розіграшів поки немає.</div>`}
 
     ${finished.length ? `

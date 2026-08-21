@@ -1,52 +1,51 @@
 
-/* ReferHub v3.6.1 — Profile stability hotfix */
+/* ReferHub v3.7.1 — stable Profile 3.0 hotfix */
 (()=>{
- let loading=false;
+ let busy=false;
 
- async function safeProfile(){
-   if(loading)return;
-   loading=true;
+ async function openStableProfile(){
+   if(busy)return;
+   busy=true;
    try{
-     if(typeof window.openProfileV36==="function"){
-       await window.openProfileV36();
-     }else if(typeof window.rh36Open==="function"){
-       await window.rh36Open();
-     }
+     if(typeof window.openProfileV36==="function") return await window.openProfileV36();
+     if(typeof window.rh36Open==="function") return await window.rh36Open();
+   }catch(e){
+     console.error("Profile 3.0 error",e);
+     if(typeof toast==="function") toast(e?.message||"Не вдалося відкрити профіль","error");
    }finally{
-     loading=false;
+     busy=false;
    }
  }
 
- function repair(){
+ function cleanup(){
    const root=document.querySelector(".rh36");
    if(!root)return;
 
-   root.classList.add("rh361-stable");
+   root.classList.add("rh371-profile-stable");
 
-   // Remove stale duplicate profile shells if an older profile renderer survived.
-   document.querySelectorAll(
-     ".rh22-profile,.rh221-showcase,.pc82-shell"
-   ).forEach(el=>{
-     if(!el.closest(".rh36")) el.remove();
-   });
-
-   // Ensure the active profile screen never traps page scrolling.
-   document.documentElement.style.removeProperty("overflow");
-   if(!document.body.classList.contains("rh25-lock")){
-     document.body.style.removeProperty("overflow");
+   // Remove only duplicate legacy profile blocks that are actually inside the currently rendered content.
+   const content=document.getElementById("content");
+   if(content){
+     [...content.children].forEach(el=>{
+       if(el===root)return;
+       if(el.matches?.(".rh22-profile,.rh221-showcase,.profile-page,.profile-shell-old")){
+         el.remove();
+       }
+     });
    }
 
-   // Keep every profile section inside viewport width.
-   root.querySelectorAll("*").forEach(el=>{
-     if(el instanceof HTMLElement){
-       el.style.maxWidth=el.style.maxWidth||"100%";
-     }
-   });
+   if(!document.body.classList.contains("rh25-lock")){
+     document.documentElement.style.removeProperty("overflow");
+     document.body.style.removeProperty("overflow");
+   }
  }
 
- window.rh361Open=safeProfile;
- new MutationObserver(()=>requestAnimationFrame(repair))
+ window.rh371OpenProfile=openStableProfile;
+
+ // Repair only after DOM changes; do not mutate every descendant.
+ new MutationObserver(()=>requestAnimationFrame(cleanup))
    .observe(document.documentElement,{childList:true,subtree:true});
- document.addEventListener("DOMContentLoaded",repair);
- setTimeout(repair,250);
+
+ document.addEventListener("DOMContentLoaded",cleanup);
+ setTimeout(cleanup,250);
 })();

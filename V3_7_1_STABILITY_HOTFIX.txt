@@ -1,0 +1,13 @@
+ReferHub v3.7.1 — Stability Hotfix
+
+FIXED:
+- Profile 3.0 routing conflict with Community.
+- Removed aggressive profile DOM cleanup that could break other screens.
+- Self public profile now safely returns to Profile 3.0.
+- Social Hub button in public profile now opens the actual Social Hub instead of a nonexistent route.
+- Fixed player/community card widths and overflow.
+- Fixed participant/player cards on mobile.
+- Fixed profile mobile layout, collection grid, showcase and stats.
+- Preserved all systems from v3.6.1 and v3.7.
+
+This is a stability release; no new large systems were added.

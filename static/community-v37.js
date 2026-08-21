@@ -65,7 +65,7 @@
    try{
      const p=await api(`/api/public-profile-v37/${id}`);
      const c=document.getElementById("content");if(!c)return;
-     if(p.self && typeof rh36Open==="function"){return rh36Open()}
+     if(p.self){ if(typeof openProfileV36==="function") return openProfileV36(); if(typeof rh36Open==="function") return rh36Open(); }
      c.innerHTML=`<main class="rh37-public">
        <button class="rh37-back" onclick="rh37Open()">← Назад</button>
        <section class="rh37-public-cover">
@@ -81,7 +81,7 @@
        <section class="rh37-social-card">
          <div><span>👥</span><section><small>FOLLOWERS</small><b>${p.followers}</b></section></div>
          <div><span>→</span><section><small>FOLLOWING</small><b>${p.following_count}</b></section></div>
-         <button onclick="openPage('social')">${p.is_following?"В СОЦІАЛЬНОМУ ХАБІ":"ВІДКРИТИ SOCIAL HUB"}</button>
+         <button onclick="rh26Page?.()">${p.is_following?"В СОЦІАЛЬНОМУ ХАБІ":"ВІДКРИТИ SOCIAL HUB"}</button>
        </section>
      </main>`;
    }catch(err){toast(err.message,"error")}

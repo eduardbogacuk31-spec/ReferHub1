@@ -1,0 +1,245 @@
+
+/* ReferHub v3.7.1 — Stability Hotfix */
+
+/* ---------- PROFILE ---------- */
+.rh36.rh371-profile-stable{
+ width:100%!important;
+ max-width:1160px!important;
+ min-width:0!important;
+ overflow:visible!important;
+}
+.rh36.rh371-profile-stable *{box-sizing:border-box}
+.rh36-cover{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto!important;
+ gap:16px!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:hidden!important;
+}
+.rh36-profile-main,.rh36-ident,.rh36-cover-side,
+.rh36-stat-grid,.rh36-show-grid,.rh36-collection,.rh36-stats-page{
+ min-width:0!important;
+}
+.rh36-ident h1,.rh36-ident p,.rh36-ident b,.rh36-ident small,
+.rh36-show-grid b,.rh36-collection b,.rh36-collection p{
+ white-space:normal!important;
+ overflow-wrap:anywhere!important;
+}
+.rh36-tabs{
+ width:100%!important;
+ min-width:0!important;
+ overflow:visible!important;
+}
+.rh36-tabs button{
+ min-width:0!important;
+ white-space:normal!important;
+}
+.rh36-stat-grid article,.rh36-show-grid article,.rh36-collection button,
+.rh36-stats-page>article{
+ min-width:0!important;
+ max-width:100%!important;
+}
+
+/* ---------- COMMUNITY / PLAYERS ---------- */
+.rh37{overflow:visible!important}
+.rh37-players{
+ align-items:stretch!important;
+}
+.rh37-players>article.rh371-player-card{
+ display:flex!important;
+ flex-direction:column!important;
+ min-width:0!important;
+ height:100%!important;
+ overflow:hidden!important;
+}
+.rh37-p-cover{
+ flex:0 0 78px!important;
+ min-height:78px!important;
+}
+.rh37-p-copy{
+ flex:1!important;
+ min-width:0!important;
+ padding:31px 11px 9px!important;
+}
+.rh371-min0{min-width:0!important}
+.rh37-p-copy h3,.rh37-p-copy p,
+.rh37-feed-copy h3,.rh37-feed-copy p,
+.rh37-public-cover h1,.rh37-public-cover p,.rh37-public-cover b{
+ max-width:100%!important;
+ white-space:normal!important;
+ overflow-wrap:anywhere!important;
+}
+.rh37-p-copy section{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:4px!important;
+ width:100%!important;
+}
+.rh37-p-copy section span{
+ min-width:0!important;
+ text-align:center!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+}
+.rh37-players>article>button{
+ margin-top:auto!important;
+ min-height:33px!important;
+}
+.rh37-feed article{
+ min-width:0!important;
+}
+.rh37-feed-copy>div{
+ min-width:0!important;
+}
+.rh37-feed-copy>div b{
+ min-width:0!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ white-space:nowrap!important;
+}
+.rh37-public-cover{
+ min-width:0!important;
+}
+.rh37-public-stats article{
+ min-width:0!important;
+}
+.rh37-social-card{
+ min-width:0!important;
+}
+
+/* ---------- MOBILE ---------- */
+@media(max-width:650px){
+ #content{padding-bottom:115px!important}
+
+ .rh36{
+   padding-bottom:115px!important;
+ }
+ .rh36-cover{
+   display:block!important;
+   padding:14px!important;
+ }
+ .rh36-profile-main{
+   display:grid!important;
+   grid-template-columns:72px minmax(0,1fr)!important;
+   gap:11px!important;
+   align-items:start!important;
+ }
+ .rh36-avatar{
+   width:72px!important;
+   height:72px!important;
+   border-radius:21px!important;
+ }
+ .rh36-ident h1{
+   font-size:27px!important;
+   line-height:1!important;
+ }
+ .rh36-ident>div{
+   display:flex!important;
+   flex-wrap:wrap!important;
+   gap:5px!important;
+ }
+ .rh36-cover-side{
+   display:grid!important;
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+   gap:7px!important;
+   margin-top:12px!important;
+ }
+ .rh36-stat-grid{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ .rh36-show-grid{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ .rh36-show-grid article:last-child{
+   grid-column:1/3!important;
+ }
+ .rh36-collection{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ .rh36-collection button{
+   grid-template-columns:42px minmax(0,1fr)!important;
+   padding:9px!important;
+ }
+
+ .rh37-players{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+   gap:7px!important;
+ }
+ .rh37-players>article.rh371-player-card{
+   border-radius:15px!important;
+ }
+ .rh37-p-cover{
+   height:66px!important;
+   min-height:66px!important;
+   flex-basis:66px!important;
+ }
+ .rh37-p-avatar{
+   left:9px!important;
+   bottom:-22px!important;
+   width:50px!important;
+   height:50px!important;
+   border-radius:15px!important;
+ }
+ .rh37-p-copy{
+   padding:28px 9px 8px!important;
+ }
+ .rh37-p-copy h3{
+   font-size:10px!important;
+ }
+ .rh37-p-copy p{
+   font-size:6px!important;
+ }
+ .rh37-p-copy section span{
+   padding:4px 2px!important;
+   font-size:5px!important;
+ }
+ .rh37-players>article>button{
+   width:calc(100% - 16px)!important;
+   margin:0 8px 8px!important;
+   font-size:6px!important;
+ }
+
+ .rh37-public-cover{
+   display:grid!important;
+   grid-template-columns:72px minmax(0,1fr)!important;
+   gap:11px!important;
+   align-items:start!important;
+   padding:14px!important;
+ }
+ .rh37-big-avatar{
+   width:72px!important;
+   height:72px!important;
+   border-radius:21px!important;
+ }
+ .rh37-public-cover h1{
+   font-size:26px!important;
+ }
+ .rh37-public-stats{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ .rh37-social-card{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ .rh37-social-card button{
+   grid-column:1/3!important;
+   width:100%!important;
+ }
+}
+
+@media(max-width:390px){
+ .rh36-cover-side,.rh36-stat-grid,.rh36-show-grid,.rh36-collection{
+   grid-template-columns:1fr!important;
+ }
+ .rh36-show-grid article:last-child{
+   grid-column:auto!important;
+ }
+ .rh37-players{
+   grid-template-columns:1fr!important;
+ }
+ .rh37-public-stats{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+}

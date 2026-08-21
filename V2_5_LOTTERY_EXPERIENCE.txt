@@ -1,0 +1,10 @@
+ReferHub Lottery v2.5 — Lottery Experience 2.0
+- New premium draw detail screen.
+- Large prize hero and personal ticket/chance statistics.
+- Live draw machine visual.
+- Premium winner screen with winning ticket ID and confetti.
+- Replay draw reveal animation for completed lotteries.
+- Transparency/seed verification remains accessible.
+- Lottery cards receive new premium open-draw CTA.
+- Another design-quality pass: stronger depth, mobile polish, richer interactions.
+- All v2.4 Seasons, Daily, Live Events, Profile and Games preserved.

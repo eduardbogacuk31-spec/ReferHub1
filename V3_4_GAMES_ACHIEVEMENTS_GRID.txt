@@ -1,0 +1,22 @@
+ReferHub v3.4 — Games Expansion + Achievement Grid
+
+NEW:
+- Daily Arcade challenges:
+  • Play 5 rounds
+  • Earn 50 RH
+  • Win 3 rewarded rounds
+- Claimable RH rewards for daily arcade challenges.
+- Server-backed daily challenge tracking.
+
+ACHIEVEMENTS REDESIGN:
+- Achievements no longer appear as a long vertical list.
+- Game-style compact card grid.
+- 3 columns desktop, 2 columns on phone.
+- Compact artwork area, rarity badge, progress, reward button.
+- Category tabs remain sticky.
+- Legendary cards keep their premium treatment.
+
+DESIGN:
+- Further compact Game Center refinement.
+- Better mobile spacing and shorter cards.
+- v3.1 scroll fixes preserved.

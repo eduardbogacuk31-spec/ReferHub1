@@ -704,6 +704,20 @@ def init_database():
                 seed
             )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS arcade_challenge_claims_v34 (
+                user_id INTEGER NOT NULL,
+                day_key TEXT NOT NULL,
+                challenge_key TEXT NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                reward_rh INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(user_id, day_key, challenge_key)
+            );
+            """
+        )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -4077,6 +4091,121 @@ async def reward_center_v33(
             "season":season,
             "lottery":lottery
         }
+
+
+
+
+@app.get("/api/arcade-v34")
+async def arcade_v34(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+    day_key=time.strftime("%Y-%m-%d",time.gmtime(now))
+
+    challenges=[
+        {"key":"play5","title":"Warm Up","description":"Зіграй 5 раундів сьогодні","goal":5,"reward":15,"metric":"plays"},
+        {"key":"earn50","title":"RH Rush","description":"Зароби 50 RH сьогодні","goal":50,"reward":25,"metric":"earned"},
+        {"key":"win3","title":"Lucky Streak","description":"Отримай нагороду у 3 раундах","goal":3,"reward":20,"metric":"wins"},
+    ]
+
+    with connect_db() as db:
+        start=int(time.mktime(time.strptime(day_key,"%Y-%m-%d")))
+        try:
+            plays=int(db.execute(
+                "SELECT COUNT(*) FROM game_plays WHERE user_id=? AND created_at>=?",
+                (uid,start)
+            ).fetchone()[0] or 0)
+            earned=int(db.execute(
+                "SELECT COALESCE(SUM(reward),0) FROM game_plays WHERE user_id=? AND created_at>=?",
+                (uid,start)
+            ).fetchone()[0] or 0)
+            wins=int(db.execute(
+                "SELECT COUNT(*) FROM game_plays WHERE user_id=? AND created_at>=? AND reward>0",
+                (uid,start)
+            ).fetchone()[0] or 0)
+        except Exception:
+            plays=earned=wins=0
+
+        claimed={r["challenge_key"] for r in db.execute(
+            "SELECT challenge_key FROM arcade_challenge_claims_v34 WHERE user_id=? AND day_key=?",
+            (uid,day_key)
+        ).fetchall()}
+
+    metrics={"plays":plays,"earned":earned,"wins":wins}
+    result=[]
+    for c in challenges:
+        value=int(metrics.get(c["metric"],0))
+        result.append({
+            **c,
+            "value":value,
+            "progress":min(100,round(value/c["goal"]*100)),
+            "ready":value>=c["goal"],
+            "claimed":c["key"] in claimed
+        })
+    return {"day_key":day_key,"metrics":metrics,"challenges":result}
+
+
+@app.post("/api/arcade-v34/claim/{challenge_key}")
+async def arcade_v34_claim(
+    challenge_key: str,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+    day_key=time.strftime("%Y-%m-%d",time.gmtime(now))
+    definitions={
+        "play5":("plays",5,15),
+        "earn50":("earned",50,25),
+        "win3":("wins",3,20),
+    }
+    if challenge_key not in definitions:
+        raise HTTPException(404,"Виклик не знайдено")
+
+    metric,goal,reward=definitions[challenge_key]
+    start=int(time.mktime(time.strptime(day_key,"%Y-%m-%d")))
+
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        if db.execute(
+            "SELECT 1 FROM arcade_challenge_claims_v34 WHERE user_id=? AND day_key=? AND challenge_key=?",
+            (uid,day_key,challenge_key)
+        ).fetchone():
+            db.rollback()
+            raise HTTPException(409,"Нагороду вже отримано")
+
+        if metric=="plays":
+            value=int(db.execute("SELECT COUNT(*) FROM game_plays WHERE user_id=? AND created_at>=?",(uid,start)).fetchone()[0] or 0)
+        elif metric=="earned":
+            value=int(db.execute("SELECT COALESCE(SUM(reward),0) FROM game_plays WHERE user_id=? AND created_at>=?",(uid,start)).fetchone()[0] or 0)
+        else:
+            value=int(db.execute("SELECT COUNT(*) FROM game_plays WHERE user_id=? AND created_at>=? AND reward>0",(uid,start)).fetchone()[0] or 0)
+
+        if value<goal:
+            db.rollback()
+            raise HTTPException(409,"Умову ще не виконано")
+
+        db.execute(
+            "INSERT INTO arcade_challenge_claims_v34(user_id,day_key,challenge_key,claimed_at,reward_rh) VALUES(?,?,?,?,?)",
+            (uid,day_key,challenge_key,now,reward)
+        )
+        db.execute(
+            "UPDATE users SET balance=balance+?,total_earned=total_earned+? WHERE telegram_id=?",
+            (reward,reward,uid)
+        )
+        try:
+            db.execute(
+                "INSERT INTO ledger(user_id,amount,note,created_at) VALUES(?,?,?,?)",
+                (uid,reward,f"Arcade Challenge {challenge_key}",now)
+            )
+        except Exception:
+            pass
+        db.commit()
+        bal=int(db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0] or 0)
+
+    return {"ok":True,"reward":reward,"balance":bal}
 
 
 

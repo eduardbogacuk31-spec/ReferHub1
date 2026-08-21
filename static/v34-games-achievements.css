@@ -1,0 +1,140 @@
+
+/* ReferHub v3.4 — Game expansion + Achievements grid */
+
+/* DAILY ARCADE */
+.rh34-challenges{margin:10px 0}
+.rh34-head{display:flex;justify-content:space-between;align-items:end;margin:0 2px 8px}
+.rh34-head span{color:#8d6cab;font-size:7px;font-weight:950;letter-spacing:.14em}
+.rh34-head h2{margin:3px 0 0;font-size:20px}
+.rh34-head small{color:#69727d!important;font-size:7px}
+.rh34-ch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.rh34-ch-grid article{
+ min-width:0;display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;
+ padding:10px;border:1px solid rgba(255,255,255,.05);border-radius:14px;
+ background:linear-gradient(145deg,#14171d,#0e1116);box-shadow:0 13px 28px rgba(0,0,0,.16)
+}
+.rh34-ch-grid article.ready{border-color:rgba(229,191,92,.15)}
+.rh34-ch-grid article.claimed{opacity:.55}
+.rh34-ch-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:#1d1725;font-size:19px}
+.rh34-ch-grid article>div:nth-child(2){min-width:0}
+.rh34-ch-grid span{color:#8d6aae;font-size:6px;font-weight:950}
+.rh34-ch-grid h3{margin:2px 0;font-size:10px}
+.rh34-ch-grid p{margin:0;color:#69727f!important;font-size:7px;line-height:1.25}
+.rh34-track{height:5px;overflow:hidden;margin-top:5px;border-radius:99px;background:#20242b}
+.rh34-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#7042a0,#b86de8)}
+.rh34-ch-grid article>div small{display:block;margin-top:3px;color:#606975!important;font-size:5px}
+.rh34-ch-grid button{min-width:61px;padding:7px;border:1px solid #604080;border-radius:8px;background:#21152b;color:#bd95de;font-size:6px;font-weight:950}
+.rh34-ch-grid button:disabled{opacity:.4}
+.rh34-ch-grid article.ready button{border-color:#745b27;background:#251e0f;color:#dfbd5e}
+
+/* ACHIEVEMENTS: game-style compact grid */
+.rh32-grid.rh34-ach-grid{
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:8px!important;
+}
+.rh32-card.rh34-ach-card{
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ min-height:255px!important;
+ padding:0!important;
+ gap:0!important;
+ overflow:hidden!important;
+ border-radius:18px!important;
+}
+.rh34-ach-card .rh32-icon{
+ width:100%!important;
+ height:105px!important;
+ min-height:105px!important;
+ border-radius:0!important;
+ background:
+ radial-gradient(circle at 50% 45%,rgba(157,99,233,.18),transparent 45%),
+ linear-gradient(145deg,#20172a,#121018)!important;
+}
+.rh34-ach-card.legendary .rh32-icon{
+ background:
+ radial-gradient(circle at 50% 45%,rgba(229,191,92,.18),transparent 45%),
+ linear-gradient(145deg,#2a2110,#13120e)!important;
+}
+.rh34-ach-card .rh32-icon span{font-size:38px!important}
+.rh34-ach-card .rh32-copy{padding:10px!important;flex:1!important}
+.rh34-ach-card .rh32-copy h3{font-size:12px!important;margin:4px 0!important}
+.rh34-ach-card .rh32-copy p{
+ font-size:7px!important;
+ line-height:1.3!important;
+ display:-webkit-box!important;
+ -webkit-line-clamp:2!important;
+ -webkit-box-orient:vertical!important;
+ overflow:hidden!important;
+ min-height:19px!important;
+}
+.rh34-ach-card .rh32-progress{margin-top:8px!important}
+.rh34-ach-card>button{
+ width:calc(100% - 16px)!important;
+ margin:0 8px 8px!important;
+ min-height:33px!important;
+ align-self:stretch!important;
+}
+.rh34-ach-card .rh32-topline{align-items:center!important}
+.rh34-ach-card .rh32-rarity{
+ display:inline-flex!important;
+ width:max-content!important;
+ padding:4px 6px!important;
+ border-radius:999px!important;
+ background:#18151d!important;
+}
+.rh34-ach-card.common .rh32-rarity{background:#15191e!important}
+.rh34-ach-card.rare .rh32-rarity{background:#19142a!important}
+.rh34-ach-card.epic .rh32-rarity{background:#25142d!important}
+.rh34-ach-card.legendary .rh32-rarity{background:#281f0e!important}
+
+/* achievements category tabs stay compact */
+.rh32-tabs{
+ position:sticky!important;
+ top:max(6px,env(safe-area-inset-top))!important;
+ z-index:30!important;
+ backdrop-filter:blur(16px)!important;
+}
+
+/* Game center refinement */
+.gp-grid{
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:8px!important;
+}
+.gp-card{
+ min-height:0!important;
+ overflow:hidden!important;
+ border-radius:18px!important;
+}
+.gp-card-visual{min-height:120px!important}
+.gp-card-body{padding:11px!important}
+.gp-card-body h2{font-size:15px!important}
+.gp-card-body p{
+ font-size:8px!important;
+ display:-webkit-box!important;
+ -webkit-line-clamp:2!important;
+ -webkit-box-orient:vertical!important;
+ overflow:hidden!important;
+}
+
+@media(max-width:950px){
+ .rh32-grid.rh34-ach-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .rh34-ch-grid{grid-template-columns:1fr 1fr}
+ .rh34-ch-grid article:last-child{grid-column:1/3}
+}
+@media(max-width:650px){
+ .rh32-grid.rh34-ach-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+ .rh32-card.rh34-ach-card{min-height:220px!important;border-radius:16px!important}
+ .rh34-ach-card .rh32-icon{height:82px!important;min-height:82px!important}
+ .rh34-ach-card .rh32-icon span{font-size:30px!important}
+ .rh34-ach-card .rh32-copy{padding:8px!important}
+ .rh34-ach-card .rh32-copy h3{font-size:10px!important}
+ .rh34-ach-card .rh32-copy p{font-size:6px!important}
+ .rh34-ach-card>button{font-size:6px!important;min-height:30px!important}
+ .rh34-ch-grid{grid-template-columns:1fr}
+ .rh34-ch-grid article:last-child{grid-column:auto}
+ .gp-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+}
+@media(max-width:360px){
+ .rh32-grid.rh34-ach-grid{grid-template-columns:1fr!important}
+}

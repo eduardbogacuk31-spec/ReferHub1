@@ -1,0 +1,9 @@
+ReferHub v4.1 — Quest Center
+- Weekly quest system.
+- Quest XP based on real activity.
+- 4 weekly quests: games, RH earnings, Daily Missions, Daily Streak.
+- Reward Road with 3 server-protected chests.
+- Rewards: 25 / 60 / 120 RH.
+- Premium dedicated Quest Center UI.
+- Dashboard shortcut.
+- v4.0 Streaks, v3.9 Missions, v3.8 Tournaments and profile fixes preserved.

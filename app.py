@@ -783,6 +783,57 @@ def init_database():
                 seed
             )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS daily_mission_claims_v39 (
+                user_id INTEGER NOT NULL,
+                mission_key TEXT NOT NULL,
+                day_key TEXT NOT NULL,
+                reward INTEGER NOT NULL DEFAULT 0,
+                claimed_at INTEGER NOT NULL,
+                PRIMARY KEY(user_id, mission_key, day_key)
+            );
+            """
+        )
+
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS streaks_v40 (
+                user_id INTEGER PRIMARY KEY,
+                current_streak INTEGER NOT NULL DEFAULT 0,
+                best_streak INTEGER NOT NULL DEFAULT 0,
+                last_day TEXT,
+                total_claims INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS streak_claims_v40 (
+                user_id INTEGER NOT NULL,
+                day_key TEXT NOT NULL,
+                streak_day INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                PRIMARY KEY(user_id, day_key)
+            );
+            """
+        )
+
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS weekly_quest_claims_v41 (
+                user_id INTEGER NOT NULL,
+                week_key TEXT NOT NULL,
+                chest_level INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                PRIMARY KEY(user_id, week_key, chest_level)
+            );
+            """
+        )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -4715,6 +4766,175 @@ async def tournament_v38_detail(
         }
 
 
+
+
+def _rh39_day():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+def _rh39_missions(db, uid):
+    day=_rh39_day()
+    now=int(time.time())
+    day_start=now-(now%86400)
+    try:
+        row=db.execute("SELECT COUNT(*),COALESCE(SUM(reward),0) FROM game_plays WHERE user_id=? AND created_at>=?",(uid,day_start)).fetchone()
+        plays,earned=int(row[0] or 0),int(row[1] or 0)
+    except Exception:
+        plays=earned=0
+    try:
+        tickets=int(db.execute("SELECT COUNT(*) FROM lottery_tickets WHERE user_id=?",(uid,)).fetchone()[0] or 0)
+    except Exception:
+        tickets=0
+    defs=[
+        ("play3","Розігрів","Зіграй 3 мініігри","🎮",plays,3,15),
+        ("play10","Аркадний забіг","Зіграй 10 мініігор","⚡",plays,10,35),
+        ("earn50","Мисливець за RH","Зароби 50 RH у мінііграх","✦",earned,50,30),
+        ("ticket1","Квиток у гру","Май хоча б 1 лотерейний білет","🎟️",tickets,1,20),
+    ]
+    claimed={r[0] for r in db.execute("SELECT mission_key FROM daily_mission_claims_v39 WHERE user_id=? AND day_key=?",(uid,day)).fetchall()}
+    return [{"key":k,"title":t,"desc":d,"icon":i,"progress":min(int(p),target),"target":target,"reward":reward,
+             "done":int(p)>=target,"claimed":k in claimed} for k,t,d,i,p,target,reward in defs]
+
+@app.get("/api/daily-missions-v39")
+async def daily_missions_v39(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"])
+    with connect_db() as db: missions=_rh39_missions(db,uid)
+    return {"day":_rh39_day(),"missions":missions,"complete":sum(m["done"] for m in missions),"claimed":sum(m["claimed"] for m in missions)}
+
+@app.post("/api/daily-missions-v39/{mission_key}/claim")
+async def claim_daily_mission_v39(mission_key: str,x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); day=_rh39_day()
+    with connect_db() as db:
+        missions={m["key"]:m for m in _rh39_missions(db,uid)}
+        m=missions.get(mission_key)
+        if not m: raise HTTPException(404,"Місію не знайдено")
+        if not m["done"]: raise HTTPException(400,"Місію ще не виконано")
+        if m["claimed"]: raise HTTPException(400,"Нагороду вже отримано")
+        db.execute("INSERT INTO daily_mission_claims_v39(user_id,mission_key,day_key,reward,claimed_at) VALUES(?,?,?,?,?)",(uid,mission_key,day,m["reward"],int(time.time())))
+        db.execute("UPDATE users SET balance=balance+?,total_earned=total_earned+? WHERE telegram_id=?",(m["reward"],m["reward"],uid))
+        db.commit()
+    return {"ok":True,"reward":m["reward"]}
+
+
+def _rh40_today():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+def _rh40_day_number(day):
+    return int(time.mktime(time.strptime(day,"%Y-%m-%d"))//86400)
+
+def _rh40_reward(streak):
+    cycle=((max(1,streak)-1)%7)+1
+    rewards={1:10,2:15,3:20,4:25,5:30,6:40,7:75}
+    return rewards[cycle],cycle
+
+def _rh40_state(db,uid):
+    today=_rh40_today()
+    row=db.execute("SELECT * FROM streaks_v40 WHERE user_id=?",(uid,)).fetchone()
+    current=int(row["current_streak"]) if row else 0
+    best=int(row["best_streak"]) if row else 0
+    last=row["last_day"] if row else None
+    total=int(row["total_claims"]) if row else 0
+    claimed=db.execute("SELECT 1 FROM streak_claims_v40 WHERE user_id=? AND day_key=?",(uid,today)).fetchone() is not None
+    if last and not claimed:
+        gap=_rh40_day_number(today)-_rh40_day_number(last)
+        if gap>1: current=0
+    next_streak=current if claimed else current+1
+    reward,cycle=_rh40_reward(max(1,next_streak))
+    return {"today":today,"current":current,"best":best,"last_day":last,"total_claims":total,
+            "claimed_today":claimed,"next_reward":reward,"cycle_day":cycle}
+
+@app.get("/api/streak-v40")
+async def streak_v40(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"])
+    with connect_db() as db: s=_rh40_state(db,uid)
+    rewards=[10,15,20,25,30,40,75]
+    return {**s,"week":[{"day":i+1,"reward":r,"active":i+1==s["cycle_day"]} for i,r in enumerate(rewards)]}
+
+@app.post("/api/streak-v40/claim")
+async def claim_streak_v40(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); now=int(time.time())
+    with connect_db() as db:
+        s=_rh40_state(db,uid)
+        if s["claimed_today"]: raise HTTPException(400,"Сьогоднішню нагороду вже отримано")
+        new_streak=s["current"]+1
+        reward,cycle=_rh40_reward(new_streak)
+        best=max(s["best"],new_streak)
+        db.execute("INSERT INTO streak_claims_v40(user_id,day_key,streak_day,reward,claimed_at) VALUES(?,?,?,?,?)",
+                   (uid,s["today"],new_streak,reward,now))
+        db.execute("""INSERT INTO streaks_v40(user_id,current_streak,best_streak,last_day,total_claims,updated_at)
+                      VALUES(?,?,?,?,1,?)
+                      ON CONFLICT(user_id) DO UPDATE SET current_streak=excluded.current_streak,
+                      best_streak=excluded.best_streak,last_day=excluded.last_day,
+                      total_claims=streaks_v40.total_claims+1,updated_at=excluded.updated_at""",
+                   (uid,new_streak,best,s["today"],now))
+        db.execute("UPDATE users SET balance=balance+?,total_earned=total_earned+? WHERE telegram_id=?",(reward,reward,uid))
+        db.commit()
+    return {"ok":True,"reward":reward,"streak":new_streak,"cycle_day":cycle}
+
+
+def _rh41_week():
+    y,w,_=time.gmtime()[:3]
+    iso=time.strftime("%Y-W%W",time.gmtime())
+    return iso
+
+def _rh41_week_start():
+    now=int(time.time())
+    g=time.gmtime(now)
+    # Monday 00:00 UTC
+    days_since_monday=(g.tm_wday)%7
+    return now-(days_since_monday*86400)-(g.tm_hour*3600+g.tm_min*60+g.tm_sec)
+
+def _rh41_state(db,uid):
+    week=_rh41_week()
+    start=_rh41_week_start()
+    try:
+        row=db.execute("SELECT COUNT(*),COALESCE(SUM(reward),0) FROM game_plays WHERE user_id=? AND created_at>=?",(uid,start)).fetchone()
+        plays=int(row[0] or 0); earned=int(row[1] or 0)
+    except Exception:
+        plays=earned=0
+    try:
+        mission_claims=int(db.execute("SELECT COUNT(*) FROM daily_mission_claims_v39 WHERE user_id=? AND claimed_at>=?",(uid,start)).fetchone()[0] or 0)
+    except Exception:
+        mission_claims=0
+    try:
+        streak_claims=int(db.execute("SELECT COUNT(*) FROM streak_claims_v40 WHERE user_id=? AND claimed_at>=?",(uid,start)).fetchone()[0] or 0)
+    except Exception:
+        streak_claims=0
+
+    quests=[
+      {"key":"games","title":"Аркадний марафон","desc":"Зіграй 25 мініігор цього тижня","icon":"🎮","progress":min(plays,25),"target":25,"xp":30},
+      {"key":"rh","title":"RH Hunter","desc":"Зароби 150 RH у мінііграх","icon":"✦","progress":min(earned,150),"target":150,"xp":35},
+      {"key":"missions","title":"Дисципліна","desc":"Забери 5 нагород Daily Missions","icon":"📋","progress":min(mission_claims,5),"target":5,"xp":25},
+      {"key":"streak","title":"Не пропускай","desc":"Забери 3 щоденні Streak-нагороди","icon":"🔥","progress":min(streak_claims,3),"target":3,"xp":30},
+    ]
+    xp=sum(q["xp"] for q in quests if q["progress"]>=q["target"])
+    claimed={int(r[0]) for r in db.execute("SELECT chest_level FROM weekly_quest_claims_v41 WHERE user_id=? AND week_key=?",(uid,week)).fetchall()}
+    chests=[
+      {"level":1,"need":25,"reward":25,"claimed":1 in claimed},
+      {"level":2,"need":60,"reward":60,"claimed":2 in claimed},
+      {"level":3,"need":100,"reward":120,"claimed":3 in claimed},
+    ]
+    return {"week":week,"xp":xp,"quests":quests,"chests":chests}
+
+@app.get("/api/quest-center-v41")
+async def quest_center_v41(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"])
+    with connect_db() as db: return _rh41_state(db,uid)
+
+@app.post("/api/quest-center-v41/chest/{level}")
+async def quest_center_claim_v41(level:int,x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); now=int(time.time())
+    with connect_db() as db:
+        s=_rh41_state(db,uid)
+        chest=next((x for x in s["chests"] if x["level"]==level),None)
+        if not chest: raise HTTPException(404,"Скриню не знайдено")
+        if chest["claimed"]: raise HTTPException(400,"Нагороду вже отримано")
+        if s["xp"]<chest["need"]: raise HTTPException(400,"Ще недостатньо Quest XP")
+        db.execute("INSERT INTO weekly_quest_claims_v41(user_id,week_key,chest_level,reward,claimed_at) VALUES(?,?,?,?,?)",
+                   (uid,s["week"],level,chest["reward"],now))
+        db.execute("UPDATE users SET balance=balance+?,total_earned=total_earned+? WHERE telegram_id=?",
+                   (chest["reward"],chest["reward"],uid))
+        db.commit()
+    return {"ok":True,"reward":chest["reward"],"level":level}
 
 @app.get("/health")
 async def health():

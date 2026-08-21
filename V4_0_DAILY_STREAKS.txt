@@ -1,0 +1,9 @@
+ReferHub v4.0 — Daily Streaks
+- 7-day login reward cycle.
+- Increasing RH rewards: 10 / 15 / 20 / 25 / 30 / 40 / 75.
+- Current and best streak.
+- One server-protected claim per UTC day.
+- Miss a full day and the active streak resets.
+- Dedicated premium streak screen.
+- Dashboard shortcut.
+- v3.9 missions, v3.8 tournaments and v3.7.3 profile fixes preserved.

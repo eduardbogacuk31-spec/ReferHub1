@@ -1,0 +1,10 @@
+ReferHub v4.2 — EVOLUTION
+MAJOR UPDATE:
+- Persistent premium top bar and new ReferHub identity.
+- Quick Access command center.
+- Notification Center.
+- Major dashboard redesign.
+- Live cards for Tournaments, Missions, Streak and Quest Center.
+- Unified interaction/card polish.
+- Improved mobile 2-column layout and bottom sheets.
+- Existing v4.1/v4.0/v3.9/v3.8 systems and profile fixes preserved.

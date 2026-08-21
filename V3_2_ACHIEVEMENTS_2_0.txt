@@ -1,0 +1,16 @@
+ReferHub Lottery v3.2 — Achievements 2.0
+
+NEW:
+- Full server-backed achievement system.
+- Categories: Games / Economy / Lottery / Social / Daily.
+- Common / Rare / Epic / Legendary rarity.
+- Hidden achievements.
+- Progress bars and live counters.
+- Claimable RH rewards.
+- Dedicated Achievements 2.0 screen.
+- Profile / progression entry button.
+- Responsive premium design.
+
+PRESERVED:
+- All previous v2.3–v3.1 systems.
+- v3.1 global scroll / layout / classification fixes.

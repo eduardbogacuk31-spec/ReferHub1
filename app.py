@@ -641,6 +641,69 @@ def init_database():
                 cosmetics_seed
             )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS achievements_v32 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                achievement_key TEXT NOT NULL UNIQUE,
+                category TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                icon TEXT NOT NULL DEFAULT '🏆',
+                rarity TEXT NOT NULL DEFAULT 'common',
+                metric TEXT NOT NULL,
+                goal INTEGER NOT NULL,
+                reward_rh INTEGER NOT NULL DEFAULT 0,
+                hidden INTEGER NOT NULL DEFAULT 0,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS achievement_claims_v32 (
+                user_id INTEGER NOT NULL,
+                achievement_key TEXT NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                reward_rh INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(user_id, achievement_key)
+            );
+            """
+        )
+
+        if db.execute("SELECT COUNT(*) FROM achievements_v32").fetchone()[0] == 0:
+            seed = [
+                ("games_10","games","Перші кроки","Зіграй 10 раундів у мінііграх","🎮","common","games_played",10,15,0,1,1),
+                ("games_50","games","Аркадник","Зіграй 50 раундів","⚡","rare","games_played",50,35,0,2,1),
+                ("games_150","games","Game Hunter","Зіграй 150 раундів","🕹️","epic","games_played",150,75,0,3,1),
+                ("games_500","games","Arcade Legend","Зіграй 500 раундів","👾","legendary","games_played",500,150,1,4,1),
+
+                ("earn_100","economy","RH Hunter","Зароби 100 RH у мінііграх","✦","common","game_earned",100,15,0,10,1),
+                ("earn_1000","economy","RH Collector","Зароби 1000 RH у мінііграх","💎","epic","game_earned",1000,80,0,11,1),
+                ("earn_5000","economy","Vault Breaker","Зароби 5000 RH за весь час","🏦","legendary","total_earned",5000,200,1,12,1),
+
+                ("tickets_10","lottery","Перші шанси","Отримай 10 білетів","🎟️","common","tickets",10,15,0,20,1),
+                ("tickets_100","lottery","Ticket Master","Отримай 100 білетів","🎫","rare","tickets",100,40,0,21,1),
+                ("lottery_win","lottery","Lucky One","Виграй перший розіграш","👑","epic","lottery_wins",1,100,0,22,1),
+                ("lottery_wins_5","lottery","Fortune King","Виграй 5 розіграшів","🍀","legendary","lottery_wins",5,250,1,23,1),
+
+                ("friends_3","social","Перші друзі","Запроси або додай 3 друзів","👥","common","friends",3,20,0,30,1),
+                ("friends_10","social","Community Builder","Збери 10 друзів","🤝","rare","friends",10,50,0,31,1),
+                ("friends_25","social","ReferHub Star","Збери 25 друзів","🌐","epic","friends",25,100,0,32,1),
+
+                ("streak_3","daily","На зв'язку","Утримуй streak 3 дні","🔥","common","streak",3,15,0,40,1),
+                ("streak_7","daily","Тиждень сили","Утримуй streak 7 днів","🔥","rare","streak",7,40,0,41,1),
+                ("streak_30","daily","Без пропусків","Утримуй streak 30 днів","☀️","legendary","streak",30,200,1,42,1)
+            ]
+            db.executemany(
+                """
+                INSERT INTO achievements_v32(
+                    achievement_key,category,title,description,icon,rarity,
+                    metric,goal,reward_rh,hidden,sort_order,active
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                seed
+            )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -3738,6 +3801,184 @@ async def progression_v31(
             "total_earned":int(u["total_earned"] or 0),
             "rewards":rewards
         }
+
+
+
+
+def _rh32_metrics(db, uid):
+    def scalar(sql,args=()):
+        try:
+            r=db.execute(sql,args).fetchone()
+            return int((r[0] if r else 0) or 0)
+        except Exception:
+            return 0
+
+    games_played=scalar("SELECT COUNT(*) FROM game_plays WHERE user_id=?",(uid,))
+    game_earned=scalar("SELECT COALESCE(SUM(reward),0) FROM game_plays WHERE user_id=?",(uid,))
+    tickets=scalar("SELECT COUNT(*) FROM lottery_tickets WHERE user_id=?",(uid,))
+    lottery_wins=scalar("SELECT COUNT(*) FROM lotteries WHERE winner_id=? AND status='drawn'",(uid,))
+    total_earned=scalar("SELECT total_earned FROM users WHERE telegram_id=?",(uid,))
+
+    # Social count: prefer mutual follows, fall back to referrals_count.
+    friends=0
+    try:
+        friends=scalar(
+            """SELECT COUNT(*) FROM social_follows a
+               WHERE a.follower_id=? AND EXISTS(
+                 SELECT 1 FROM social_follows b
+                 WHERE b.follower_id=a.followed_id AND b.followed_id=?
+               )""",(uid,uid)
+        )
+    except Exception:
+        friends=0
+    if not friends:
+        try:
+            friends=scalar("SELECT referrals_count FROM users WHERE telegram_id=?",(uid,))
+        except Exception:
+            pass
+
+    streak=0
+    try:
+        now=int(time.time())
+        rows=db.execute(
+            "SELECT day_key FROM daily_calendar_claims WHERE user_id=? ORDER BY claimed_at DESC LIMIT 45",
+            (uid,)
+        ).fetchall()
+        keys={r["day_key"] for r in rows}
+        for off in range(45):
+            k=time.strftime("%Y-%m-%d",time.gmtime(now-off*86400))
+            if k in keys:
+                streak+=1
+            elif off==0:
+                continue
+            else:
+                break
+    except Exception:
+        streak=0
+
+    return {
+        "games_played":games_played,
+        "game_earned":game_earned,
+        "tickets":tickets,
+        "lottery_wins":lottery_wins,
+        "total_earned":total_earned,
+        "friends":friends,
+        "streak":streak
+    }
+
+
+@app.get("/api/achievements-v32")
+async def achievements_v32(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    with connect_db() as db:
+        metrics=_rh32_metrics(db,uid)
+        rows=db.execute(
+            "SELECT * FROM achievements_v32 WHERE active=1 ORDER BY category,sort_order,id"
+        ).fetchall()
+        claims={r["achievement_key"] for r in db.execute(
+            "SELECT achievement_key FROM achievement_claims_v32 WHERE user_id=?",(uid,)
+        ).fetchall()}
+
+        items=[]
+        for r in rows:
+            value=int(metrics.get(r["metric"],0))
+            goal=max(1,int(r["goal"] or 1))
+            unlocked=value>=goal
+            hidden=bool(r["hidden"])
+
+            items.append({
+                "key":r["achievement_key"],
+                "category":r["category"],
+                "title":("Секретне досягнення" if hidden and not unlocked else r["title"]),
+                "description":("Виконай приховану умову" if hidden and not unlocked else r["description"]),
+                "icon":("❓" if hidden and not unlocked else r["icon"]),
+                "rarity":r["rarity"],
+                "metric":r["metric"],
+                "goal":goal,
+                "value":value,
+                "progress":min(100,round(value/goal*100)),
+                "reward_rh":int(r["reward_rh"] or 0),
+                "hidden":hidden,
+                "unlocked":unlocked,
+                "claimed":r["achievement_key"] in claims
+            })
+
+        unlocked_count=sum(1 for x in items if x["unlocked"])
+        claimed_count=sum(1 for x in items if x["claimed"])
+
+        return {
+            "metrics":metrics,
+            "items":items,
+            "summary":{
+                "total":len(items),
+                "unlocked":unlocked_count,
+                "claimed":claimed_count
+            }
+        }
+
+
+@app.post("/api/achievements-v32/claim/{achievement_key}")
+async def achievements_v32_claim(
+    achievement_key: str,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row=db.execute(
+            "SELECT * FROM achievements_v32 WHERE achievement_key=? AND active=1",
+            (achievement_key,)
+        ).fetchone()
+        if not row:
+            db.rollback()
+            raise HTTPException(404,"Досягнення не знайдено")
+
+        if db.execute(
+            "SELECT 1 FROM achievement_claims_v32 WHERE user_id=? AND achievement_key=?",
+            (uid,achievement_key)
+        ).fetchone():
+            db.rollback()
+            raise HTTPException(409,"Нагороду вже отримано")
+
+        metrics=_rh32_metrics(db,uid)
+        value=int(metrics.get(row["metric"],0))
+        goal=max(1,int(row["goal"] or 1))
+        if value<goal:
+            db.rollback()
+            raise HTTPException(409,"Досягнення ще не виконано")
+
+        reward=int(row["reward_rh"] or 0)
+        db.execute(
+            """
+            INSERT INTO achievement_claims_v32(user_id,achievement_key,claimed_at,reward_rh)
+            VALUES(?,?,?,?)
+            """,(uid,achievement_key,now,reward)
+        )
+        if reward:
+            db.execute(
+                "UPDATE users SET balance=balance+?,total_earned=total_earned+? WHERE telegram_id=?",
+                (reward,reward,uid)
+            )
+            try:
+                db.execute(
+                    "INSERT INTO ledger(user_id,amount,note,created_at) VALUES(?,?,?,?)",
+                    (uid,reward,f"Achievement: {row['title']}",now)
+                )
+            except Exception:
+                pass
+        db.commit()
+
+        bal=db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        balance=int((bal[0] if bal else 0) or 0)
+
+    return {"ok":True,"reward":reward,"balance":balance}
 
 
 

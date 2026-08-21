@@ -1,0 +1,12 @@
+ReferHub v4.2.1 — Single Scroll Fix
+
+FIXED:
+- One continuous vertical scroll for the entire app.
+- Removed nested scrolling from page shells and feature screens.
+- Lists, games, achievements, profile, tournaments, missions, streaks and Quest Center now expand naturally.
+- Removed sticky feature headers/tabs that interfered with mobile scrolling.
+- Bottom navigation remains fixed without becoming a second viewport.
+- Telegram/mobile touch scrolling normalized.
+- Internal scrolling remains only inside intentional modal overlays such as Quick Access / Notification Center.
+
+v4.2 Evolution design and all previous systems are preserved.

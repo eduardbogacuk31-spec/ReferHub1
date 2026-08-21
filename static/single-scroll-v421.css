@@ -1,0 +1,130 @@
+
+/* v4.2.1 — ONE PAGE / ONE SCROLL
+   Only html/body may own vertical scrolling. */
+html{
+  height:auto!important;
+  min-height:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+}
+body{
+  position:relative!important;
+  height:auto!important;
+  min-height:100vh!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  overscroll-behavior-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+/* App shells must grow with content, never become scroll containers. */
+#app,
+.app,
+.app-shell,
+.main,
+main,
+.page,
+.page-wrap,
+.page-container,
+.content-wrap,
+#content{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-y:visible!important;
+  overscroll-behavior:visible!important;
+}
+
+/* All feature pages participate in the same document scroll. */
+.rp372,
+.rh37,
+.rh38,
+.rh38-detail,
+.rh39,
+.rh40,
+.rh41,
+.rh42-dashboard{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-y:visible!important;
+  -webkit-overflow-scrolling:auto!important;
+}
+
+/* Lists/grids must expand instead of scrolling internally. */
+.rh30-actions,
+.rh37-grid,
+.rh38-grid,
+.rh38-board,
+.rh39-grid,
+.rh40-week,
+.rh41-grid,
+.rh41-chests,
+.rh42-livegrid,
+.games-grid,
+.game-grid,
+.games-list,
+.achievements-grid,
+.achievement-grid,
+.profile-content,
+.profile-body{
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-y:visible!important;
+}
+
+/* Only intentional modal sheets may scroll internally. */
+.rh42-overlay{
+  overflow:hidden!important;
+}
+.rh42-panel{
+  max-height:82vh!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+/* Bottom navigation stays fixed but does not create a second viewport. */
+.bottom-nav,
+.premium-bottom-nav{
+  position:fixed!important;
+}
+#content{
+  padding-bottom:112px!important;
+}
+
+/* Sticky feature headers/tabs often create the "two-part scrolling" feel. */
+.rp372-tabs,
+.rh38-head,
+.rh39-head,
+.rh40-head,
+.rh41-head{
+  position:relative!important;
+  top:auto!important;
+}
+
+/* Mobile: preserve natural browser/Telegram WebView scrolling. */
+@media(max-width:700px){
+  html,body{
+    touch-action:pan-y!important;
+  }
+  #content{
+    width:100%!important;
+    max-width:100%!important;
+    padding-bottom:105px!important;
+  }
+  .rh42-topbar{
+    position:relative!important;
+    top:auto!important;
+  }
+  .rp372,.rh37,.rh38,.rh38-detail,.rh39,.rh40,.rh41{
+    touch-action:pan-y!important;
+  }
+}

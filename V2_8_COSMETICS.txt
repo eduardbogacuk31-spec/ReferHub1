@@ -1,0 +1,11 @@
+ReferHub Lottery v2.8 — Cosmetics & Profile Customization
+- Server-backed cosmetic inventory.
+- Avatar frames: Classic, Neon Pulse, Golden Crown, Aurora Core.
+- Profile backgrounds: Night Grid, Neon Horizon, Golden Vault, Cosmic Rift.
+- Player titles: ReferHub Player, Arcade Hunter, Lucky One, ReferHub Veteran.
+- Profile effects: None, Soft Glow, Golden Sparks, Prism Aura.
+- Unlock conditions based on level, wins and games played.
+- Equip system persists per user.
+- Premium customization screen integrated into profile.
+- Another full design pass with animated legendary cosmetics and responsive layouts.
+- All previous v2.3–v2.7 systems preserved.

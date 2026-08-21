@@ -573,6 +573,73 @@ def init_database():
             """
         )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS cosmetics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cosmetic_key TEXT NOT NULL UNIQUE,
+                cosmetic_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                subtitle TEXT NOT NULL DEFAULT '',
+                rarity TEXT NOT NULL DEFAULT 'common',
+                unlock_type TEXT NOT NULL DEFAULT 'free',
+                unlock_value INTEGER NOT NULL DEFAULT 0,
+                css_class TEXT NOT NULL,
+                icon TEXT NOT NULL DEFAULT '✦',
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS user_cosmetics (
+                user_id INTEGER NOT NULL,
+                cosmetic_key TEXT NOT NULL,
+                unlocked_at INTEGER NOT NULL,
+                PRIMARY KEY(user_id, cosmetic_key)
+            );
+
+            CREATE TABLE IF NOT EXISTS user_cosmetic_equips (
+                user_id INTEGER NOT NULL,
+                cosmetic_type TEXT NOT NULL,
+                cosmetic_key TEXT,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY(user_id, cosmetic_type)
+            );
+            """
+        )
+
+        if db.execute("SELECT COUNT(*) FROM cosmetics").fetchone()[0] == 0:
+            cosmetics_seed = [
+                ("frame_default","frame","Classic Frame","Стартова рамка","common","free",0,"rh28-frame-default","◇",1,1),
+                ("frame_neon","frame","Neon Pulse","Фіолетове неонове кільце","rare","level",3,"rh28-frame-neon","✦",2,1),
+                ("frame_gold","frame","Golden Crown","Золота преміум рамка","epic","level",7,"rh28-frame-gold","♛",3,1),
+                ("frame_aurora","frame","Aurora Core","Анімована aurora рамка","legendary","level",12,"rh28-frame-aurora","◈",4,1),
+
+                ("bg_night","background","Night Grid","Темний grid фон","common","free",0,"rh28-bg-night","▦",10,1),
+                ("bg_neon","background","Neon Horizon","Неоновий premium фон","rare","level",4,"rh28-bg-neon","≈",11,1),
+                ("bg_gold","background","Golden Vault","Золотий фон переможця","epic","wins",1,"rh28-bg-gold","✺",12,1),
+                ("bg_cosmic","background","Cosmic Rift","Космічний легендарний фон","legendary","level",15,"rh28-bg-cosmic","✧",13,1),
+
+                ("title_player","title","ReferHub Player","Стандартний титул","common","free",0,"rh28-title-player","R",20,1),
+                ("title_arcade","title","Arcade Hunter","За активність у мінііграх","rare","games",25,"rh28-title-arcade","🎮",21,1),
+                ("title_lucky","title","Lucky One","За першу перемогу","epic","wins",1,"rh28-title-lucky","🍀",22,1),
+                ("title_veteran","title","ReferHub Veteran","За високий рівень","legendary","level",15,"rh28-title-veteran","⚔",23,1),
+
+                ("effect_none","effect","No Effect","Без ефекту","common","free",0,"rh28-effect-none","·",30,1),
+                ("effect_glow","effect","Soft Glow","М'яке світіння профілю","rare","level",5,"rh28-effect-glow","✦",31,1),
+                ("effect_sparks","effect","Golden Sparks","Золоті частинки","epic","level",10,"rh28-effect-sparks","✺",32,1),
+                ("effect_prism","effect","Prism Aura","Легендарна prism aura","legendary","level",18,"rh28-effect-prism","◈",33,1)
+            ]
+            db.executemany(
+                """
+                INSERT INTO cosmetics(
+                    cosmetic_key,cosmetic_type,title,subtitle,rarity,unlock_type,
+                    unlock_value,css_class,icon,sort_order,active
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                cosmetics_seed
+            )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -3179,6 +3246,204 @@ async def game_center_v27(
             } for r in recent
         ],
     }
+
+
+
+@app.get("/api/cosmetics-v28")
+async def cosmetics_v28(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    with connect_db() as db:
+        u=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        if not u:
+            raise HTTPException(404,"Користувача не знайдено")
+
+        xp=int(u["xp"] or 0)
+        level=max(1, xp//100 + 1)
+        wins=int(db.execute(
+            "SELECT COUNT(*) FROM lotteries WHERE winner_id=? AND status='drawn'",
+            (uid,)
+        ).fetchone()[0])
+        games=int(db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id=?",
+            (uid,)
+        ).fetchone()[0])
+
+        rows=db.execute(
+            "SELECT * FROM cosmetics WHERE active=1 ORDER BY sort_order,id"
+        ).fetchall()
+
+        unlocked_db={r["cosmetic_key"] for r in db.execute(
+            "SELECT cosmetic_key FROM user_cosmetics WHERE user_id=?",(uid,)
+        ).fetchall()}
+
+        equips={r["cosmetic_type"]:r["cosmetic_key"] for r in db.execute(
+            "SELECT cosmetic_type,cosmetic_key FROM user_cosmetic_equips WHERE user_id=?",(uid,)
+        ).fetchall()}
+
+        items=[]
+        for r in rows:
+            key=r["cosmetic_key"]
+            unlock_type=r["unlock_type"]
+            value=int(r["unlock_value"] or 0)
+
+            unlocked=key in unlocked_db
+            if unlock_type=="free":
+                unlocked=True
+            elif unlock_type=="level":
+                unlocked=level>=value
+            elif unlock_type=="wins":
+                unlocked=wins>=value
+            elif unlock_type=="games":
+                unlocked=games>=value
+
+            if unlocked and key not in unlocked_db:
+                db.execute(
+                    "INSERT OR IGNORE INTO user_cosmetics(user_id,cosmetic_key,unlocked_at) VALUES(?,?,?)",
+                    (uid,key,int(time.time()))
+                )
+
+            items.append({
+                "key":key,
+                "type":r["cosmetic_type"],
+                "title":r["title"],
+                "subtitle":r["subtitle"],
+                "rarity":r["rarity"],
+                "unlock_type":unlock_type,
+                "unlock_value":value,
+                "css_class":r["css_class"],
+                "icon":r["icon"],
+                "unlocked":bool(unlocked),
+                "equipped":equips.get(r["cosmetic_type"])==key
+            })
+
+        db.commit()
+
+        # Defaults if user hasn't equipped anything yet.
+        defaults={
+            "frame":"frame_default",
+            "background":"bg_night",
+            "title":"title_player",
+            "effect":"effect_none"
+        }
+        for typ,key in defaults.items():
+            if typ not in equips:
+                db.execute(
+                    """
+                    INSERT INTO user_cosmetic_equips(user_id,cosmetic_type,cosmetic_key,updated_at)
+                    VALUES(?,?,?,?)
+                    ON CONFLICT(user_id,cosmetic_type) DO UPDATE SET cosmetic_key=excluded.cosmetic_key,updated_at=excluded.updated_at
+                    """,
+                    (uid,typ,key,int(time.time()))
+                )
+                equips[typ]=key
+        db.commit()
+
+        return {
+            "level":level,
+            "wins":wins,
+            "games":games,
+            "items":items,
+            "equipped":equips
+        }
+
+
+@app.post("/api/cosmetics-v28/equip/{cosmetic_key}")
+async def cosmetics_v28_equip(
+    cosmetic_key: str,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        item=db.execute(
+            "SELECT * FROM cosmetics WHERE cosmetic_key=? AND active=1",
+            (cosmetic_key,)
+        ).fetchone()
+        if not item:
+            raise HTTPException(404,"Косметику не знайдено")
+
+        u=db.execute("SELECT xp FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        level=max(1,int(u["xp"] or 0)//100+1) if u else 1
+        wins=int(db.execute(
+            "SELECT COUNT(*) FROM lotteries WHERE winner_id=? AND status='drawn'",(uid,)
+        ).fetchone()[0])
+        games=int(db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id=?",(uid,)
+        ).fetchone()[0])
+
+        typ=item["unlock_type"]
+        val=int(item["unlock_value"] or 0)
+
+        allowed = (
+            typ=="free" or
+            (typ=="level" and level>=val) or
+            (typ=="wins" and wins>=val) or
+            (typ=="games" and games>=val) or
+            bool(db.execute(
+                "SELECT 1 FROM user_cosmetics WHERE user_id=? AND cosmetic_key=?",
+                (uid,cosmetic_key)
+            ).fetchone())
+        )
+
+        if not allowed:
+            raise HTTPException(409,"Ця косметика ще не відкрита")
+
+        db.execute(
+            "INSERT OR IGNORE INTO user_cosmetics(user_id,cosmetic_key,unlocked_at) VALUES(?,?,?)",
+            (uid,cosmetic_key,now)
+        )
+        db.execute(
+            """
+            INSERT INTO user_cosmetic_equips(user_id,cosmetic_type,cosmetic_key,updated_at)
+            VALUES(?,?,?,?)
+            ON CONFLICT(user_id,cosmetic_type)
+            DO UPDATE SET cosmetic_key=excluded.cosmetic_key,updated_at=excluded.updated_at
+            """,
+            (uid,item["cosmetic_type"],cosmetic_key,now)
+        )
+        db.commit()
+
+    return {
+        "ok":True,
+        "type":item["cosmetic_type"],
+        "key":cosmetic_key,
+        "css_class":item["css_class"]
+    }
+
+
+@app.get("/api/cosmetics-v28/equipped")
+async def cosmetics_v28_equipped(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    with connect_db() as db:
+        rows=db.execute(
+            """
+            SELECT e.cosmetic_type,e.cosmetic_key,c.css_class,c.title,c.icon
+            FROM user_cosmetic_equips e
+            LEFT JOIN cosmetics c ON c.cosmetic_key=e.cosmetic_key
+            WHERE e.user_id=?
+            """,
+            (uid,)
+        ).fetchall()
+
+    return {
+        r["cosmetic_type"]:{
+            "key":r["cosmetic_key"],
+            "css_class":r["css_class"],
+            "title":r["title"],
+            "icon":r["icon"]
+        } for r in rows
+    }
+
 
 
 @app.get("/health")

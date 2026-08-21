@@ -1,0 +1,16 @@
+ReferHub v3.7 — Community
+
+NEW:
+- Community hub.
+- Live-style activity feed backed by server data.
+- Player discovery grid.
+- Public player profiles.
+- Rank, title, level, game count, achievements and lottery wins.
+- Followers / following summary.
+- Community shortcut on Home.
+- Compact 2-column player cards on phones.
+
+QUALITY:
+- Preserves Profile 3.0 hotfix.
+- Preserves compact Achievements and Game Center.
+- Preserves global scroll/overflow fixes.

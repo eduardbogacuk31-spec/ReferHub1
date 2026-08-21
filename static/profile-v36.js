@@ -85,10 +85,26 @@
  window.rh36Tab=x=>{tab=x;render()};
 
  // Replace only the profile navigation destination, while preserving other systems.
- document.addEventListener("click",ev=>{
-   const b=ev.target.closest("[data-page='profile'],[data-nav='profile'],.profile-nav");
-   if(!b)return;
-   ev.preventDefault();ev.stopPropagation();
-   setTimeout(open,0);
- },true);
+ 
+
+ // v3.6.1 hotfix: safe profile routing without capture-phase click interception.
+ function installProfileRoute(){
+   if(window.__rh361ProfileRouteInstalled)return;
+   window.__rh361ProfileRouteInstalled=true;
+
+   const original=window.openPage;
+   if(typeof original==="function"){
+     window.openPage=async function(page,...args){
+       if(page==="profile"){
+         return open();
+       }
+       return original.call(this,page,...args);
+     };
+   }
+ }
+ window.openProfileV36=open;
+ document.addEventListener("DOMContentLoaded",installProfileRoute);
+ setTimeout(installProfileRoute,100);
+ setTimeout(installProfileRoute,700);
+
 })();

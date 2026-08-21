@@ -718,6 +718,24 @@ def init_database():
             """
         )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS activity_feed_v37 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                detail TEXT NOT NULL DEFAULT '',
+                icon TEXT NOT NULL DEFAULT '✦',
+                value INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_activity_feed_v37_created
+            ON activity_feed_v37(created_at DESC);
+            """
+        )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -4351,6 +4369,160 @@ async def profile_v36(
             "cosmetics":{"frame":frame,"title":title,"background":background},
             "rank":{"name":rank[0],"icon":rank[1]}
         }
+
+
+
+
+def _rh37_public_profile(db, uid):
+    u=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+    if not u:
+        return None
+
+    def uv(name, default=0):
+        return u[name] if name in u.keys() and u[name] is not None else default
+
+    xp=int(uv("xp",0))
+    level=max(1,xp//100+1)
+    try:
+        achievements=int(db.execute(
+            "SELECT COUNT(*) FROM achievement_claims_v32 WHERE user_id=?",(uid,)
+        ).fetchone()[0] or 0)
+    except Exception:
+        achievements=0
+    try:
+        plays=int(db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id=?",(uid,)
+        ).fetchone()[0] or 0)
+    except Exception:
+        plays=0
+    try:
+        wins=int(db.execute(
+            "SELECT COUNT(*) FROM lotteries WHERE winner_id=? AND status='drawn'",(uid,)
+        ).fetchone()[0] or 0)
+    except Exception:
+        wins=0
+
+    if level>=20: rank=("MASTER","♛")
+    elif level>=15: rank=("DIAMOND","◆")
+    elif level>=10: rank=("ELITE","✦")
+    elif level>=5: rank=("PRO","◈")
+    else: rank=("ROOKIE","•")
+
+    username=str(uv("username",""))
+    first_name=str(uv("first_name","Player"))
+    return {
+        "id":uid,
+        "username":username,
+        "first_name":first_name,
+        "level":level,
+        "rank":{"name":rank[0],"icon":rank[1]},
+        "title":str(uv("active_title",uv("profile_title","Player"))),
+        "frame":str(uv("active_frame",uv("profile_frame","default"))),
+        "background":str(uv("active_background",uv("profile_background","default"))),
+        "achievements":achievements,
+        "games":plays,
+        "lottery_wins":wins
+    }
+
+
+@app.get("/api/community-v37")
+async def community_v37(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        # Seed a few feed items from real existing data if the feed is empty.
+        try:
+            count=int(db.execute("SELECT COUNT(*) FROM activity_feed_v37").fetchone()[0] or 0)
+            if count==0:
+                recent=db.execute(
+                    "SELECT telegram_id FROM users ORDER BY rowid DESC LIMIT 8"
+                ).fetchall()
+                for i,r in enumerate(recent):
+                    db.execute(
+                        "INSERT INTO activity_feed_v37(user_id,kind,title,detail,icon,value,created_at) VALUES(?,?,?,?,?,?,?)",
+                        (int(r["telegram_id"]),"joined","Новий гравець","приєднався до ReferHub","✦",0,now-i*420)
+                    )
+                db.commit()
+        except Exception:
+            pass
+
+        feed=[]
+        try:
+            rows=db.execute(
+                "SELECT * FROM activity_feed_v37 ORDER BY created_at DESC LIMIT 30"
+            ).fetchall()
+            for r in rows:
+                p=_rh37_public_profile(db,int(r["user_id"]))
+                if not p: continue
+                feed.append({
+                    "id":int(r["id"]),
+                    "kind":r["kind"],
+                    "title":r["title"],
+                    "detail":r["detail"],
+                    "icon":r["icon"],
+                    "value":int(r["value"] or 0),
+                    "created_at":int(r["created_at"]),
+                    "user":p
+                })
+        except Exception:
+            pass
+
+        players=[]
+        try:
+            rows=db.execute(
+                "SELECT telegram_id FROM users ORDER BY xp DESC,total_earned DESC LIMIT 18"
+            ).fetchall()
+            for r in rows:
+                p=_rh37_public_profile(db,int(r["telegram_id"]))
+                if p: players.append(p)
+        except Exception:
+            pass
+
+        following=set()
+        try:
+            following={int(r[0]) for r in db.execute(
+                "SELECT followed_id FROM social_follows WHERE follower_id=?",(uid,)
+            ).fetchall()}
+        except Exception:
+            pass
+
+        for p in players:
+            p["following"]=p["id"] in following
+            p["self"]=p["id"]==uid
+
+        return {"feed":feed,"players":players,"now":now}
+
+
+@app.get("/api/public-profile-v37/{target_id}")
+async def public_profile_v37(
+    target_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    with connect_db() as db:
+        p=_rh37_public_profile(db,target_id)
+        if not p:
+            raise HTTPException(404,"Гравця не знайдено")
+        try:
+            p["followers"]=int(db.execute(
+                "SELECT COUNT(*) FROM social_follows WHERE followed_id=?",(target_id,)
+            ).fetchone()[0] or 0)
+            p["following_count"]=int(db.execute(
+                "SELECT COUNT(*) FROM social_follows WHERE follower_id=?",(target_id,)
+            ).fetchone()[0] or 0)
+            p["is_following"]=bool(db.execute(
+                "SELECT 1 FROM social_follows WHERE follower_id=? AND followed_id=?",(uid,target_id)
+            ).fetchone())
+        except Exception:
+            p["followers"]=p["following_count"]=0
+            p["is_following"]=False
+        p["self"]=target_id==uid
+        return p
 
 
 

@@ -1,0 +1,14 @@
+ReferHub v3.6.1 — Profile Hotfix
+
+FIXED:
+- Removed capture-phase profile click interceptor that could fight the app router.
+- Profile now hooks into openPage('profile') safely.
+- Added duplicate-profile cleanup.
+- Fixed profile scroll trapping.
+- Fixed mobile width overflow.
+- Rebuilt narrow-phone profile layout.
+- Stabilized tabs, cards, showcase and collection grids.
+- Added duplicate-load protection.
+- Preserved all v3.5 and earlier systems.
+
+This release intentionally focuses on profile stability instead of adding another large feature.

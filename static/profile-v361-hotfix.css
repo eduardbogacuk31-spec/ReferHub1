@@ -1,0 +1,60 @@
+
+/* ReferHub v3.6.1 — Profile stability / mobile hotfix */
+.rh36.rh361-stable{
+ width:100%!important;
+ min-width:0!important;
+ max-width:1160px!important;
+ overflow:visible!important;
+ contain:none!important;
+}
+.rh36.rh361-stable *{box-sizing:border-box}
+.rh36-cover,.rh36-profile-main,.rh36-ident,.rh36-cover-side,
+.rh36-overview,.rh36-stat-grid,.rh36-showcase,.rh36-show-grid,
+.rh36-progress-card,.rh36-stats-page,.rh36-collection{
+ min-width:0!important;
+}
+.rh36-cover{
+ height:auto!important;
+ max-height:none!important;
+ overflow:hidden!important;
+}
+.rh36-tabs{
+ overflow:visible!important;
+ max-width:100%!important;
+}
+.rh36-tabs button{
+ min-width:0!important;
+ white-space:normal!important;
+}
+.rh36-ident h1,.rh36-ident p,.rh36-ident b,.rh36-ident small,
+.rh36-show-grid b,.rh36-collection b,.rh36-collection p{
+ overflow-wrap:anywhere!important;
+ word-break:normal!important;
+}
+.rh36-stat-grid article,.rh36-show-grid article,.rh36-collection button,
+.rh36-stats-page>article{
+ width:100%!important;
+ max-width:100%!important;
+ overflow:hidden!important;
+}
+@media(max-width:650px){
+ .rh36{padding-bottom:115px!important}
+ .rh36-cover{display:block!important;padding:14px!important}
+ .rh36-profile-main{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:11px!important}
+ .rh36-avatar{width:72px!important;height:72px!important;border-radius:21px!important}
+ .rh36-ident h1{font-size:27px!important;line-height:1!important}
+ .rh36-ident>div{flex-wrap:wrap!important}
+ .rh36-cover-side{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;margin-top:12px!important}
+ .rh36-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ .rh36-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .rh36-show-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .rh36-collection{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .rh36-collection button{padding:9px!important}
+}
+@media(max-width:390px){
+ .rh36-cover-side,.rh36-stat-grid,.rh36-show-grid,.rh36-collection{
+   grid-template-columns:1fr!important;
+ }
+ .rh36-show-grid article:last-child{grid-column:auto!important}
+ .rh36-tabs button{padding:8px 4px!important;font-size:6px!important}
+}

@@ -1,0 +1,10 @@
+ReferHub v3.7.2 — Profile Rebuild
+- Removed old profile JS/CSS references from index.html.
+- One stable profile renderer remains.
+- No capture-phase interception.
+- No global DOM deletion.
+- No per-element inline style mutation.
+- Profile uses /api/profile-v36.
+- Overview + Statistics tabs.
+- Telegram profile photo fallback.
+- Mobile-safe layout and scrolling.

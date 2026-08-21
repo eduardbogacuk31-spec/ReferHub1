@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'>
+    <defs><radialGradient id='bg'><stop offset='0' stop-color='#6b4cc1' stop-opacity='.42'/><stop offset='1' stop-color='#0d1015'/></radialGradient></defs>
+    <rect width='800' height='800' rx='80' fill='url(#bg)'/>
+    <rect x='180' y='180' width='440' height='440' rx='90' fill='#1d1730' stroke='#9f7cff' stroke-width='18'/><text x='400' y='465' text-anchor='middle' font-size='210' fill='#bda7ff'>?</text>
+    </svg>

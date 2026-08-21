@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'>
+    <defs><radialGradient id='bg'><stop offset='0' stop-color='#7d3db8' stop-opacity='.42'/><stop offset='1' stop-color='#0d1015'/></radialGradient></defs>
+    <rect width='800' height='800' rx='80' fill='url(#bg)'/>
+    <circle cx='400' cy='400' r='230' fill='#22132f' stroke='#c87cff' stroke-width='18'/><circle cx='400' cy='400' r='170' fill='#351447' stroke='#e6b0ff' stroke-width='10'/><circle cx='400' cy='400' r='42' fill='#f4c76e'/><g stroke='#f4c76e' stroke-width='8'><line x1='400' y1='400' x2='590.0' y2='400.0'/><line x1='400' y1='400' x2='534.3503103779366' y2='534.350266472948'/><line x1='400' y1='400' x2='400.0000620910303' y2='589.9999999999899'/><line x1='400' y1='400' x2='265.649777432055' y2='534.3503542829108'/><line x1='400' y1='400' x2='210.0000000000406' y2='400.0001241820607'/><line x1='400' y1='400' x2='265.6496018121293' y2='265.64982133707235'/><line x1='400' y1='400' x2='399.99981372690905' y2='210.00000000009132'/><line x1='400' y1='400' x2='534.3501347578961' y2='265.64955790718375'/></g>
+    </svg>

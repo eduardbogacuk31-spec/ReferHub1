@@ -1,0 +1,12 @@
+ReferHub v4.3.2 — Game Center Repair
+
+FIXED:
+- Games no longer show Home / Lottery / Evolution blocks.
+- Game Center is a clean standalone page.
+- Replaced mismatched generic visuals with local semantic SVG art for every game.
+- 2 cards per row on phone; 3 on desktop.
+- Category tabs work via direct event binding.
+- Game cards and play buttons work without wrapping openPage().
+- Existing game engine is reused.
+- Main screen scrolling optimized on mobile by disabling expensive blur/hover effects.
+- Profile Clean and single-main-scroll architecture preserved.

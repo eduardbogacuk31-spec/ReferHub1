@@ -1,0 +1,80 @@
+
+/* ReferHub v2.8.1 — Cosmetics Tabs */
+.rh281-tabs{
+ position:sticky;top:8px;z-index:40;
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:7px;margin:12px 0 4px;padding:6px;
+ border:1px solid rgba(255,255,255,.06);border-radius:17px;
+ background:rgba(11,14,19,.88);backdrop-filter:blur(18px) saturate(1.15);
+ box-shadow:0 16px 38px rgba(0,0,0,.25)
+}
+.rh281-tabs button{
+ min-width:0;display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:center;
+ min-height:48px;padding:8px 10px;
+ border:1px solid transparent;border-radius:12px;
+ background:transparent;color:#777f8b;text-align:left
+}
+.rh281-tabs button>span{
+ width:30px;height:30px;display:grid;place-items:center;
+ border-radius:9px;background:#16131c;color:#8e6aae;font-size:15px
+}
+.rh281-tabs button>b{font-size:9px}
+.rh281-tabs button>small{color:#646d79!important;font-size:6px}
+.rh281-tabs button.active{
+ border-color:rgba(157,99,233,.24);
+ background:linear-gradient(145deg,#24162f,#17111f);
+ color:#d0acee;
+ box-shadow:inset 0 1px rgba(255,255,255,.03),0 9px 20px rgba(76,35,119,.13)
+}
+.rh281-tabs button.active>span{
+ background:linear-gradient(145deg,#39204e,#21132e);
+ color:#c991f2;
+ box-shadow:0 0 16px rgba(168,91,232,.15)
+}
+.rh281-tabs button.active>small{color:#a57bc7!important}
+
+.rh281-tab-wrap{min-height:430px}
+.rh281-panel{display:none}
+.rh281-panel.active{display:block;animation:rh281in .18s ease}
+@keyframes rh281in{
+ from{opacity:0;transform:translateY(5px)}
+ to{opacity:1;transform:none}
+}
+.rh281-panel .rh28-section{margin-top:10px}
+.rh281-panel .rh28-grid{
+ grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+.rh281-panel .rh28-item{
+ transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease
+}
+.rh281-panel .rh28-item:hover{
+ transform:translateY(-3px);
+ box-shadow:0 20px 42px rgba(0,0,0,.25)
+}
+
+@media(max-width:700px){
+ .rh281-tabs{
+   position:sticky;top:6px;
+   grid-template-columns:repeat(4,minmax(0,1fr));
+   gap:4px;padding:5px;border-radius:15px
+ }
+ .rh281-tabs button{
+   grid-template-columns:1fr;
+   justify-items:center;text-align:center;
+   gap:3px;min-height:58px;padding:6px 3px
+ }
+ .rh281-tabs button>span{width:28px;height:28px}
+ .rh281-tabs button>b{font-size:7px}
+ .rh281-tabs button>small{font-size:5px}
+ .rh281-panel .rh28-grid{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ .rh281-tab-wrap{min-height:520px}
+}
+@media(max-width:360px){
+ .rh281-tabs{grid-template-columns:repeat(2,1fr)}
+ .rh281-panel .rh28-grid{grid-template-columns:1fr!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .rh281-panel.active{animation:none}
+}

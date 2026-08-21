@@ -1,0 +1,8 @@
+ReferHub Lottery v2.8.1
+- Cosmetics screen converted from one long list into 4 tabs:
+  Frames / Backgrounds / Titles / Effects.
+- Only one cosmetic category is visible at a time.
+- Premium sticky tab bar with unlocked counters.
+- Mobile layout remains compact and responsive.
+- Existing equip/unlock logic is unchanged.
+- All previous systems preserved.

@@ -3446,6 +3446,134 @@ async def cosmetics_v28_equipped(
 
 
 
+
+def _rh29_cols(db, table):
+    try:
+        return {r["name"] for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
+    except Exception:
+        return set()
+
+def _rh29_rowdict(r):
+    return dict(r) if r is not None else {}
+
+def _rh29_lottery_payload(db, row, uid):
+    x=_rh29_rowdict(row)
+    lid=int(x.get("id") or 0)
+    lc=_rh29_cols(db,"lotteries")
+    tc=_rh29_cols(db,"lottery_tickets")
+
+    # Normalize existing project fields.
+    result=dict(x)
+    result["prize_title"]=x.get("prize_title") or x.get("title") or x.get("name") or f"Розіграш #{lid}"
+    result["description"]=x.get("description") or x.get("details") or ""
+    result["ticket_price"]=int(x.get("ticket_price") or x.get("price") or x.get("cost") or 0)
+    result["ends_at"]=int(x.get("ends_at") or x.get("end_at") or x.get("draw_at") or 0)
+    result["status"]=x.get("status") or "active"
+
+    total=0; mine=0; people=0
+    if tc:
+        lot_col=next((c for c in ("lottery_id","draw_id","raffle_id") if c in tc),None)
+        user_col=next((c for c in ("user_id","telegram_id") if c in tc),None)
+        qty_col=next((c for c in ("quantity","tickets","count") if c in tc),None)
+        if lot_col:
+            total=int(db.execute(
+                f"SELECT COALESCE(SUM({qty_col}),0) FROM lottery_tickets WHERE {lot_col}=?" if qty_col
+                else f"SELECT COUNT(*) FROM lottery_tickets WHERE {lot_col}=?",(lid,)
+            ).fetchone()[0] or 0)
+            if user_col:
+                people=int(db.execute(
+                    f"SELECT COUNT(DISTINCT {user_col}) FROM lottery_tickets WHERE {lot_col}=?",(lid,)
+                ).fetchone()[0] or 0)
+                mine=int(db.execute(
+                    f"SELECT COALESCE(SUM({qty_col}),0) FROM lottery_tickets WHERE {lot_col}=? AND {user_col}=?" if qty_col
+                    else f"SELECT COUNT(*) FROM lottery_tickets WHERE {lot_col}=? AND {user_col}=?",(lid,uid)
+                ).fetchone()[0] or 0)
+
+    # Fall back to aggregate fields if old schema stores counts on lotteries.
+    result["total_tickets"]=total or int(x.get("total_tickets") or x.get("tickets_count") or 0)
+    result["participants"]=people or int(x.get("participants") or x.get("participants_count") or 0)
+    result["my_tickets"]=mine
+
+    # Normalize winner display if available.
+    result["winner_name"]=x.get("winner_name") or x.get("winner_username") or ""
+    return result
+
+
+@app.get("/api/lottery-v29")
+async def lottery_v29(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    with connect_db() as db:
+        if not _rh29_cols(db,"lotteries"):
+            return {"active":[],"history":[]}
+        rows=db.execute("SELECT * FROM lotteries ORDER BY id DESC").fetchall()
+        items=[_rh29_lottery_payload(db,r,uid) for r in rows]
+    active=[x for x in items if str(x.get("status","active")).lower() in ("active","open","live","running")]
+    history=[x for x in items if x not in active]
+    return {"active":active,"history":history}
+
+
+@app.post("/api/lottery-v29/{lottery_id}/buy")
+async def lottery_v29_buy(
+    lottery_id: int,
+    request: Request,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    body=await request.json()
+    qty=max(1,min(100,int(body.get("quantity") or 1)))
+
+    with connect_db() as db:
+        lc=_rh29_cols(db,"lotteries")
+        tc=_rh29_cols(db,"lottery_tickets")
+        if not lc:
+            raise HTTPException(404,"Розіграш не знайдено")
+        lot=db.execute("SELECT * FROM lotteries WHERE id=?",(lottery_id,)).fetchone()
+        if not lot:
+            raise HTTPException(404,"Розіграш не знайдено")
+        x=dict(lot)
+        if str(x.get("status","active")).lower() not in ("active","open","live","running"):
+            raise HTTPException(409,"Цей розіграш уже завершено")
+
+        price=int(x.get("ticket_price") or x.get("price") or x.get("cost") or 0)
+        total=price*qty
+
+        uc=_rh29_cols(db,"users")
+        id_col="telegram_id" if "telegram_id" in uc else ("user_id" if "user_id" in uc else "id")
+        bal_col=next((c for c in ("balance","stars","rh_stars","coins") if c in uc),None)
+        if not bal_col:
+            raise HTTPException(500,"Не знайдено поле балансу")
+
+        ur=db.execute(f"SELECT {bal_col} FROM users WHERE {id_col}=?",(uid,)).fetchone()
+        if not ur:
+            raise HTTPException(404,"Користувача не знайдено")
+        balance=int(ur[0] or 0)
+        if balance<total:
+            raise HTTPException(409,"Недостатньо RH Stars")
+
+        lot_col=next((c for c in ("lottery_id","draw_id","raffle_id") if c in tc),None)
+        user_col=next((c for c in ("user_id","telegram_id") if c in tc),None)
+        qty_col=next((c for c in ("quantity","tickets","count") if c in tc),None)
+        if not (lot_col and user_col):
+            raise HTTPException(500,"Таблиця білетів має несумісну структуру")
+
+        db.execute(f"UPDATE users SET {bal_col}={bal_col}-? WHERE {id_col}=?",(total,uid))
+
+        cols=[lot_col,user_col]
+        vals=[lottery_id,uid]
+        if qty_col:
+            cols.append(qty_col); vals.append(qty)
+        if "created_at" in tc:
+            cols.append("created_at"); vals.append(int(time.time()))
+        placeholders=",".join("?" for _ in vals)
+        db.execute(f"INSERT INTO lottery_tickets({','.join(cols)}) VALUES({placeholders})",tuple(vals))
+        db.commit()
+
+    return {"ok":True,"quantity":qty,"spent":total}
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

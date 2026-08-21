@@ -1,0 +1,18 @@
+ReferHub Lottery v2.9 — Lottery 2.0
+
+NEW:
+- Premium lottery landing screen.
+- Featured live draw with countdown.
+- Tabs: Active / My Tickets / History.
+- Rich lottery cards with participant and ticket statistics.
+- Dedicated lottery detail screen.
+- Ticket quantity selector and quick amounts.
+- Live chance estimate based on owned tickets / total tickets.
+- Transparent draw explanation.
+- Winner block for completed draws.
+- Responsive mobile redesign.
+- Existing v2.3–v2.8.1 systems preserved.
+
+Backend:
+- v2.9 compatibility API reads the existing lotteries/ticket schema.
+- Ticket purchase persists to the existing database and deducts internal balance.

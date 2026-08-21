@@ -49,7 +49,7 @@
    const groups={frame:[],background:[],title:[],effect:[]};
    rh28Data.items.forEach(x=>groups[x.type]?.push(x));
 
-   c.innerHTML=`<section class="rh28-shell">
+   c.innerHTML=`<section class="rh28-shell rh281-shell">
      <section class="rh28-hero">
        <div class="rh28-hero-grid"></div>
        <div class="rh28-hero-mark">◈</div>
@@ -65,14 +65,41 @@
        </div>
      </section>
 
-     ${section("Рамки аватарки","AVATAR FRAMES","frame",groups.frame)}
-     ${section("Фони профілю","PROFILE BACKGROUNDS","background",groups.background)}
-     ${section("Титули","PLAYER TITLES","title",groups.title)}
-     ${section("Ефекти","PROFILE EFFECTS","effect",groups.effect)}
+     <nav class="rh281-tabs">
+       <button class="active" onclick="rh281SwitchTab('frame',this)"><span>◈</span><b>Рамки</b><small>${groups.frame.filter(x=>x.unlocked).length}/${groups.frame.length}</small></button>
+       <button onclick="rh281SwitchTab('background',this)"><span>▦</span><b>Фони</b><small>${groups.background.filter(x=>x.unlocked).length}/${groups.background.length}</small></button>
+       <button onclick="rh281SwitchTab('title',this)"><span>R</span><b>Титули</b><small>${groups.title.filter(x=>x.unlocked).length}/${groups.title.length}</small></button>
+       <button onclick="rh281SwitchTab('effect',this)"><span>✦</span><b>Ефекти</b><small>${groups.effect.filter(x=>x.unlocked).length}/${groups.effect.length}</small></button>
+     </nav>
+
+     <div class="rh281-tab-wrap">
+       <section class="rh281-panel active" data-rh281-tab="frame">
+         ${section("Рамки аватарки","AVATAR FRAMES","frame",groups.frame)}
+       </section>
+
+       <section class="rh281-panel" data-rh281-tab="background">
+         ${section("Фони профілю","PROFILE BACKGROUNDS","background",groups.background)}
+       </section>
+
+       <section class="rh281-panel" data-rh281-tab="title">
+         ${section("Титули","PLAYER TITLES","title",groups.title)}
+       </section>
+
+       <section class="rh281-panel" data-rh281-tab="effect">
+         ${section("Ефекти","PROFILE EFFECTS","effect",groups.effect)}
+       </section>
+     </div>
    </section>`;
  }
 
  window.rh28OpenCosmetics=open;
+
+ window.rh281SwitchTab=(name,button)=>{
+   document.querySelectorAll(".rh281-tabs button").forEach(b=>b.classList.toggle("active",b===button));
+   document.querySelectorAll(".rh281-panel").forEach(p=>p.classList.toggle("active",p.dataset.rh281Tab===name));
+   const wrap=document.querySelector(".rh281-tab-wrap");
+   if(wrap) wrap.scrollIntoView({behavior:"smooth",block:"nearest"});
+ };
 
  window.rh28Equip=async key=>{
    try{

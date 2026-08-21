@@ -1,0 +1,7 @@
+ReferHub Lottery v2.0 — Draw Experience
+- Premium visual layer for lottery/draw cards and draw detail surfaces.
+- Gold ticket CTA with branded ticket asset.
+- Fair Draw verification chip.
+- Premium winner treatment with Winner sticker.
+- Improved timers, prize art presentation, depth, borders and mobile polish.
+- Existing backend/game logic preserved.

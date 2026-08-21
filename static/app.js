@@ -1559,13 +1559,21 @@ function initGC90Motion(){
 }
 
 const gc13Catalog = [
-  {id:"roulette", icon:"🎡", name:"Premium Roulette", type:"ЩОДЕННА", tag:"Удача", desc:"Крути колесо та забирай випадкову нагороду RH.", reward:"до 200 RH", cls:"purple"},
-  {id:"daily_case", icon:"🎁", name:"Daily Case", type:"ЩОДЕННА", tag:"Drop", desc:"Відкрий щоденний кейс і перевір свій дроп.", reward:"Epic шанс", cls:"green"},
-  {id:"slot", icon:"🎰", name:"Slots", type:"АРКАДА", tag:"Ризик", desc:"Класичний слот-режим із комбінаціями та RH.", reward:"комбо RH", cls:"red"},
-  {id:"coin_flip", icon:"🪙", name:"Coin Flip", type:"ШВИДКА", tag:"50 / 50", desc:"Обери сторону монети та перевір удачу.", reward:"швидка гра", cls:"gold"},
-  {id:"number_guess", icon:"🔢", name:"Вгадай число", type:"ЛОГІКА", tag:"Guess", desc:"Знайди правильне число за обмежену кількість спроб.", reward:"за точність", cls:"blue"},
-  {id:"scratch", icon:"✨", name:"Scratch", type:"ЩОДЕННА", tag:"Reveal", desc:"Стирай покриття та відкривай приховану нагороду.", reward:"рандом RH", cls:"pink"},
-  {id:"safe_crack", icon:"🔐", name:"Злам сейфа", type:"ЛОГІКА", tag:"Vault", desc:"Підбери код сейфа та забери нагороду.", reward:"великий куш", cls:"steel"},
+  {id:"roulette", icon:"🎡", name:"Premium Roulette", type:"КАЗИНО", tag:"HOT", desc:"Крути колесо й забирай випадкову нагороду.", reward:"до 15 ★", cls:"purple"},
+  {id:"daily_case", icon:"🎁", name:"Daily Case", type:"ЩОДЕННА", tag:"DROP", desc:"Щоденний кейс із серверною нагородою.", reward:"daily drop", cls:"green"},
+  {id:"slot", icon:"🎰", name:"Neon Slots", type:"КАЗИНО", tag:"HOT", desc:"Слоти зі ставками та виграшними комбінаціями.", reward:"combo RH", cls:"red"},
+  {id:"coin_flip", icon:"🪙", name:"Coin Flip", type:"ШВИДКА", tag:"50 / 50", desc:"Орел або решка — один вибір.", reward:"x2 шанс", cls:"gold"},
+  {id:"number_guess", icon:"🔢", name:"Вгадай число", type:"ЛОГІКА", tag:"GUESS", desc:"Обери число від 1 до 5.", reward:"за точність", cls:"blue"},
+  {id:"scratch", icon:"🎫", name:"Scratch", type:"ЩОДЕННА", tag:"REVEAL", desc:"Стирай картку та відкривай нагороду.", reward:"рандом RH", cls:"pink"},
+  {id:"safe_crack", icon:"🔐", name:"Злам сейфа", type:"ЛОГІКА", tag:"VAULT", desc:"Знайди правильну комірку сейфа.", reward:"12 RH", cls:"steel"},
+  {id:"dice_duel", icon:"🎲", name:"Dice Duel", type:"ШВИДКА", tag:"DICE", desc:"Вибери низький або високий кидок.", reward:"4 RH", cls:"blue"},
+  {id:"rps", icon:"✊", name:"RPS Arena", type:"ДУЕЛЬ", tag:"ARENA", desc:"Камінь, ножиці або папір проти бота.", reward:"до 5 RH", cls:"steel"},
+  {id:"treasure_grid", icon:"🧭", name:"Treasure Grid", type:"РИЗИК", tag:"TREASURE", desc:"Обери одну з 9 клітинок і знайди скарб.", reward:"15 RH", cls:"green"},
+  {id:"reaction", icon:"⚡", name:"Reaction", type:"СКІЛ", tag:"SPEED", desc:"Дочекайся сигналу та натисни якнайшвидше.", reward:"до 10 RH", cls:"blue"},
+  {id:"color_pick", icon:"🎨", name:"Color Pick", type:"ШВИДКА", tag:"NEW", desc:"Вгадай один із трьох кольорів.", reward:"6 RH", cls:"pink"},
+  {id:"high_low", icon:"↕️", name:"High / Low", type:"ШВИДКА", tag:"NEW", desc:"Вгадай, число буде 1–5 чи 6–10.", reward:"5 RH", cls:"gold"},
+  {id:"lucky_card", icon:"🃏", name:"Lucky Card", type:"КАРТИ", tag:"NEW", desc:"Вгадай колір випадкової масті.", reward:"7 RH", cls:"red"},
+  {id:"triple_pick", icon:"🔺", name:"Triple Pick", type:"РИЗИК", tag:"NEW", desc:"Обери ліво, центр або право.", reward:"8 RH", cls:"purple"},
 ];
 
 function gc13Meta(id){
@@ -1576,13 +1584,21 @@ function gc13Meta(id){
 let gc433Filter="all";
 
 const gc433Catalog=[
-  {id:"roulette",name:"Рулетка",type:"casino",label:"Казино",tag:"HOT",desc:"Крути колесо та отримуй випадкову нагороду RH.",reward:"до 200 RH"},
-  {id:"daily_case",name:"Daily Case",type:"daily",label:"Щоденні",tag:"HOT",desc:"Відкривай щоденний кейс та забирай свій дроп.",reward:"щоденний дроп"},
-  {id:"slot",name:"Слоти",type:"casino",label:"Казино",tag:"HOT",desc:"Класичні барабани, ставки та виграшні комбінації.",reward:"комбо RH"},
-  {id:"coin_flip",name:"Coin Flip",type:"quick",label:"Швидкі",tag:"",desc:"Обери орел або решку та перевір удачу.",reward:"50 / 50"},
-  {id:"number_guess",name:"Вгадай число",type:"logic",label:"Логіка",tag:"",desc:"Вгадай число системи за обмежену кількість спроб.",reward:"за точність"},
-  {id:"scratch",name:"Scratch",type:"daily",label:"Щоденні",tag:"NEW",desc:"Стирай картку пальцем і відкривай приховану нагороду.",reward:"рандом RH"},
-  {id:"safe_crack",name:"Злам сейфа",type:"logic",label:"Логіка",tag:"NEW",desc:"Знайди правильний код сейфа та забери нагороду.",reward:"великий куш"}
+  {id:"roulette",name:"Рулетка",type:"casino",label:"Казино",tag:"HOT",desc:"Крути колесо та забирай нагороду.",reward:"до 15 ★"},
+  {id:"daily_case",name:"Daily Case",type:"daily",label:"Щоденні",tag:"HOT",desc:"Щоденний серверний кейс.",reward:"daily drop"},
+  {id:"slot",name:"Слоти",type:"casino",label:"Казино",tag:"HOT",desc:"Ставки та виграшні комбінації.",reward:"combo RH"},
+  {id:"coin_flip",name:"Coin Flip",type:"quick",label:"Швидкі",tag:"",desc:"Орел або решка.",reward:"50 / 50"},
+  {id:"number_guess",name:"Вгадай число",type:"logic",label:"Логіка",tag:"",desc:"Вгадай число від 1 до 5.",reward:"за точність"},
+  {id:"scratch",name:"Scratch",type:"daily",label:"Щоденні",tag:"",desc:"Стирай картку.",reward:"рандом RH"},
+  {id:"safe_crack",name:"Злам сейфа",type:"logic",label:"Логіка",tag:"",desc:"Знайди правильний код.",reward:"12 RH"},
+  {id:"dice_duel",name:"Dice Duel",type:"quick",label:"Швидкі",tag:"",desc:"Low або High на кубику.",reward:"4 RH"},
+  {id:"rps",name:"RPS Arena",type:"quick",label:"Дуель",tag:"",desc:"Камінь, ножиці, папір.",reward:"до 5 RH"},
+  {id:"treasure_grid",name:"Treasure Grid",type:"risk",label:"Ризик",tag:"",desc:"Знайди скарб на полі 3×3.",reward:"15 RH"},
+  {id:"reaction",name:"Reaction",type:"skill",label:"Скіл",tag:"",desc:"Перевір швидкість реакції.",reward:"до 10 RH"},
+  {id:"color_pick",name:"Color Pick",type:"quick",label:"Швидкі",tag:"NEW",desc:"Вгадай колір.",reward:"6 RH"},
+  {id:"high_low",name:"High / Low",type:"quick",label:"Швидкі",tag:"NEW",desc:"Низьке чи високе число?",reward:"5 RH"},
+  {id:"lucky_card",name:"Lucky Card",type:"casino",label:"Карти",tag:"NEW",desc:"Червона чи чорна масть?",reward:"7 RH"},
+  {id:"triple_pick",name:"Triple Pick",type:"risk",label:"Ризик",tag:"NEW",desc:"Ліво, центр чи право?",reward:"8 RH"}
 ];
 
 function gc433VisibleGames(){
@@ -1606,7 +1622,9 @@ async function gamesPage(){
     ["casino","Казино"],
     ["daily","Щоденні"],
     ["quick","Швидкі"],
-    ["logic","Логіка"]
+    ["logic","Логіка"],
+    ["skill","Скіл"],
+    ["risk","Ризик"]
   ];
 
   const visible=gc433VisibleGames();
@@ -1632,7 +1650,7 @@ async function gamesPage(){
         ${visible.map(g=>`
           <button class="gc433-card" onclick="openGameDetail('${g.id}')">
             <div class="gc433-art">
-              <img src="/static/assets/games-v433/${g.id}.svg" alt="${esc(g.name)}">
+              <img src="/static/assets/games-v44/${g.id}.svg" alt="${esc(g.name)}">
               ${g.tag?`<span class="${g.tag.toLowerCase()}">${g.tag}</span>`:""}
             </div>
             <div class="gc433-copy">
@@ -1751,7 +1769,15 @@ function gc14Tip(id){
     coin_flip:"Це швидкий режим: обери сторону, ставку та одразу отримай результат.",
     number_guess:"У тебе одна з п’яти відповідей — обирай число й перевір інтуїцію.",
     scratch:"Проведи пальцем по картці. Результат визначає сервер на першому стиранні.",
-    safe_crack:"Обери одну з шести комірок. Правильний код прихований до вибору."
+    safe_crack:"Обери одну з шести комірок. Правильний код прихований до вибору.",
+    dice_duel:"Low — 1–3, High — 4–6. Один вибір на раунд.",
+    rps:"Камінь б'є ножиці, ножиці — папір, папір — камінь.",
+    treasure_grid:"На полі тільки одна виграшна клітинка — обирай інтуїтивно.",
+    reaction:"Не тисни раніше сигналу. Чим швидше реакція — тим більша нагорода.",
+    color_pick:"Три кольори мають однаковий шанс. Обери один.",
+    high_low:"Low — 1–5, High — 6–10.",
+    lucky_card:"Червоні масті ♥ ♦, чорні ♣ ♠.",
+    triple_pick:"Три позиції, одна виграшна."
   })[id]||"Грай уважно та слідкуй за денним лімітом.";
 }
 
@@ -1848,8 +1874,104 @@ function gc14GameMarkup(id,game,history){
       </div>`;
   }
 
+
+  if(id==="dice_duel"){
+    return `<div class="gc14-choicegame"><div class="gc44-symbol">🎲</div><p>Що випаде?</p>
+      <div class="gc3-double gc44-picks"><button onclick="playDiceDuel('low')">LOW · 1–3</button><button onclick="playDiceDuel('high')">HIGH · 4–6</button></div></div>`;
+  }
+
+  if(id==="rps"){
+    return `<div class="gc14-choicegame"><div class="gc44-symbol">⚔️</div><p>Обери свій хід:</p>
+      <div class="gc44-triple"><button onclick="playRps('rock')">✊<span>Камінь</span></button><button onclick="playRps('paper')">✋<span>Папір</span></button><button onclick="playRps('scissors')">✌️<span>Ножиці</span></button></div></div>`;
+  }
+
+  if(id==="treasure_grid"){
+    return `<div class="gc14-choicegame"><div class="gc44-symbol">🧭</div><p>Знайди скарб:</p>
+      <div class="gc44-treasure">${Array.from({length:9},(_,i)=>`<button onclick="playTreasureGrid(${i+1})">?</button>`).join("")}</div></div>`;
+  }
+
+  if(id==="reaction"){
+    return `<div class="gc14-choicegame"><div id="reaction44Lamp" class="gc44-reaction-lamp">⚡</div>
+      <p id="reaction44Text">Натисни START і дочекайся зеленого сигналу.</p>
+      <button id="reaction44Button" class="gc14-main-button" onclick="startReaction44()">START</button></div>`;
+  }
+
+  if(id==="color_pick"){
+    return `<div class="gc14-choicegame"><div class="gc44-symbol">🎨</div><p>Який колір випаде?</p>
+      <div class="gc44-colors"><button class="red" onclick="playColorPick('red')">RED</button><button class="blue" onclick="playColorPick('blue')">BLUE</button><button class="green" onclick="playColorPick('green')">GREEN</button></div></div>`;
+  }
+
+  if(id==="high_low"){
+    return `<div class="gc14-choicegame"><div class="gc44-symbol">↕️</div><p>Число від 1 до 10:</p>
+      <div class="gc3-double gc44-picks"><button onclick="playHighLow('low')">LOW · 1–5</button><button onclick="playHighLow('high')">HIGH · 6–10</button></div></div>`;
+  }
+
+  if(id==="lucky_card"){
+    return `<div class="gc14-choicegame"><div class="gc44-cardart">🃏</div><p>Якого кольору буде масть?</p>
+      <div class="gc3-double gc44-picks"><button class="gc44-red" onclick="playLuckyCard('red')">♥ ♦ RED</button><button onclick="playLuckyCard('black')">♣ ♠ BLACK</button></div></div>`;
+  }
+
+  if(id==="triple_pick"){
+    return `<div class="gc14-choicegame"><div class="gc44-symbol">🔺</div><p>Де схована нагорода?</p>
+      <div class="gc44-triple"><button onclick="playTriplePick('left')">←<span>Ліво</span></button><button onclick="playTriplePick('center')">◆<span>Центр</span></button><button onclick="playTriplePick('right')">→<span>Право</span></button></div></div>`;
+  }
+
   return `<div class="empty">Гру не знайдено.</div>`;
 }
+
+
+async function gc44SimplePlay(endpoint,body,gameId){
+  try{
+    const result=await api(endpoint,{method:"POST",body:JSON.stringify(body||{})});
+    if(result.balance!==undefined){
+      me.balance=Number(result.balance);
+      const bal=document.getElementById("balance"); if(bal)bal.textContent=me.balance;
+    }
+    const reward=Number(result.reward||0);
+    toast(reward>0?`+${reward} RH 🎉`:(result.result_text||"Цього разу без нагороди"),reward>0?"success":"info");
+    setTimeout(()=>openGameDetail(gameId),350);
+    return result;
+  }catch(error){toast(error.message,"error")}
+}
+function playDiceDuel(choice){return gc44SimplePlay("/api/games/dice-duel",{choice},"dice_duel")}
+function playRps(choice){return gc44SimplePlay("/api/games/rps",{choice},"rps")}
+function playTreasureGrid(cell){return gc44SimplePlay("/api/games/treasure-grid",{cell},"treasure_grid")}
+function playColorPick(choice){return gc44SimplePlay("/api/games/color-pick",{choice},"color_pick")}
+function playHighLow(choice){return gc44SimplePlay("/api/games/high-low",{choice},"high_low")}
+function playLuckyCard(choice){return gc44SimplePlay("/api/games/lucky-card",{choice},"lucky_card")}
+function playTriplePick(choice){return gc44SimplePlay("/api/games/triple-pick",{choice},"triple_pick")}
+
+let reaction44Token=null,reaction44Ready=false,reaction44StartedAt=0;
+async function startReaction44(){
+  const btn=document.getElementById("reaction44Button");
+  const lamp=document.getElementById("reaction44Lamp");
+  const text=document.getElementById("reaction44Text");
+  if(reaction44Ready){
+    const reaction_ms=Math.max(0,Math.round(performance.now()-reaction44StartedAt));
+    try{
+      const result=await api("/api/games/reaction/finish",{method:"POST",body:JSON.stringify({token:reaction44Token,reaction_ms})});
+      me.balance=Number(result.balance??me.balance);
+      toast(`⚡ ${reaction_ms} ms · +${Number(result.reward||0)} RH`,Number(result.reward||0)>0?"success":"info");
+      reaction44Token=null; reaction44Ready=false;
+      setTimeout(()=>openGameDetail("reaction"),400);
+    }catch(error){toast(error.message,"error")}
+    return;
+  }
+  try{
+    const r=await api("/api/games/reaction/start",{method:"POST",body:JSON.stringify({})});
+    reaction44Token=r.token; reaction44Ready=false;
+    if(btn){btn.disabled=true;btn.textContent="ЧЕКАЙ…"}
+    if(lamp)lamp.classList.remove("ready");
+    if(text)text.textContent="Не натискай завчасно…";
+    setTimeout(()=>{
+      reaction44Ready=true;reaction44StartedAt=performance.now();
+      if(btn){btn.disabled=false;btn.textContent="⚡ ТИСНИ!"}
+      if(lamp)lamp.classList.add("ready");
+      if(text)text.textContent="ЗАРАЗ!";
+    },Number(r.delay_ms||1500));
+  }catch(error){toast(error.message,"error")}
+}
+
 
 async function gamesLegacyPage(){
   content.innerHTML=`<div class="loader"></div>`;

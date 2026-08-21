@@ -1325,6 +1325,36 @@ def init_database():
                 ),
             )
 
+
+        # v4.4 — four additional real game modes.
+        for game in [
+            (
+                "color_pick", 1, 0, 0, 15, 10,
+                json.dumps({"reward": 6, "colors": ["red","blue","green"]}),
+            ),
+            (
+                "high_low", 1, 0, 0, 15, 10,
+                json.dumps({"reward": 5}),
+            ),
+            (
+                "lucky_card", 1, 0, 0, 12, 15,
+                json.dumps({"reward": 7}),
+            ),
+            (
+                "triple_pick", 1, 0, 0, 12, 15,
+                json.dumps({"reward": 8}),
+            ),
+        ]:
+            db.execute(
+                """
+                INSERT OR IGNORE INTO game_settings(
+                    game_key, is_active, min_bet, max_bet,
+                    daily_limit, cooldown_seconds, config_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                game,
+            )
+
         # Beta 9.6: the visual wheel has 12 sectors:
         # 1,2,3,4,5,5,6,7,8,9,10 and a star jackpot (15).
         db.execute(
@@ -7541,6 +7571,127 @@ async def play_safe_crack(
         "reward": reward,
         "balance": balance,
     }
+
+
+
+@app.post("/api/games/color-pick")
+async def play_color_pick(
+    payload: SimpleChoicePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    choice=payload.choice.lower().strip()
+    options=["red","blue","green"]
+    if choice not in options:
+        raise HTTPException(400,"Обери red, blue або green")
+    with connect_db() as db:
+        setting=get_game_setting(db,"color_pick")
+        game_access_check(db,uid,setting)
+        cfg=json.loads(setting["config_json"] or "{}")
+        result=secrets.choice(options)
+        win=choice==result
+        reward=int(cfg.get("reward",6)) if win else 0
+        if reward:
+            add_balance(db,uid,reward,"Color Pick",2)
+            add_mission_progress(db,uid,"earned",reward)
+            add_tournament_score(db,uid,reward)
+        add_mission_progress(db,uid,"games",1)
+        text=f"Color Pick: {choice} → {result} — {'виграш' if win else 'програш'}"
+        save_game_play(db,uid,"color_pick",0,reward,text)
+        db.commit()
+        balance=db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0]
+    return {"ok":True,"choice":choice,"result":result,"win":win,"reward":reward,"balance":balance,"result_text":text}
+
+
+@app.post("/api/games/high-low")
+async def play_high_low(
+    payload: SimpleChoicePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    choice=payload.choice.lower().strip()
+    if choice not in {"low","high"}:
+        raise HTTPException(400,"Обери low або high")
+    with connect_db() as db:
+        setting=get_game_setting(db,"high_low")
+        game_access_check(db,uid,setting)
+        cfg=json.loads(setting["config_json"] or "{}")
+        number=random.randint(1,10)
+        result="low" if number<=5 else "high"
+        win=choice==result
+        reward=int(cfg.get("reward",5)) if win else 0
+        if reward:
+            add_balance(db,uid,reward,"High Low",2)
+            add_mission_progress(db,uid,"earned",reward)
+            add_tournament_score(db,uid,reward)
+        add_mission_progress(db,uid,"games",1)
+        text=f"High Low: {number} ({result}) — {'виграш' if win else 'програш'}"
+        save_game_play(db,uid,"high_low",0,reward,text)
+        db.commit()
+        balance=db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0]
+    return {"ok":True,"number":number,"result":result,"win":win,"reward":reward,"balance":balance,"result_text":text}
+
+
+@app.post("/api/games/lucky-card")
+async def play_lucky_card(
+    payload: SimpleChoicePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    choice=payload.choice.lower().strip()
+    if choice not in {"red","black"}:
+        raise HTTPException(400,"Обери red або black")
+    suits=[("♥","red"),("♦","red"),("♣","black"),("♠","black")]
+    with connect_db() as db:
+        setting=get_game_setting(db,"lucky_card")
+        game_access_check(db,uid,setting)
+        cfg=json.loads(setting["config_json"] or "{}")
+        suit,color=secrets.choice(suits)
+        win=choice==color
+        reward=int(cfg.get("reward",7)) if win else 0
+        if reward:
+            add_balance(db,uid,reward,"Lucky Card",2)
+            add_mission_progress(db,uid,"earned",reward)
+            add_tournament_score(db,uid,reward)
+        add_mission_progress(db,uid,"games",1)
+        text=f"Lucky Card: {suit} {color} — {'виграш' if win else 'програш'}"
+        save_game_play(db,uid,"lucky_card",0,reward,text)
+        db.commit()
+        balance=db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0]
+    return {"ok":True,"suit":suit,"color":color,"win":win,"reward":reward,"balance":balance,"result_text":text}
+
+
+@app.post("/api/games/triple-pick")
+async def play_triple_pick(
+    payload: SimpleChoicePayload,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    choice=payload.choice.lower().strip()
+    options=["left","center","right"]
+    if choice not in options:
+        raise HTTPException(400,"Обери left, center або right")
+    with connect_db() as db:
+        setting=get_game_setting(db,"triple_pick")
+        game_access_check(db,uid,setting)
+        cfg=json.loads(setting["config_json"] or "{}")
+        result=secrets.choice(options)
+        win=choice==result
+        reward=int(cfg.get("reward",8)) if win else 0
+        if reward:
+            add_balance(db,uid,reward,"Triple Pick",2)
+            add_mission_progress(db,uid,"earned",reward)
+            add_tournament_score(db,uid,reward)
+        add_mission_progress(db,uid,"games",1)
+        text=f"Triple Pick: {choice} → {result} — {'виграш' if win else 'програш'}"
+        save_game_play(db,uid,"triple_pick",0,reward,text)
+        db.commit()
+        balance=db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0]
+    return {"ok":True,"result":result,"win":win,"reward":reward,"balance":balance,"result_text":text}
 
 
 @app.get("/api/games/history")

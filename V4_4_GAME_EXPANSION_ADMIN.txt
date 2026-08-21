@@ -1,0 +1,23 @@
+ReferHub v4.4 — Game Expansion + Admin Return
+
+MAJOR:
+- Game Center expanded to 15 real server-backed games.
+- Existing hidden games activated in UI:
+  Dice Duel, RPS Arena, Treasure Grid, Reaction.
+- Four new server-backed games:
+  Color Pick, High / Low, Lucky Card, Triple Pick.
+- All new games write to game_plays, respect game_settings, daily limits and cooldowns.
+- New compact 2-column Game Center visual pass.
+- Improved individual game screens and controls.
+- Local lightweight artwork for all 15 game cards.
+
+ADMIN:
+- Admin tab returned inside Settings.
+- Admin tab is hidden for non-admin users.
+- Quick dashboard inside Settings.
+- Full Admin Panel opens from the Settings admin tab.
+- Existing admin APIs and full Admin Panel PRO preserved.
+
+STABILITY:
+- Profile v4.3.4 preserved.
+- Core openPage and original single-scroll architecture are not wrapped.

@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="/static/quest-v41.css?v=41001">
 <link rel="stylesheet" href="/static/stability-v433.css?v=43301">
 <link rel="stylesheet" href="/static/profile-v434.css?v=43401">
+<link rel="stylesheet" href="/static/release-v44.css?v=44001">
 </head>
 <body>
   <div class="orb orb-a"></div>
@@ -85,6 +86,12 @@
         </div>
         <button onclick="closePolish91Settings()">×</button>
       </header>
+      <nav class="settings44-tabs">
+        <button type="button" class="active" data-settings44="general" onclick="showSettings44Tab('general',this)">Загальні</button>
+        <button type="button" id="settings44AdminTab" data-settings44="admin" onclick="showSettings44Tab('admin',this)" hidden>Адмінка</button>
+      </nav>
+
+      <section id="settings44-general" class="settings44-panel active">
 
       <div class="polish91-setting-row">
         <div><b>Вібрація</b><small>Відгук Telegram при натисканнях і нагородах</small></div>
@@ -123,7 +130,19 @@
         <button class="secondary" onclick="polish91ResetSettings()">Скинути налаштування</button>
       </div>
 
-      <footer>ReferHub Rewards · Beta 9.1</footer>
+      <footer>ReferHub Rewards · v4.4</footer>
+      </section>
+
+      <section id="settings44-admin" class="settings44-panel">
+        <div class="settings44-admin-hero">
+          <span>🛡️</span>
+          <div><small>REFERHUB CONTROL</small><b>Адмін-панель</b><p>Швидкий доступ до керування ботом.</p></div>
+        </div>
+        <div id="settings44AdminStats" class="settings44-admin-stats">
+          <div class="loader"></div>
+        </div>
+        <button type="button" class="settings44-admin-open" onclick="closePolish91Settings();openPage('admin')">ВІДКРИТИ ПОВНУ АДМІНКУ →</button>
+      </section>
     </section>
   </div>
 
@@ -186,5 +205,6 @@
 <script src="/static/streak-v40.js?v=40001"></script>
 <script src="/static/quest-v41.js?v=41001"></script>
 <script src="/static/profile-v434.js?v=43401"></script>
+<script src="/static/release-v44.js?v=44001"></script>
 </body>
 </html>

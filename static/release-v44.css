@@ -1,0 +1,57 @@
+
+/* ReferHub v4.4 — Game visual pass */
+.gc433-shell{padding-bottom:24px!important}
+.gc433-head{padding:4px 1px 2px!important}
+.gc433-head h1{font-size:31px!important}
+.gc433-tabs{gap:7px!important;padding-bottom:10px!important}
+.gc433-tabs button{min-height:37px!important;border-radius:11px!important}
+.gc433-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+.gc433-card{border-radius:18px!important;background:linear-gradient(145deg,#12161c,#0c0f14)!important;box-shadow:0 12px 28px rgba(0,0,0,.18)!important}
+.gc433-art{aspect-ratio:1.43/1!important;background:#0e1116!important}
+.gc433-art img{width:100%!important;height:100%!important;display:block!important;object-fit:cover!important}
+.gc433-copy{padding:9px!important}
+.gc433-copy h3{font-size:12px!important}
+.gc433-copy p{height:28px!important;font-size:6.5px!important}
+.gc433-copy footer{font-size:5.5px!important}
+
+.gc14-page{padding-bottom:26px!important}
+.gc14-hero{border-radius:20px!important}
+.gc14-cover{min-height:105px!important}
+.gc14-game-shell{border-radius:18px!important}
+.gc14-choicegame{text-align:center;padding:12px!important}
+.gc44-symbol,.gc44-cardart{font-size:55px;margin:5px 0 10px}
+.gc44-picks,.gc44-colors,.gc44-triple{display:grid;gap:7px;margin-top:10px}
+.gc44-picks{grid-template-columns:repeat(2,1fr)}
+.gc44-colors,.gc44-triple{grid-template-columns:repeat(3,1fr)}
+.gc44-picks button,.gc44-colors button,.gc44-triple button{
+  min-height:54px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:#15191f;color:#fff;font-size:8px;font-weight:900
+}
+.gc44-triple button span{display:block;margin-top:3px;font-size:6px;color:#838c97}
+.gc44-colors .red,.gc44-red{background:#3b171a!important;border-color:#8d343a!important}
+.gc44-colors .blue{background:#13243a!important;border-color:#315e91!important}
+.gc44-colors .green{background:#132b20!important;border-color:#32734f!important}
+.gc44-treasure{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:310px;margin:10px auto}
+.gc44-treasure button{aspect-ratio:1;border:1px solid #315f57;border-radius:12px;background:#10221e;color:#69c6ae;font-size:17px;font-weight:950}
+.gc44-reaction-lamp{width:120px;height:120px;display:grid;place-items:center;margin:4px auto 12px;border-radius:50%;background:#241a2d;font-size:52px;transition:.15s}
+.gc44-reaction-lamp.ready{background:#123624;box-shadow:0 0 32px rgba(69,210,128,.25)}
+.gc44-cardart{filter:drop-shadow(0 15px 20px rgba(0,0,0,.25))}
+
+/* Settings tabs + admin */
+.settings44-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin:0 0 10px;padding:4px;border:1px solid rgba(255,255,255,.06);border-radius:12px;background:#0d1015}
+.settings44-tabs button{padding:8px;border:1px solid transparent;border-radius:8px;background:transparent;color:#737c87;font-size:7px;font-weight:900}
+.settings44-tabs button.active{border-color:rgba(147,87,204,.2);background:#21152b;color:#c9a0e5}
+.settings44-panel{display:none}
+.settings44-panel.active{display:block}
+.settings44-admin-hero{display:grid;grid-template-columns:50px 1fr;gap:9px;align-items:center;padding:10px;border:1px solid rgba(152,92,211,.16);border-radius:13px;background:#11131a}
+.settings44-admin-hero>span{width:50px;height:50px;display:grid;place-items:center;border-radius:12px;background:#21162b;font-size:24px}
+.settings44-admin-hero small,.settings44-admin-hero b,.settings44-admin-hero p{display:block}
+.settings44-admin-hero small{color:#8b68a3!important;font-size:5px}
+.settings44-admin-hero b{margin:2px 0;font-size:11px}
+.settings44-admin-hero p{margin:0;color:#6d7681!important;font-size:6px}
+.settings44-admin-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:7px}
+.settings44-admin-stats article{padding:9px;border:1px solid rgba(255,255,255,.05);border-radius:11px;background:#101318}
+.settings44-admin-stats small,.settings44-admin-stats b{display:block}
+.settings44-admin-stats small{color:#69727d!important;font-size:5px}.settings44-admin-stats b{margin-top:2px;font-size:13px}
+.settings44-admin-open{width:100%;margin-top:8px;padding:10px;border:1px solid #654185;border-radius:10px;background:#21152b;color:#c9a1e5;font-size:7px;font-weight:950}
+
+@media(min-width:800px){.gc433-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}

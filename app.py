@@ -552,6 +552,27 @@ def init_database():
             """
         )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS social_follows (
+                follower_id INTEGER NOT NULL,
+                followed_id INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY(follower_id, followed_id)
+            );
+            CREATE TABLE IF NOT EXISTS social_activity (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                subtitle TEXT NOT NULL DEFAULT '',
+                icon TEXT NOT NULL DEFAULT '✦',
+                created_at INTEGER NOT NULL
+            );
+            """
+        )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -3019,6 +3040,64 @@ async def claim_season_v24(level:int,x_telegram_init_data: str | None = Header(d
         db.commit()
         bal=int(db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0])
     return {"ok":True,"reward":reward,"balance":bal}
+
+
+
+@app.get("/api/social-v26")
+async def social_v26(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"])
+    with connect_db() as db:
+        me=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        followers=int(db.execute("SELECT COUNT(*) FROM social_follows WHERE followed_id=?",(uid,)).fetchone()[0])
+        following=int(db.execute("SELECT COUNT(*) FROM social_follows WHERE follower_id=?",(uid,)).fetchone()[0])
+        # Friends are mutual follows.
+        friends=int(db.execute("""SELECT COUNT(*) FROM social_follows a
+            WHERE a.follower_id=? AND EXISTS(
+              SELECT 1 FROM social_follows b WHERE b.follower_id=a.followed_id AND b.followed_id=?
+            )""",(uid,uid)).fetchone()[0])
+        # Build useful activity from real existing game/lottery data when dedicated feed is empty.
+        acts=[dict(r) for r in db.execute("SELECT kind,title,subtitle,icon,created_at FROM social_activity WHERE user_id=? ORDER BY id DESC LIMIT 8",(uid,)).fetchall()]
+        if not acts:
+            gp=int(db.execute("SELECT COUNT(*) FROM game_plays WHERE user_id=?",(uid,)).fetchone()[0])
+            tk=int(db.execute("SELECT COUNT(*) FROM lottery_tickets WHERE user_id=?",(uid,)).fetchone()[0])
+            acts=[
+              {"kind":"games","title":"Ігрова активність","subtitle":f"Зіграно {gp} раундів","icon":"🎮","created_at":0},
+              {"kind":"tickets","title":"Квитки у розіграшах","subtitle":f"Отримано {tk} квитків","icon":"🎟️","created_at":0}
+            ]
+        return {"followers":followers,"following":following,"friends":friends,
+                "username":(me["username"] if me and "username" in me.keys() else None),
+                "first_name":(me["first_name"] if me and "first_name" in me.keys() else None),
+                "activity":acts}
+
+@app.get("/api/social-v26/search")
+async def social_v26_search(q: str="", x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); q=(q or "").strip().lstrip("@")
+    if len(q)<2: return {"users":[]}
+    with connect_db() as db:
+        rows=db.execute("""SELECT telegram_id,username,first_name,xp FROM users
+          WHERE telegram_id<>? AND (LOWER(COALESCE(username,'')) LIKE LOWER(?) OR LOWER(COALESCE(first_name,'')) LIKE LOWER(?))
+          ORDER BY xp DESC LIMIT 12""",(uid,f"%{q}%",f"%{q}%")).fetchall()
+        out=[]
+        for r in rows:
+            rid=int(r["telegram_id"])
+            followed=bool(db.execute("SELECT 1 FROM social_follows WHERE follower_id=? AND followed_id=?",(uid,rid)).fetchone())
+            out.append({"id":rid,"username":r["username"],"first_name":r["first_name"],"xp":int(r["xp"] or 0),"followed":followed})
+        return {"users":out}
+
+@app.post("/api/social-v26/follow/{target_id}")
+async def social_v26_follow(target_id:int,x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); now=int(time.time())
+    if target_id==uid: raise HTTPException(400,"Не можна підписатися на себе")
+    with connect_db() as db:
+        if not db.execute("SELECT 1 FROM users WHERE telegram_id=?",(target_id,)).fetchone():
+            raise HTTPException(404,"Користувача не знайдено")
+        old=db.execute("SELECT 1 FROM social_follows WHERE follower_id=? AND followed_id=?",(uid,target_id)).fetchone()
+        if old:
+            db.execute("DELETE FROM social_follows WHERE follower_id=? AND followed_id=?",(uid,target_id)); followed=False
+        else:
+            db.execute("INSERT INTO social_follows(follower_id,followed_id,created_at) VALUES(?,?,?)",(uid,target_id,now)); followed=True
+        db.commit()
+    return {"ok":True,"followed":followed}
 
 
 @app.get("/health")

@@ -1,0 +1,11 @@
+ReferHub Lottery v2.6 — Social Hub
+- New server-backed Social Hub.
+- Search registered ReferHub players by username/name.
+- Follow/unfollow players.
+- Friends count is based on mutual follows.
+- Followers/following statistics.
+- Activity panel based on real game/ticket activity.
+- Premium Social Hub entry integrated into the existing profile.
+- Telegram avatar fallback preserved.
+- Full v2.3 Daily, v2.4 Seasons, v2.5 Lottery Experience and v2.5.1 consolidation preserved.
+- New premium responsive design pass.

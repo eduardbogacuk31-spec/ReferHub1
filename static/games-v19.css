@@ -1,0 +1,64 @@
+
+/* ReferHub v1.9 — compact 2-column Game Center */
+#gameProView .gp-grid{
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:14px!important;
+ align-items:stretch!important;
+}
+#gameProView .gp-card{
+ min-width:0!important;
+ min-height:0!important;
+ border-radius:20px!important;
+ overflow:hidden!important;
+ display:flex!important;
+ flex-direction:column!important;
+}
+#gameProView .gp-card-art{
+ height:132px!important;
+ min-height:132px!important;
+ aspect-ratio:auto!important;
+}
+#gameProView .gp-card-art img{
+ width:100%!important;height:100%!important;
+ object-fit:cover!important;
+ transform:scale(1.01);
+}
+#gameProView .gp-card-body{
+ padding:14px 14px 15px!important;
+ display:flex!important;flex-direction:column!important;flex:1!important;
+}
+#gameProView .gp-card-body h2{
+ font-size:18px!important;line-height:1.12!important;margin:0 0 6px!important;
+}
+#gameProView .gp-card-body p{
+ font-size:12px!important;line-height:1.35!important;
+ display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;
+ overflow:hidden!important;margin:0 0 10px!important;
+}
+#gameProView .gp-card .gp-meta,#gameProView .gp-card .gp-tags{
+ gap:5px!important;font-size:10px!important;
+}
+#gameProView .gp-card button{
+ min-height:38px!important;padding:8px 10px!important;font-size:12px!important;border-radius:11px!important;
+}
+#gameProView .gp-card .gp-state{
+ top:9px!important;right:9px!important;font-size:9px!important;padding:5px 7px!important;
+}
+#gameProView .gp-hero{margin-bottom:16px!important}
+#gameProView .gp-toolbar{margin-bottom:14px!important}
+@media(max-width:700px){
+ #gameProView .gp-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ #gameProView .gp-card{border-radius:16px!important}
+ #gameProView .gp-card-art{height:92px!important;min-height:92px!important}
+ #gameProView .gp-card-body{padding:10px!important}
+ #gameProView .gp-card-body h2{font-size:14px!important;margin-bottom:4px!important}
+ #gameProView .gp-card-body p{font-size:10px!important;line-height:1.28!important;-webkit-line-clamp:2!important;margin-bottom:8px!important}
+ #gameProView .gp-card .gp-meta,#gameProView .gp-card .gp-tags{font-size:9px!important}
+ #gameProView .gp-card button{font-size:11px!important;min-height:34px!important;padding:7px 8px!important}
+}
+@media(max-width:360px){
+ #gameProView .gp-grid{gap:7px!important}
+ #gameProView .gp-card-art{height:82px!important;min-height:82px!important}
+ #gameProView .gp-card-body h2{font-size:13px!important}
+}

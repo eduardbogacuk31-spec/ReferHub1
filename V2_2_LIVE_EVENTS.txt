@@ -1,0 +1,9 @@
+ReferHub Lottery v2.2 — Live Events
+- Live Events block on Home.
+- Boosted RH event.
+- Game of the Day.
+- Daily Drop claim event.
+- Server-backed event definitions and claim history.
+- Event countdowns and live status.
+- Premium responsive event cards.
+- Profile Clean + FAIR DRAW removal from prior build preserved.

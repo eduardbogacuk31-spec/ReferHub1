@@ -1,0 +1,24 @@
+
+/* ReferHub v2.2 — Live Events */
+.rh22-events-root{margin-bottom:16px}
+.rh22-events-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:0 2px 9px}
+.rh22-events-head>div:first-child span{color:#9e78c9;font-size:8px;font-weight:950;letter-spacing:.14em}
+.rh22-events-head h2{margin:3px 0 0;font-size:24px}
+.rh22-live-pill{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid rgba(79,219,151,.18);border-radius:99px;background:#101a16;color:#66d99f;font-size:8px;font-weight:950}
+.rh22-live-pill i{width:6px;height:6px;border-radius:50%;background:#58de9c;box-shadow:0 0 10px rgba(88,222,156,.8);animation:rh22pulse 1.4s infinite}
+@keyframes rh22pulse{50%{opacity:.35;transform:scale(.75)}}
+.rh22-events-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.rh22-event-card{position:relative;overflow:hidden;min-width:0;display:grid;grid-template-columns:58px 1fr;gap:11px;align-items:center;padding:14px;border:1px solid rgba(255,255,255,.065);border-radius:18px;background:linear-gradient(145deg,#151820,#101319);box-shadow:0 16px 35px rgba(0,0,0,.22)}
+.rh22-event-glow{position:absolute;right:-55px;top:-75px;width:180px;height:180px;border-radius:50%;filter:blur(25px);opacity:.18;background:#9b60e6}
+.rh22-event-card.claim .rh22-event-glow{background:#e5b954}
+.rh22-event-card.boost .rh22-event-glow{background:#dc704b}
+.rh22-event-card.game .rh22-event-glow{background:#5f79e0}
+.rh22-event-icon{position:relative;z-index:1;width:58px;height:58px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.07);border-radius:17px;background:#1d1726;font-size:29px}
+.rh22-event-copy{position:relative;z-index:1;min-width:0}.rh22-event-copy>span{color:#9875bd;font-size:7px;font-weight:950;letter-spacing:.1em}.rh22-event-copy h3{margin:3px 0;font-size:15px;line-height:1.1}.rh22-event-copy p{margin:0;color:#78818f!important;font-size:8px;line-height:1.3}
+.rh22-event-timer{display:flex;align-items:center;gap:5px;margin-top:6px}.rh22-event-timer i{width:5px;height:5px;border-radius:50%;background:#e2b95c}.rh22-event-timer small{color:#9b8350!important;font-size:7px}
+.rh22-event-action{position:relative;z-index:1;grid-column:1/3}.rh22-event-action button{width:100%;min-height:36px;border:1px solid #684391;border-radius:11px;background:#21162c;color:#c6a4e7;font-size:8px;font-weight:950}.rh22-event-action button:disabled{opacity:.5}
+.rh22-event-card.claim .rh22-event-action button{border-color:#8e6f2b;background:#2a2110;color:#e7c568}
+.rh22-event-boost{width:100%;padding:9px;text-align:center;border:1px solid rgba(224,113,74,.17);border-radius:11px;background:#281710;color:#ee8b63;font-size:19px;font-weight:950}
+@media(max-width:900px){.rh22-events-track{grid-template-columns:1fr 1fr}.rh22-event-card:last-child{grid-column:1/3}}
+@media(max-width:620px){.rh22-events-track{grid-template-columns:1fr}.rh22-event-card:last-child{grid-column:auto}.rh22-event-card{grid-template-columns:50px 1fr}.rh22-event-icon{width:50px;height:50px;font-size:25px}.rh22-event-action{grid-column:1/3}}
+@media(prefers-reduced-motion:reduce){.rh22-live-pill i{animation:none}}

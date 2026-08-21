@@ -1,21 +1,18 @@
 
-/* ReferHub v2.1 — Profile & Progression */
+/* ReferHub v2.2 — SINGLE premium profile */
 (()=>{
- const originalProfilePage=window.profilePage;
- if(typeof originalProfilePage!=="function") return;
-
+ function pct(a,b){return Math.max(0,Math.min(100,b?Math.round(a/b*100):0))}
  function levelText(p){
    const l=p.level||{};
    return `${l.icon||"✦"} LVL ${l.number||1} · ${l.name||"Новачок"}`;
  }
- function pct(a,b){return Math.max(0,Math.min(100,b?Math.round(a/b*100):0))}
- function renderBadge(b){
+ function badgeCard(b){
    return `<article class="rh21-badge ${b.unlocked?"unlocked":"locked"}">
-      <div class="rh21-badge-icon">${b.unlocked?b.icon:"🔒"}</div>
-      <div><span>${b.unlocked?"ВІДКРИТО":"ЗАБЛОКОВАНО"}</span><h3>${esc(b.title)}</h3><p>${esc(b.description)}</p></div>
-    </article>`;
+     <div class="rh21-badge-icon">${b.unlocked?b.icon:"🔒"}</div>
+     <div><span>${b.unlocked?"ВІДКРИТО":"ЗАБЛОКОВАНО"}</span><h3>${esc(b.title)}</h3><p>${esc(b.description)}</p></div>
+   </article>`;
  }
- function renderMilestone(m){
+ function milestoneCard(m){
    const progress=pct(m.current,m.target);
    return `<article class="rh21-milestone ${m.done?"done":""}">
      <div class="rh21-ms-top"><span>${m.icon} ${esc(m.title)}</span><b>${m.current}/${m.target}</b></div>
@@ -23,78 +20,110 @@
    </article>`;
  }
 
- async function inject(){
-   let p;
-   try{p=await api("/api/progression-v21")}catch(_){return}
-   const old=document.querySelector(".rh21-progress-root"); if(old) old.remove();
+ async function renderProfile(){
+   content.innerHTML=`<div class="loader"></div>`;
 
-   const host=document.createElement("section");
-   host.className="rh21-progress-root";
+   let p;
+   try{
+     p=await api("/api/progression-v21");
+   }catch(error){
+     content.innerHTML=`<div class="rh22-error"><span>⚠️</span><h2>Не вдалося відкрити профіль</h2><p>${esc(error.message)}</p></div>`;
+     return;
+   }
+
    const next=p.level?.next;
    const start=Number(p.level?.start||0);
    const xp=Number(p.xp||0);
-   const lp=next?Math.max(0,Math.min(100,Math.round((xp-start)/(next-start)*100))):100;
+   const progress=next?Math.max(0,Math.min(100,Math.round((xp-start)/(next-start)*100))):100;
+   const unlocked=(p.badges||[]).filter(x=>x.unlocked).length;
 
-   host.innerHTML=`
-     <section class="rh21-hero">
-       <div class="rh21-avatar">
-         <div class="rh21-avatar-ring">
-           <span>${esc((me.first_name||me.username||"R").slice(0,1).toUpperCase())}</span>
+   content.innerHTML=`
+     <section class="rh22-profile">
+       <section class="rh21-hero rh22-hero">
+         <div class="rh21-avatar">
+           <div class="rh21-avatar-ring">
+             <span>${esc((me.first_name||me.username||"R").slice(0,1).toUpperCase())}</span>
+           </div>
+           <img class="rh21-rank-sticker" src="/static/assets/stickers/rh.svg" alt="">
          </div>
-         <img class="rh21-rank-sticker" src="/static/assets/stickers/rh.svg" alt="">
-       </div>
-       <div class="rh21-identity">
-         <span class="rh21-eyebrow">REFERHUB PROFILE</span>
-         <h1>${esc(me.first_name||me.username||"Player")}</h1>
-         <p>${levelText(p)}</p>
-         <div class="rh21-levelbar"><i style="width:${lp}%"></i></div>
-         <div class="rh21-levelmeta">
-           <span>${xp} XP</span>
-           <span>${next?`${next-xp} XP до наступного рівня`:"MAX LEVEL"}</span>
+
+         <div class="rh21-identity">
+           <span class="rh21-eyebrow">REFERHUB ACCOUNT</span>
+           <h1>${esc(me.first_name||me.username||"Player")}</h1>
+           <p>${levelText(p)}</p>
+           <div class="rh21-levelbar"><i style="width:${progress}%"></i></div>
+           <div class="rh21-levelmeta">
+             <span>${xp} XP</span>
+             <span>${next?`${next-xp} XP до наступного рівня`:"MAX LEVEL"}</span>
+           </div>
          </div>
-       </div>
-       <div class="rh21-streak">
-         <span>🔥</span><b>${p.streak}</b><small>днів streak</small>
-       </div>
-     </section>
 
-     <section class="rh21-stats">
-       <article><img src="/static/assets/stickers/rh.svg"><span><small>ЗАРОБЛЕНО</small><b>${p.total_earned} RH</b></span></article>
-       <article><img src="/static/assets/stickers/ticket.svg"><span><small>КВИТКИ</small><b>${p.tickets}</b></span></article>
-       <article><img src="/static/assets/stickers/winner.svg"><span><small>ПЕРЕМОГИ</small><b>${p.wins}</b></span></article>
-       <article><div class="rh21-stat-emoji">🎮</div><span><small>МІНІІГРИ</small><b>${p.games_played}</b></span></article>
-       <article><div class="rh21-stat-emoji">⚡</div><span><small>ЗАВДАННЯ</small><b>${p.tasks_completed}</b></span></article>
-       <article><div class="rh21-stat-emoji">👥</div><span><small>ДРУЗІ</small><b>${p.referrals}</b></span></article>
-     </section>
-
-     <section class="rh21-grid">
-       <div class="rh21-panel">
-         <div class="rh21-title"><div><span>PROGRESSION</span><h2>Наступні цілі</h2></div><small>Твій шлях</small></div>
-         <div class="rh21-milestones">${(p.milestones||[]).map(renderMilestone).join("")}</div>
-       </div>
-       <div class="rh21-panel rh21-career">
-         <div class="rh21-title"><div><span>CAREER</span><h2>Статистика</h2></div><small>${p.account_age_days} днів</small></div>
-         <div class="rh21-career-grid">
-           <div><small>Розіграшів</small><b>${p.draws_joined}</b></div>
-           <div><small>Переможних ігор</small><b>${p.games_won}</b></div>
-           <div><small>RH з ігор</small><b>${p.games_earned}</b></div>
-           <div><small>Досягнень</small><b>${p.achievements_unlocked}</b></div>
+         <div class="rh22-rank-box">
+           <div class="rh22-rank-top">
+             <span>🔥</span>
+             <div><b>${p.streak}</b><small>днів streak</small></div>
+           </div>
+           <div class="rh22-rank-line"></div>
+           <div class="rh22-rank-bottom"><span>🏅</span><b>${unlocked}/${(p.badges||[]).length}</b><small>бейджів</small></div>
          </div>
-       </div>
-     </section>
+       </section>
 
-     <section class="rh21-badges-panel">
-       <div class="rh21-title"><div><span>BADGE COLLECTION</span><h2>Твої бейджі</h2></div><small>${(p.badges||[]).filter(x=>x.unlocked).length}/${(p.badges||[]).length}</small></div>
-       <div class="rh21-badges">${(p.badges||[]).map(renderBadge).join("")}</div>
+       <section class="rh22-wallet-row">
+         <article class="rh22-wallet rh">
+           <img src="/static/assets/stickers/rh.svg" alt="">
+           <div><span>ПОТОЧНИЙ БАЛАНС</span><b>${p.balance} RH</b><small>${p.total_earned} RH зароблено за весь час</small></div>
+         </article>
+         <article class="rh22-wallet ticket">
+           <img src="/static/assets/stickers/ticket.svg" alt="">
+           <div><span>КВИТКИ</span><b>${p.tickets}</b><small>${p.draws_joined} розіграшів з участю</small></div>
+         </article>
+         <article class="rh22-wallet win">
+           <img src="/static/assets/stickers/winner.svg" alt="">
+           <div><span>ПЕРЕМОГИ</span><b>${p.wins}</b><small>виграних розіграшів</small></div>
+         </article>
+       </section>
+
+       <section class="rh22-dashboard">
+         <div class="rh21-panel rh22-progress-panel">
+           <div class="rh21-title"><div><span>PROGRESSION</span><h2>Наступні цілі</h2></div><small>Твій шлях</small></div>
+           <div class="rh21-milestones">${(p.milestones||[]).map(milestoneCard).join("")}</div>
+         </div>
+
+         <div class="rh21-panel rh22-career-panel">
+           <div class="rh21-title"><div><span>CAREER</span><h2>Статистика</h2></div><small>${p.account_age_days} днів</small></div>
+           <div class="rh22-career-grid">
+             <div><i>🎮</i><span><small>Мініігор</small><b>${p.games_played}</b></span></div>
+             <div><i>🏆</i><span><small>Виграшних ігор</small><b>${p.games_won}</b></span></div>
+             <div><i>⚡</i><span><small>Завдань</small><b>${p.tasks_completed}</b></span></div>
+             <div><i>👥</i><span><small>Запрошено друзів</small><b>${p.referrals}</b></span></div>
+             <div><i>💰</i><span><small>RH з ігор</small><b>${p.games_earned}</b></span></div>
+             <div><i>⭐</i><span><small>Зірки</small><b>${p.stars}</b></span></div>
+           </div>
+         </div>
+       </section>
+
+       <section class="rh21-badges-panel rh22-badges">
+         <div class="rh21-title">
+           <div><span>BADGE COLLECTION</span><h2>Колекція бейджів</h2></div>
+           <small>${unlocked}/${(p.badges||[]).length} відкрито</small>
+         </div>
+         <div class="rh21-badges">${(p.badges||[]).map(badgeCard).join("")}</div>
+       </section>
+
+       <section class="rh22-summary">
+         <div class="rh22-summary-copy">
+           <span>YOUR REFERHUB JOURNEY</span>
+           <h2>${p.account_age_days} днів у ReferHub</h2>
+           <p>Грай, накопичуй RH, купуй квитки та відкривай нові бейджі й рівні.</p>
+         </div>
+         <div class="rh22-summary-number">
+           <small>ЗАГАЛЬНИЙ XP</small>
+           <b>${p.xp}</b>
+         </div>
+       </section>
      </section>
    `;
-
-   const contentNode=document.getElementById("content")||document.querySelector(".content")||document.querySelector("main");
-   if(contentNode) contentNode.prepend(host);
  }
 
- window.profilePage=async function(){
-   await originalProfilePage.apply(this,arguments);
-   await inject();
- };
+ window.profilePage=renderProfile;
 })();

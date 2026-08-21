@@ -1,0 +1,6 @@
+ReferHub Lottery v2.2
+- Профіль тепер один: старий дубль більше не рендериться.
+- Новий profilePage повністю замінює старий екран.
+- FAIR DRAW повністю прибрано з інтерфейсу.
+- Draw Experience зберігає кнопки квитків, winner/timer polish без FAIR DRAW.
+- Профіль отримав premium wallet cards, streak/rank block, career dashboard, milestones, badges та journey summary.

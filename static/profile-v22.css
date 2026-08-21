@@ -1,0 +1,48 @@
+
+/* ReferHub v2.2 — Single Profile polish */
+.rh22-profile{width:100%;max-width:1180px;margin:0 auto;padding-bottom:12px}
+.rh22-hero{margin-bottom:10px}
+.rh22-rank-box{
+ min-width:135px;padding:13px;border:1px solid rgba(255,255,255,.065);border-radius:17px;
+ background:linear-gradient(145deg,#171921,#101319);box-shadow:0 14px 30px rgba(0,0,0,.2)
+}
+.rh22-rank-top,.rh22-rank-bottom{display:flex;align-items:center;gap:9px}
+.rh22-rank-top>span{font-size:28px}.rh22-rank-top div b,.rh22-rank-top div small{display:block}.rh22-rank-top div b{color:#ef9760;font-size:24px}.rh22-rank-top div small{color:#89766b!important;font-size:7px}
+.rh22-rank-line{height:1px;margin:10px 0;background:rgba(255,255,255,.055)}
+.rh22-rank-bottom>span{font-size:21px}.rh22-rank-bottom>b{font-size:15px}.rh22-rank-bottom>small{color:#7b8491!important;font-size:7px}
+.rh22-wallet-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.rh22-wallet{
+ min-width:0;display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:center;
+ padding:14px;border:1px solid rgba(255,255,255,.065);border-radius:18px;background:#12151c;
+ box-shadow:0 16px 36px rgba(0,0,0,.21)
+}
+.rh22-wallet img{width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 10px 14px rgba(0,0,0,.3))}
+.rh22-wallet div{min-width:0}.rh22-wallet span,.rh22-wallet b,.rh22-wallet small{display:block}.rh22-wallet span{color:#817391;font-size:7px;font-weight:950;letter-spacing:.11em}.rh22-wallet b{margin-top:4px;font-size:22px;overflow-wrap:anywhere}.rh22-wallet small{margin-top:3px;color:#737c89!important;font-size:8px}
+.rh22-wallet.rh b{color:#e4bf5c}.rh22-wallet.ticket b{color:#b58ce2}.rh22-wallet.win b{color:#e1b957}
+.rh22-dashboard{display:grid;grid-template-columns:1.05fr .95fr;gap:10px;margin-top:10px}
+.rh22-career-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:12px}
+.rh22-career-grid>div{min-width:0;display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;padding:10px;border:1px solid rgba(255,255,255,.045);border-radius:12px;background:#0e1117}
+.rh22-career-grid i{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#1b1722;font-style:normal;font-size:18px}
+.rh22-career-grid span{min-width:0}.rh22-career-grid small,.rh22-career-grid b{display:block}.rh22-career-grid small{color:#747d8a!important;font-size:7px}.rh22-career-grid b{margin-top:3px;font-size:14px;overflow-wrap:anywhere}
+.rh22-badges{margin-top:10px}
+.rh22-summary{
+ position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;gap:15px;align-items:center;
+ margin-top:10px;padding:17px;border:1px solid rgba(156,98,230,.12);border-radius:18px;
+ background:radial-gradient(circle at 90% 20%,rgba(156,98,230,.12),transparent 32%),linear-gradient(145deg,#14171d,#0e1116)
+}
+.rh22-summary-copy span{color:#9273b4;font-size:7px;font-weight:950;letter-spacing:.12em}.rh22-summary-copy h2{margin:3px 0;font-size:20px}.rh22-summary-copy p{margin:0;color:#737c89!important;font-size:9px}
+.rh22-summary-number{text-align:right;padding:9px 13px;border:1px solid rgba(255,255,255,.05);border-radius:12px;background:#0c0f14}.rh22-summary-number small,.rh22-summary-number b{display:block}.rh22-summary-number small{color:#766785!important;font-size:7px}.rh22-summary-number b{margin-top:3px;color:#bd8fe9;font-size:22px}
+.rh22-error{text-align:center;padding:40px}.rh22-error span{font-size:42px}.rh22-error h2{margin:9px 0 3px}
+.rh20-fair-chip{display:none!important}
+@media(max-width:800px){
+ .rh22-wallet-row{grid-template-columns:1fr 1fr}.rh22-wallet-row article:last-child{grid-column:1/3}
+ .rh22-dashboard{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+ .rh22-rank-box{min-width:0;width:100%;box-sizing:border-box}
+ .rh22-wallet-row{grid-template-columns:1fr}.rh22-wallet-row article:last-child{grid-column:auto}
+ .rh22-wallet{grid-template-columns:58px 1fr;padding:11px}.rh22-wallet img{width:58px;height:58px}
+ .rh22-career-grid{grid-template-columns:1fr 1fr}
+ .rh22-summary{grid-template-columns:1fr}.rh22-summary-number{text-align:left}
+}
+@media(max-width:380px){.rh22-career-grid{grid-template-columns:1fr}}

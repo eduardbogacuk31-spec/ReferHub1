@@ -421,6 +421,102 @@ def init_database():
             """
         )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS live_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_key TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                subtitle TEXT NOT NULL DEFAULT '',
+                description TEXT NOT NULL DEFAULT '',
+                icon TEXT NOT NULL DEFAULT '⚡',
+                event_type TEXT NOT NULL,
+                starts_at INTEGER NOT NULL,
+                ends_at INTEGER NOT NULL,
+                multiplier REAL NOT NULL DEFAULT 1.0,
+                reward_amount INTEGER NOT NULL DEFAULT 0,
+                game_key TEXT,
+                lottery_id INTEGER,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS live_event_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                reward INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(event_id, user_id)
+            );
+            """
+        )
+
+        if db.execute("SELECT COUNT(*) FROM live_events").fetchone()[0] == 0:
+            now = int(time.time())
+            events = [
+                (
+                    "boosted_rh_weekend",
+                    "BOOSTED RH",
+                    "Подвійні нагороди",
+                    "Сьогодні активний boosted режим для мініігор.",
+                    "⚡",
+                    "boost",
+                    now - 3600,
+                    now + 2 * 86400,
+                    2.0,
+                    0,
+                    None,
+                    None,
+                    1,
+                    now,
+                ),
+                (
+                    "game_of_day",
+                    "GAME OF THE DAY",
+                    "Reaction Test",
+                    "Зіграй у гру дня та отримай додатковий бонус.",
+                    "🎮",
+                    "game",
+                    now - 3600,
+                    now + 86400,
+                    1.0,
+                    15,
+                    "reaction",
+                    None,
+                    1,
+                    now,
+                ),
+                (
+                    "daily_drop",
+                    "DAILY DROP",
+                    "Подарунок дня",
+                    "Забери безкоштовний RH-бонус, поки подія активна.",
+                    "🎁",
+                    "claim",
+                    now - 3600,
+                    now + 86400,
+                    1.0,
+                    25,
+                    None,
+                    None,
+                    1,
+                    now,
+                ),
+            ]
+            db.executemany(
+                """
+                INSERT INTO live_events(
+                    event_key,title,subtitle,description,icon,event_type,
+                    starts_at,ends_at,multiplier,reward_amount,game_key,
+                    lottery_id,active,created_at
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                events,
+            )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -2520,6 +2616,128 @@ async def progression_v21(
             "badges": badges,
             "milestones": milestones,
         }
+
+
+
+@app.get("/api/live-events")
+async def get_live_events(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT * FROM live_events
+            WHERE active = 1 AND starts_at <= ? AND ends_at > ?
+            ORDER BY ends_at ASC, id ASC
+            """,
+            (now, now),
+        ).fetchall()
+
+        result = []
+        for row in rows:
+            claimed = db.execute(
+                """
+                SELECT 1 FROM live_event_claims
+                WHERE event_id = ? AND user_id = ?
+                """,
+                (int(row["id"]), user_id),
+            ).fetchone()
+
+            result.append({
+                "id": int(row["id"]),
+                "event_key": row["event_key"],
+                "title": row["title"],
+                "subtitle": row["subtitle"],
+                "description": row["description"],
+                "icon": row["icon"],
+                "event_type": row["event_type"],
+                "starts_at": int(row["starts_at"]),
+                "ends_at": int(row["ends_at"]),
+                "multiplier": float(row["multiplier"] or 1.0),
+                "reward_amount": int(row["reward_amount"] or 0),
+                "game_key": row["game_key"],
+                "lottery_id": row["lottery_id"],
+                "claimed": bool(claimed),
+                "seconds_left": max(0, int(row["ends_at"]) - now),
+            })
+        return result
+
+
+@app.post("/api/live-events/{event_id}/claim")
+async def claim_live_event(
+    event_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        event = db.execute(
+            """
+            SELECT * FROM live_events
+            WHERE id = ? AND active = 1
+            """,
+            (event_id,),
+        ).fetchone()
+
+        if not event:
+            db.rollback()
+            raise HTTPException(404, "Подію не знайдено")
+        if now < int(event["starts_at"]) or now >= int(event["ends_at"]):
+            db.rollback()
+            raise HTTPException(409, "Подія вже не активна")
+        if event["event_type"] != "claim":
+            db.rollback()
+            raise HTTPException(400, "Ця подія не має ручної нагороди")
+
+        existing = db.execute(
+            """
+            SELECT 1 FROM live_event_claims
+            WHERE event_id = ? AND user_id = ?
+            """,
+            (event_id, user_id),
+        ).fetchone()
+        if existing:
+            db.rollback()
+            raise HTTPException(409, "Нагороду вже отримано")
+
+        reward = int(event["reward_amount"] or 0)
+        db.execute(
+            """
+            INSERT INTO live_event_claims(event_id,user_id,claimed_at,reward)
+            VALUES (?,?,?,?)
+            """,
+            (event_id,user_id,now,reward),
+        )
+        if reward:
+            db.execute(
+                """
+                UPDATE users SET balance = balance + ?, total_earned = total_earned + ?
+                WHERE telegram_id = ?
+                """,
+                (reward,reward,user_id),
+            )
+            db.execute(
+                """
+                INSERT INTO ledger(user_id,amount,note,created_at)
+                VALUES (?,?,?,?)
+                """,
+                (user_id,reward,f"Live Event: {event['title']}",now),
+            )
+        db.commit()
+
+        balance = db.execute(
+            "SELECT balance FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+    return {"ok":True,"reward":reward,"balance":int(balance)}
 
 
 @app.get("/health")

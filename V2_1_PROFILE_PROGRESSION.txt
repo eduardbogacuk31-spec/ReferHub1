@@ -1,0 +1,8 @@
+ReferHub Lottery v2.1 — Profile & Progression
+- Premium profile hero with level, XP and streak.
+- Lifetime statistics: RH, tickets, lottery wins, games, tasks, referrals.
+- Career statistics and draw participation.
+- Badge collection with locked/unlocked states.
+- Progress milestones with animated-style progress bars.
+- Server-backed progression endpoint.
+- Existing profile/admin functionality remains intact below the new progression dashboard.

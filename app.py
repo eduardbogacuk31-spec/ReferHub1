@@ -2382,6 +2382,146 @@ async def reaction_finish(
     }
 
 
+
+@app.get("/api/progression-v21")
+async def progression_v21(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT * FROM users WHERE telegram_id = ?",
+            (user_id,),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Користувача не знайдено")
+
+        tickets = db.execute(
+            "SELECT COUNT(*) FROM lottery_tickets WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+        draws_joined = db.execute(
+            "SELECT COUNT(DISTINCT lottery_id) FROM lottery_tickets WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+        wins = db.execute(
+            "SELECT COUNT(*) FROM lotteries WHERE winner_id = ? AND status = 'drawn'",
+            (user_id,),
+        ).fetchone()[0]
+
+        games_played = db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+        games_won = db.execute(
+            "SELECT COUNT(*) FROM game_plays WHERE user_id = ? AND reward > 0",
+            (user_id,),
+        ).fetchone()[0]
+        games_earned = db.execute(
+            "SELECT COALESCE(SUM(reward),0) FROM game_plays WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        tasks_completed = db.execute(
+            "SELECT COUNT(*) FROM task_claims WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+        achievements_unlocked = db.execute(
+            "SELECT COUNT(*) FROM user_achievements WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()[0]
+
+        last_daily = db.execute(
+            """
+            SELECT streak, claimed_at
+            FROM daily_claims
+            WHERE user_id = ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+        streak = int(last_daily["streak"]) if last_daily else 0
+
+        xp = int(row["xp"] or 0)
+        level = level_info(xp)
+        created_at = int(row["created_at"] or now)
+        account_age_days = max(0, (now - created_at) // 86400)
+
+        badges = []
+        def badge(code, icon, title, description, unlocked):
+            badges.append({
+                "code": code,
+                "icon": icon,
+                "title": title,
+                "description": description,
+                "unlocked": bool(unlocked),
+            })
+
+        badge("starter", "✦", "Перший крок", "Приєднатися до ReferHub", True)
+        badge("streak7", "🔥", "7 днів", "Серія входів 7 днів", streak >= 7)
+        badge("gamer25", "🎮", "Аркадник", "Зіграти 25 мініігор", games_played >= 25)
+        badge("winner", "👑", "Переможець", "Виграти хоча б один розіграш", wins >= 1)
+        badge("tickets50", "🎟️", "Колекціонер шансів", "Придбати 50 квитків", tickets >= 50)
+        badge("ref10", "👥", "Амбасадор", "Запросити 10 друзів", int(row["referrals_count"] or 0) >= 10)
+        badge("rh1000", "💎", "RH Hunter", "Заробити 1000 RH за весь час", int(row["total_earned"] or 0) >= 1000)
+        badge("veteran30", "🛡️", "Ветеран", "30 днів у ReferHub", account_age_days >= 30)
+
+        milestones = [
+            {
+                "title": "50 квитків",
+                "icon": "🎟️",
+                "current": min(int(tickets), 50),
+                "target": 50,
+                "done": tickets >= 50,
+            },
+            {
+                "title": "25 переможних ігор",
+                "icon": "🎮",
+                "current": min(int(games_won), 25),
+                "target": 25,
+                "done": games_won >= 25,
+            },
+            {
+                "title": "10 рефералів",
+                "icon": "👥",
+                "current": min(int(row["referrals_count"] or 0), 10),
+                "target": 10,
+                "done": int(row["referrals_count"] or 0) >= 10,
+            },
+            {
+                "title": "7-денна серія",
+                "icon": "🔥",
+                "current": min(streak, 7),
+                "target": 7,
+                "done": streak >= 7,
+            },
+        ]
+
+        return {
+            "level": level,
+            "xp": xp,
+            "balance": int(row["balance"] or 0),
+            "total_earned": int(row["total_earned"] or 0),
+            "stars": int(row["stars"] or 0),
+            "streak": streak,
+            "tickets": int(tickets),
+            "draws_joined": int(draws_joined),
+            "wins": int(wins),
+            "games_played": int(games_played),
+            "games_won": int(games_won),
+            "games_earned": int(games_earned),
+            "tasks_completed": int(tasks_completed),
+            "achievements_unlocked": int(achievements_unlocked),
+            "referrals": int(row["referrals_count"] or 0),
+            "account_age_days": int(account_age_days),
+            "badges": badges,
+            "milestones": milestones,
+        }
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

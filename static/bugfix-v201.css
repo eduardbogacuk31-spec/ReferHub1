@@ -1,0 +1,41 @@
+
+/* v2.0.1 global overflow / wrapping bugfix */
+*,*::before,*::after{box-sizing:border-box}
+body{overflow-x:hidden!important}
+#content,.content,main,.main,.page,.screen,section,article,.card,.panel,
+.gp-card,.gp-card-body,.gp-game-title,.gp-stage-card,.rh20-draw-surface{
+ min-width:0!important;max-width:100%;
+}
+h1,h2,h3,h4,p,span,b,strong,small,label,a,button{
+ overflow-wrap:anywhere;word-break:normal;
+}
+button{max-width:100%;white-space:normal}
+.gp-card h2,.gp-card p,.gp-card footer,.gp-card footer *{min-width:0!important}
+.gp-card footer{gap:6px!important}
+.gp-card footer strong{text-align:right}
+.gp-game-title h1{max-width:100%;overflow-wrap:anywhere}
+.gp-game-actions{flex-wrap:wrap!important}
+.gp-stage-title{gap:8px!important}
+.gp-stage-title>*{min-width:0!important}
+.rh20-draw-surface{contain:layout paint}
+.rh20-draw-surface>*{max-width:100%}
+.rh20-fair-chip{
+ width:auto!important;max-width:100%!important;
+ align-items:center!important;overflow:hidden!important;
+}
+.rh20-fair-chip span{min-width:0!important;max-width:100%!important}
+.rh20-fair-chip b,.rh20-fair-chip small{
+ white-space:normal!important;overflow-wrap:anywhere!important;
+}
+.rh20-ticket-btn{white-space:normal!important}
+input,select,textarea{min-width:0!important;max-width:100%!important}
+@media(max-width:620px){
+ .gp-card-body>div{min-width:0!important}
+ .gp-card-body>div span,.gp-card-body>div b{max-width:48%!important;overflow-wrap:anywhere!important}
+ .gp-card footer{align-items:flex-end!important}
+ .gp-card footer span{min-width:0!important}
+ .gp-card footer strong{max-width:58%!important;line-height:1.15!important}
+ .gp-game-title h1{font-size:34px!important;line-height:.98!important}
+ .gp-game-actions>*{max-width:100%!important}
+ .rh20-fair-chip{margin-top:8px!important}
+}

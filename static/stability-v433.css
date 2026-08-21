@@ -1,0 +1,204 @@
+
+/* ReferHub 4.3.3 Stability Reset
+   style.css remains the owner of the single main scroller. */
+
+/* Single vertical app scroller: the existing top-level main. */
+html,body{
+  overflow:hidden!important;
+}
+body>main{
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  touch-action:pan-y!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:auto!important;
+}
+
+/* Rendered pages NEVER become a second vertical viewport. */
+body>main>#content,
+body>main>#content>section,
+body>main>#content>.gc433-shell,
+body>main>#content>.gc14-page,
+body>main>#content>.lot11-active,
+body>main>#content>.lot11-bottom-grid{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-y:visible!important;
+}
+
+/* Home lottery card must not capture vertical swipe. */
+.lot11-home-hero,
+.lot11-active,
+.lot11-active-card,
+.lot11-bottom-grid,
+.lot11-winner-card,
+.lot11-progress-card{
+  touch-action:pan-y!important;
+}
+
+/* Game Center */
+.gc433-shell{
+  width:100%;
+  padding-bottom:20px;
+}
+.gc433-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:end;
+  margin-bottom:9px;
+}
+.gc433-head>div>span{
+  color:#9d76b9;
+  font-size:7px;
+  font-weight:950;
+  letter-spacing:.13em;
+}
+.gc433-head h1{margin:3px 0;font-size:30px}
+.gc433-head p{margin:0;color:#737c87!important;font-size:9px}
+.gc433-head>article{
+  padding:9px 11px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;
+  background:#101318;
+}
+.gc433-head>article small,.gc433-head>article b{display:block}
+.gc433-head>article small{color:#68717c!important;font-size:6px}
+.gc433-head>article b{margin-top:2px;color:#e0bd5d;font-size:13px}
+
+.gc433-tabs{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:6px;
+  width:100%;
+  padding:1px 0 8px;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none;
+  touch-action:pan-x pan-y!important;
+}
+.gc433-tabs::-webkit-scrollbar{display:none}
+.gc433-tabs button{
+  flex:0 0 auto;
+  min-width:78px;
+  padding:9px 10px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:10px;
+  background:#101318;
+  color:#747d88;
+  font-size:7px;
+}
+.gc433-tabs button.active{
+  border-color:#7a4aa1;
+  background:#2b1937;
+  color:#d5abe8;
+}
+
+.gc433-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.gc433-card{
+  min-width:0!important;
+  width:100%!important;
+  display:block!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid rgba(255,255,255,.055)!important;
+  border-radius:16px!important;
+  background:#101318!important;
+  color:#fff!important;
+  text-align:left!important;
+  touch-action:manipulation!important;
+}
+.gc433-art{
+  position:relative;
+  width:100%;
+  aspect-ratio:1.4/1;
+  overflow:hidden;
+  background:#11151a;
+}
+.gc433-art img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.gc433-art>span{
+  position:absolute;
+  right:7px;
+  top:7px;
+  padding:4px 6px;
+  border-radius:7px;
+  color:#fff;
+  font-size:5px;
+  font-weight:950;
+}
+.gc433-art>span.hot{background:#a72e25}
+.gc433-art>span.new{background:#328b4e}
+.gc433-copy{padding:9px}
+.gc433-copy>small{color:#906ca7!important;font-size:5px;font-weight:900}
+.gc433-copy h3{margin:2px 0;font-size:11px}
+.gc433-copy p{
+  height:26px;
+  margin:3px 0 8px;
+  overflow:hidden;
+  color:#707985!important;
+  font-size:6px;
+  line-height:1.35;
+}
+.gc433-copy footer{
+  display:flex;
+  justify-content:space-between;
+  gap:5px;
+  color:#727b86;
+  font-size:5px;
+}
+.gc433-copy footer b{color:#d7b65c}
+.gc433-copy footer i{font-style:normal;color:#9f7ab7}
+
+/* Old actual game page remains scroll-safe. */
+.gc14-page,.gc14-game-shell,.gc14-history,.gc14-more{
+  height:auto!important;
+  max-height:none!important;
+  overflow-y:visible!important;
+}
+
+/* Remove expensive mobile effects that were making the Home swipe stutter. */
+@media(max-width:700px){
+  .orb,.orb-a,.orb-b{
+    animation:none!important;
+    filter:none!important;
+    opacity:.14!important;
+  }
+  .lot11-home-hero,
+  .lot11-active-card,
+  .lot11-winner-card,
+  .lot11-progress-card,
+  .gc433-card{
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+  }
+  .lot11-prize-orbit,
+  .lot11-live i{
+    animation:none!important;
+  }
+  .gc433-head{grid-template-columns:1fr}
+  .gc433-head>article{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+}
+
+@media(min-width:800px){
+  .gc433-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}

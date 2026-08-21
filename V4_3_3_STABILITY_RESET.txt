@@ -1,0 +1,23 @@
+ReferHub v4.3.3 — Stability Reset
+
+ROOT FIXES:
+- Removed v4.2 Evolution runtime layer.
+- Removed v4.2.2 Main Scroll JS/CSS override.
+- Removed all custom v4.3 / v4.3.1 / v4.3.2 Game Center routing layers.
+- No Game Center click interception and no openPage wrappers.
+- Core app openPage() is again responsible for the Games tab.
+
+GAME CENTER:
+- Rebuilt directly inside the original gamesPage().
+- Uses the original working openGameDetail() and game engine.
+- Shows ONLY actually supported games:
+  Roulette, Daily Case, Slots, Coin Flip, Number Guess, Scratch, Safe Crack.
+- Semantic local SVG artwork for each actual game.
+- Working category buttons.
+- 2 cards per row on phones, 3 on desktop.
+
+SCROLL:
+- Original app architecture restored: body > main is the one vertical scroller.
+- No MutationObserver rewriting scroll styles.
+- Home lottery blocks explicitly allow vertical pan.
+- Heavy mobile blur/animation effects reduced.

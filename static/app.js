@@ -1572,38 +1572,84 @@ function gc13Meta(id){
   return gc13Catalog.find(x=>x.id===id)||gc13Catalog[0];
 }
 
+
+let gc433Filter="all";
+
+const gc433Catalog=[
+  {id:"roulette",name:"Рулетка",type:"casino",label:"Казино",tag:"HOT",desc:"Крути колесо та отримуй випадкову нагороду RH.",reward:"до 200 RH"},
+  {id:"daily_case",name:"Daily Case",type:"daily",label:"Щоденні",tag:"HOT",desc:"Відкривай щоденний кейс та забирай свій дроп.",reward:"щоденний дроп"},
+  {id:"slot",name:"Слоти",type:"casino",label:"Казино",tag:"HOT",desc:"Класичні барабани, ставки та виграшні комбінації.",reward:"комбо RH"},
+  {id:"coin_flip",name:"Coin Flip",type:"quick",label:"Швидкі",tag:"",desc:"Обери орел або решку та перевір удачу.",reward:"50 / 50"},
+  {id:"number_guess",name:"Вгадай число",type:"logic",label:"Логіка",tag:"",desc:"Вгадай число системи за обмежену кількість спроб.",reward:"за точність"},
+  {id:"scratch",name:"Scratch",type:"daily",label:"Щоденні",tag:"NEW",desc:"Стирай картку пальцем і відкривай приховану нагороду.",reward:"рандом RH"},
+  {id:"safe_crack",name:"Злам сейфа",type:"logic",label:"Логіка",tag:"NEW",desc:"Знайди правильний код сейфа та забери нагороду.",reward:"великий куш"}
+];
+
+function gc433VisibleGames(){
+  if(gc433Filter==="all")return gc433Catalog;
+  if(gc433Filter==="popular")return gc433Catalog.filter(x=>x.tag==="HOT");
+  return gc433Catalog.filter(x=>x.type===gc433Filter);
+}
+
+window.gc433SetFilter=function(value){
+  gc433Filter=value||"all";
+  gamesPage();
+};
+
 async function gamesPage(){
   let status={};
-  try{ status=await api("/api/game-status"); }catch(_){}
+  try{status=await api("/api/game-status")}catch(_){}
+
+  const filters=[
+    ["all","Усі"],
+    ["popular","Популярні"],
+    ["casino","Казино"],
+    ["daily","Щоденні"],
+    ["quick","Швидкі"],
+    ["logic","Логіка"]
+  ];
+
+  const visible=gc433VisibleGames();
 
   content.innerHTML=`
-    <section class="gc13-hero">
-      <span>REFERHUB GAME CENTER</span>
-      <h2>Обери гру</h2>
-      <p>Тут тільки каталог. Натисни на гру — відкриється її власна сторінка з правилами, нагородами та ігровим режимом.</p>
-      <div class="gc13-balance"><small>Твій баланс</small><b>${Number(me.balance||0)} RH</b></div>
-    </section>
+    <section class="gc433-shell">
+      <header class="gc433-head">
+        <div>
+          <span>GAME CENTER · 4.3.3</span>
+          <h1>Ігри</h1>
+          <p>Тільки реальні режими, які вже працюють у ReferHub.</p>
+        </div>
+        <article><small>БАЛАНС</small><b>${Number(me.balance||0)} RH</b></article>
+      </header>
 
-    <div class="gc13-filter">
-      <span>7 РЕЖИМІВ</span>
-      <small>Грай → заробляй RH → купуй квитки</small>
-    </div>
+      <nav class="gc433-tabs">
+        ${filters.map(([key,label])=>`
+          <button class="${gc433Filter===key?"active":""}" onclick="gc433SetFilter('${key}')">${label}</button>
+        `).join("")}
+      </nav>
 
-    <section class="gc13-catalog">
-      ${gc13Catalog.map(g=>`
-        <button class="gc13-card ${g.cls}" onclick="openGameDetail('${g.id}')">
-          <div class="gc13-card-art"><i>${g.icon}</i><em></em></div>
-          <div class="gc13-card-copy">
-            <div><span>${g.type}</span><small>${g.tag}</small></div>
-            <h3>${g.name}</h3>
-            <p>${g.desc}</p>
-            <footer><b>${g.reward}</b><strong>Відкрити →</strong></footer>
-          </div>
-        </button>
-      `).join("")}
+      <section class="gc433-grid">
+        ${visible.map(g=>`
+          <button class="gc433-card" onclick="openGameDetail('${g.id}')">
+            <div class="gc433-art">
+              <img src="/static/assets/games-v433/${g.id}.svg" alt="${esc(g.name)}">
+              ${g.tag?`<span class="${g.tag.toLowerCase()}">${g.tag}</span>`:""}
+            </div>
+            <div class="gc433-copy">
+              <small>${g.label}</small>
+              <h3>${g.name}</h3>
+              <p>${g.desc}</p>
+              <footer><b>${g.reward}</b><i>Відкрити →</i></footer>
+            </div>
+          </button>
+        `).join("")}
+      </section>
     </section>
   `;
+
+  document.querySelector("main")?.scrollTo({top:0,behavior:"auto"});
 }
+
 
 async function openGameDetail(gameId){
   const g=gc13Meta(gameId);

@@ -1,0 +1,8 @@
+ReferHub Lottery v2.4 — Seasons
+- Season 01: Neon Fortune.
+- 20 server-backed progression levels.
+- Season XP derived from real account activity.
+- Claimable RH rewards, including milestone rewards.
+- Premium Season Road and countdown.
+- Another design-quality pass: richer depth, responsive cards, interaction polish.
+- v2.3 Daily System, Mystery Drop, Live Events and restored premium profile preserved.

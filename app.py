@@ -2957,6 +2957,57 @@ async def claim_mystery_drop_v23(
     return {"ok":True,"reward":reward,"balance":int(balance)}
 
 
+
+@app.get("/api/season-v24")
+async def season_v24(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); now=int(time.time())
+    rewards=[10,15,20,25,30,40,50,60,75,100,25,35,45,55,70,85,100,125,150,250]
+    with connect_db() as db:
+        s=db.execute("SELECT * FROM seasons WHERE active=1 AND starts_at<=? AND ends_at>? ORDER BY id DESC LIMIT 1",(now,now)).fetchone()
+        if not s: return {"active":False}
+        # Progress derives from existing activity so v2.4 works immediately.
+        u=db.execute("SELECT xp FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        base_xp=int(u["xp"] or 0) if u else 0
+        gp=int(db.execute("SELECT COUNT(*) FROM game_plays WHERE user_id=?",(uid,)).fetchone()[0])
+        tc=int(db.execute("SELECT COUNT(*) FROM lottery_tickets WHERE user_id=?",(uid,)).fetchone()[0])
+        season_xp=max(base_xp, gp*8 + tc*4)
+        db.execute("""INSERT INTO season_progress(season_id,user_id,xp,updated_at) VALUES(?,?,?,?)
+                    ON CONFLICT(season_id,user_id) DO UPDATE SET xp=MAX(xp,excluded.xp),updated_at=excluded.updated_at""",
+                   (int(s["id"]),uid,season_xp,now))
+        db.commit()
+        claimed={int(r["level"]) for r in db.execute("SELECT level FROM season_claims WHERE season_id=? AND user_id=?",(int(s["id"]),uid)).fetchall()}
+        levels=[]
+        step=100
+        for i,reward in enumerate(rewards,1):
+            req=i*step
+            levels.append({"level":i,"required_xp":req,"reward":reward,"unlocked":season_xp>=req,"claimed":i in claimed,"special":i in (5,10,15,20)})
+        return {"active":True,"id":int(s["id"]),"title":s["title"],"subtitle":s["subtitle"],
+                "xp":season_xp,"level":min(20,season_xp//step),"ends_at":int(s["ends_at"]),
+                "seconds_left":max(0,int(s["ends_at"])-now),"levels":levels}
+
+@app.post("/api/season-v24/claim/{level}")
+async def claim_season_v24(level:int,x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); uid=int(user["id"]); now=int(time.time())
+    rewards=[10,15,20,25,30,40,50,60,75,100,25,35,45,55,70,85,100,125,150,250]
+    if level<1 or level>len(rewards): raise HTTPException(400,"Невірний рівень")
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        s=db.execute("SELECT * FROM seasons WHERE active=1 AND starts_at<=? AND ends_at>? ORDER BY id DESC LIMIT 1",(now,now)).fetchone()
+        if not s: db.rollback(); raise HTTPException(404,"Сезон не активний")
+        prog=db.execute("SELECT xp FROM season_progress WHERE season_id=? AND user_id=?",(int(s["id"]),uid)).fetchone()
+        xp=int(prog["xp"] or 0) if prog else 0
+        if xp < level*100: db.rollback(); raise HTTPException(409,"Рівень ще не відкритий")
+        if db.execute("SELECT 1 FROM season_claims WHERE season_id=? AND user_id=? AND level=?",(int(s["id"]),uid,level)).fetchone():
+            db.rollback(); raise HTTPException(409,"Нагороду вже отримано")
+        reward=rewards[level-1]
+        db.execute("INSERT INTO season_claims(season_id,user_id,level,claimed_at) VALUES(?,?,?,?)",(int(s["id"]),uid,level,now))
+        db.execute("UPDATE users SET balance=balance+?,total_earned=total_earned+? WHERE telegram_id=?",(reward,reward,uid))
+        db.execute("INSERT INTO ledger(user_id,amount,note,created_at) VALUES(?,?,?,?)",(uid,reward,f"Season 01 Level {level}",now))
+        db.commit()
+        bal=int(db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()[0])
+    return {"ok":True,"reward":reward,"balance":bal}
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

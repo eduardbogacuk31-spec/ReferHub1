@@ -1,0 +1,15 @@
+ReferHub v3.5 — Player Journey
+
+NEW:
+- Premium account journey / progression roadmap.
+- Six milestone stages: Rookie, Player, Hunter, Achiever, Elite, Master.
+- Progress driven by real level, games, lottery tickets and achievements.
+- Compact roadmap cards (2 per row on phones).
+- Account stats summary.
+- Direct links to Achievements, Reward Center and Arcade.
+- New Home dashboard shortcut.
+
+QUALITY:
+- Keeps compact achievement grid from v3.4.
+- Keeps v3.1 global scroll and overflow fixes.
+- Additional responsive design pass.

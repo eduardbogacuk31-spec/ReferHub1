@@ -4209,6 +4209,55 @@ async def arcade_v34_claim(
 
 
 
+
+@app.get("/api/journey-v35")
+async def journey_v35(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    with connect_db() as db:
+        u=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        if not u:
+            raise HTTPException(404,"Користувача не знайдено")
+
+        xp=int(u["xp"] or 0) if "xp" in u.keys() else 0
+        level=max(1,xp//100+1)
+
+        try:
+            plays=int(db.execute("SELECT COUNT(*) FROM game_plays WHERE user_id=?",(uid,)).fetchone()[0] or 0)
+        except Exception: plays=0
+        try:
+            tickets=int(db.execute("SELECT COUNT(*) FROM lottery_tickets WHERE user_id=?",(uid,)).fetchone()[0] or 0)
+        except Exception: tickets=0
+        try:
+            ach=int(db.execute("SELECT COUNT(*) FROM achievement_claims_v32 WHERE user_id=?",(uid,)).fetchone()[0] or 0)
+        except Exception: ach=0
+
+        milestones=[
+            {"id":"rookie","title":"Rookie","subtitle":"Початок шляху","icon":"✦","need":1,"metric":"level","reward":"Стартовий статус"},
+            {"id":"player","title":"Player","subtitle":"10 ігор","icon":"🎮","need":10,"metric":"plays","reward":"Arcade badge"},
+            {"id":"hunter","title":"Hunter","subtitle":"25 білетів","icon":"🎟️","need":25,"metric":"tickets","reward":"Lottery badge"},
+            {"id":"achiever","title":"Achiever","subtitle":"5 досягнень","icon":"🏆","need":5,"metric":"ach","reward":"Profile title"},
+            {"id":"elite","title":"Elite","subtitle":"10 рівень","icon":"◆","need":10,"metric":"level","reward":"Elite status"},
+            {"id":"master","title":"Master","subtitle":"20 рівень","icon":"♛","need":20,"metric":"level","reward":"Master status"},
+        ]
+        metrics={"level":level,"plays":plays,"tickets":tickets,"ach":ach}
+        for m in milestones:
+            value=metrics[m["metric"]]
+            m["value"]=value
+            m["done"]=value>=m["need"]
+            m["progress"]=min(100,round(value/max(1,m["need"])*100))
+
+        done=sum(1 for m in milestones if m["done"])
+        return {
+            "level":level,"xp":xp,"plays":plays,"tickets":tickets,"achievements":ach,
+            "done":done,"total":len(milestones),"milestones":milestones
+        }
+
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

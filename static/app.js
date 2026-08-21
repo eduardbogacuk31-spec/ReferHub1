@@ -893,14 +893,75 @@ async function homePage(){
   `;
 }
 
+
+/* ReferHub v2.6.1 — Earn / Progression Center recovery */
+const progress82Achievements=[
+  {id:"games10",icon:"🎮",title:"Перші 10 ігор",description:"Зіграй 10 раундів у мінііграх",goal:10,type:"games"},
+  {id:"games50",icon:"⚡",title:"Аркадник",description:"Зіграй 50 раундів",goal:50,type:"games"},
+  {id:"rh100",icon:"✦",title:"RH Hunter",description:"Зароби 100 RH у мінііграх",goal:100,type:"earned"},
+  {id:"rh500",icon:"💎",title:"Великий мисливець",description:"Зароби 500 RH у мінііграх",goal:500,type:"earned"},
+  {id:"wins10",icon:"🏆",title:"Серія перемог",description:"Отримай нагороду у 10 іграх",goal:10,type:"wins"},
+  {id:"wins25",icon:"👑",title:"Чемпіон",description:"Отримай нагороду у 25 іграх",goal:25,type:"wins"}
+];
+
+function progress82Value(item,history){
+  history=Array.isArray(history)?history:[];
+  if(item.type==="games") return history.length;
+  if(item.type==="earned") return history.reduce((s,x)=>s+Math.max(0,Number(x.reward||0)),0);
+  if(item.type==="wins") return history.filter(x=>Number(x.reward||0)>0).length;
+  return 0;
+}
+function progress82AchievementCard(item,history){
+  const value=progress82Value(item,history);
+  const done=value>=item.goal;
+  const percent=Math.max(0,Math.min(100,Math.round(value/item.goal*100)));
+  return `<article class="pc82-achievement ${done?"unlocked":"locked"}">
+    <div class="pc82-achievement-icon">${done?item.icon:"🔒"}</div>
+    <div>
+      <span>${done?"ДОСЯГНЕННЯ ВІДКРИТО":"ПРОГРЕС"}</span>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(item.description)}</p>
+      <div class="pc82-achievement-track"><i style="width:${percent}%"></i></div>
+      <small>${Math.min(value,item.goal)}/${item.goal}</small>
+    </div>
+  </article>`;
+}
+function progress82MissionCard(mission){
+  const progress=Number(mission.progress||0);
+  const target=Math.max(1,Number(mission.target_value||mission.target||1));
+  const percent=Math.max(0,Math.min(100,Math.round(progress/target*100)));
+  const ready=progress>=target&&!mission.claimed;
+  return `<article class="pc82-mission ${mission.claimed?"claimed":ready?"ready":""}">
+    <div class="pc82-mission-icon">${mission.icon||"⚡"}</div>
+    <div class="pc82-mission-copy">
+      <span>${mission.claimed?"ВИКОНАНО":ready?"НАГОРОДА ГОТОВА":"ЩОДЕННА МІСІЯ"}</span>
+      <h3>${esc(mission.title||"Місія")}</h3>
+      <p>${esc(mission.description||"Виконай умову та отримай RH.")}</p>
+      <div class="pc82-mission-track"><i style="width:${percent}%"></i></div>
+      <small>${progress}/${target}</small>
+    </div>
+    ${mission.claimed?`<button disabled>✓</button>`:ready&&mission.id?`<button onclick="claimMission(${Number(mission.id)})">ЗАБРАТИ</button>`:`<button disabled>${mission.reward||mission.reward_amount||0} RH</button>`}
+  </article>`;
+}
+function switchProgress82Tab(name,button){
+  document.querySelectorAll(".pc82-tabs button").forEach(b=>b.classList.toggle("active",b===button));
+  document.querySelectorAll("[data-pc82-panel]").forEach(p=>p.classList.toggle("active",p.dataset.pc82Panel===name));
+}
+
 async function tasksPage(){
   content.innerHTML=`<div class="loader"></div>`;
 
-  const [tasks,missions,history]=await Promise.all([
+  const [tasksResult,missionsResult,historyResult]=await Promise.allSettled([
     api("/api/tasks"),
     api("/api/missions"),
     api("/api/games/history")
   ]);
+  const tasks=tasksResult.status==="fulfilled"&&Array.isArray(tasksResult.value)?tasksResult.value:[];
+  const missions=missionsResult.status==="fulfilled"&&Array.isArray(missionsResult.value)?missionsResult.value:[];
+  const history=historyResult.status==="fulfilled"&&Array.isArray(historyResult.value)?historyResult.value:[];
+  if(tasksResult.status==="rejected"&&missionsResult.status==="rejected"){
+    throw new Error(tasksResult.reason?.message||missionsResult.reason?.message||"Не вдалося завантажити завдання");
+  }
 
   const unlockedAchievements=progress82Achievements.filter(item=>progress82Value(item,history)>=item.goal).length;
   const activeMissions=missions.filter(mission=>!mission.claimed).length;

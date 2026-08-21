@@ -1,0 +1,7 @@
+ReferHub v2.6.1 — Earn Fix
+- Fixed the Earn tab crash.
+- Root cause: tasksPage referenced progress82Achievements/progress82Value/progress82MissionCard/progress82AchievementCard/switchProgress82Tab, but those helpers were missing.
+- Added the missing progression helpers.
+- Earn page now tolerates a failure of one optional endpoint and still opens when core task data is available.
+- Rebuilt the Earn / Progression Center visual layer.
+- Existing v2.3–v2.6 systems preserved.

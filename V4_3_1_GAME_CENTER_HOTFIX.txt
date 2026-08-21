@@ -1,0 +1,11 @@
+ReferHub v4.3.1 — Game Center Hotfix
+
+FIXED:
+- Removed broken v4.3 openPage wrapper.
+- Games tab now opens Game Center through direct nav binding.
+- Category tabs now use delegated click handling and work reliably.
+- Game cards now open detail reliably.
+- Play button reuses the original existing game engine.
+- Forced 2-column layout on phones and 3 columns on desktop.
+- Overrode legacy 1-column game grid rules.
+- Preserved v4.2.3 Profile Clean and v4.2.2 main scroll architecture.

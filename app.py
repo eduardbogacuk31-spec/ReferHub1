@@ -3575,6 +3575,132 @@ async def lottery_v29_buy(
 
     return {"ok":True,"quantity":qty,"spent":total}
 
+
+@app.get("/api/home-v30")
+async def home_v30(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        u=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        if not u:
+            raise HTTPException(404,"Користувача не знайдено")
+
+        balance=int(u["balance"] or 0) if "balance" in u.keys() else 0
+        xp=int(u["xp"] or 0) if "xp" in u.keys() else 0
+        level=max(1,xp//100+1)
+
+        # Active lottery
+        active=None
+        try:
+            rows=db.execute("SELECT * FROM lotteries ORDER BY id DESC").fetchall()
+            for r in rows:
+                x=dict(r)
+                if str(x.get("status","active")).lower() in ("active","open","live","running"):
+                    active=_rh29_lottery_payload(db,r,uid) if "_rh29_lottery_payload" in globals() else x
+                    break
+        except Exception:
+            active=None
+
+        # Daily summary
+        day_key=time.strftime("%Y-%m-%d",time.gmtime(now))
+        daily_claimed=False
+        streak=0
+        try:
+            daily_claimed=bool(db.execute(
+                "SELECT 1 FROM daily_calendar_claims WHERE user_id=? AND day_key=?",
+                (uid,day_key)
+            ).fetchone())
+            rows=db.execute(
+                "SELECT day_key FROM daily_calendar_claims WHERE user_id=? ORDER BY claimed_at DESC LIMIT 14",
+                (uid,)
+            ).fetchall()
+            keys={r["day_key"] for r in rows}
+            for off in range(0,14):
+                k=time.strftime("%Y-%m-%d",time.gmtime(now-off*86400))
+                if k in keys:
+                    streak+=1
+                elif off==0:
+                    continue
+                else:
+                    break
+        except Exception:
+            pass
+
+        # Season
+        season=None
+        try:
+            s=db.execute(
+                "SELECT * FROM seasons WHERE active=1 AND starts_at<=? AND ends_at>? ORDER BY id DESC LIMIT 1",
+                (now,now)
+            ).fetchone()
+            if s:
+                p=db.execute(
+                    "SELECT xp FROM season_progress WHERE season_id=? AND user_id=?",
+                    (int(s["id"]),uid)
+                ).fetchone()
+                season_xp=int(p["xp"] or 0) if p else 0
+                season={
+                    "title":s["title"],
+                    "subtitle":s["subtitle"],
+                    "xp":season_xp,
+                    "level":min(20,season_xp//100),
+                    "seconds_left":max(0,int(s["ends_at"])-now)
+                }
+        except Exception:
+            pass
+
+        # Game center stats + game of day
+        day_index=int(time.strftime("%j",time.gmtime(now)))
+        game_keys=[
+            "roulette","daily_case","slot","coin_flip","number_guess","scratch",
+            "safe_crack","dice_duel","rps","treasure_grid","reaction"
+        ]
+        featured_game=game_keys[day_index % len(game_keys)]
+        try:
+            gs=db.execute(
+                """
+                SELECT COUNT(*) AS plays,COALESCE(SUM(reward),0) AS earned,COALESCE(MAX(reward),0) AS best
+                FROM game_plays WHERE user_id=?
+                """,(uid,)
+            ).fetchone()
+            game_stats={"plays":int(gs["plays"] or 0),"earned":int(gs["earned"] or 0),"best":int(gs["best"] or 0)}
+        except Exception:
+            game_stats={"plays":0,"earned":0,"best":0}
+
+        # Tasks / missions
+        try:
+            tasks_total=int(db.execute("SELECT COUNT(*) FROM tasks WHERE active=1").fetchone()[0])
+            tasks_done=int(db.execute("SELECT COUNT(*) FROM task_claims WHERE user_id=?",(uid,)).fetchone()[0])
+        except Exception:
+            tasks_total=0; tasks_done=0
+
+        # Social
+        try:
+            followers=int(db.execute("SELECT COUNT(*) FROM social_follows WHERE followed_id=?",(uid,)).fetchone()[0])
+            following=int(db.execute("SELECT COUNT(*) FROM social_follows WHERE follower_id=?",(uid,)).fetchone()[0])
+        except Exception:
+            followers=0; following=0
+
+        return {
+            "balance":balance,
+            "xp":xp,
+            "level":level,
+            "streak":streak,
+            "daily_claimed":daily_claimed,
+            "active_lottery":active,
+            "season":season,
+            "featured_game":featured_game,
+            "game_stats":game_stats,
+            "tasks":{"done":tasks_done,"total":tasks_total},
+            "social":{"followers":followers,"following":following}
+        }
+
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

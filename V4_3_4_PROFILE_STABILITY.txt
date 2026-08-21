@@ -1,0 +1,13 @@
+ReferHub v4.3.4 — Profile Stability
+
+FIXED:
+- Removed all runtime Profile interceptors and hotfix layers.
+- No Profile MutationObserver.
+- No click-capture routing.
+- No openPage wrapper.
+- One lightweight profile renderer only.
+- Profile uses existing /api/profile-v36 data endpoint.
+- Overview / Statistics tabs.
+- Normal single-main scroll.
+- No global Home/Lottery DOM deletion.
+- Game Center v4.3.3 Stability Reset left untouched.

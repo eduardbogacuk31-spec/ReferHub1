@@ -736,6 +736,53 @@ def init_database():
             """
         )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS tournaments_v38 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tournament_key TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                subtitle TEXT NOT NULL DEFAULT '',
+                game_key TEXT NOT NULL,
+                icon TEXT NOT NULL DEFAULT '🏆',
+                starts_at INTEGER NOT NULL,
+                ends_at INTEGER NOT NULL,
+                prize_1 INTEGER NOT NULL DEFAULT 100,
+                prize_2 INTEGER NOT NULL DEFAULT 50,
+                prize_3 INTEGER NOT NULL DEFAULT 25,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS tournament_claims_v38 (
+                tournament_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                place INTEGER NOT NULL,
+                reward_rh INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                PRIMARY KEY(tournament_id,user_id)
+            );
+            """
+        )
+
+        if db.execute("SELECT COUNT(*) FROM tournaments_v38").fetchone()[0] == 0:
+            now=int(time.time())
+            seed=[
+                ("reaction_week","Reaction Sprint","Найшвидші реакції тижня","reaction","⚡",now-3600,now+3*86400,150,75,35,1,now),
+                ("dice_cup","Dice Cup","Хто набере більше RH у Dice Duel","dice_duel","🎲",now-3600,now+5*86400,200,100,50,1,now),
+                ("arcade_mix","Arcade Masters","Загальний турнір за заробленими RH","all","🏆",now-3600,now+7*86400,300,150,75,1,now)
+            ]
+            db.executemany(
+                """
+                INSERT INTO tournaments_v38(
+                    tournament_key,title,subtitle,game_key,icon,starts_at,ends_at,
+                    prize_1,prize_2,prize_3,active,created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                seed
+            )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -4523,6 +4570,149 @@ async def public_profile_v37(
             p["is_following"]=False
         p["self"]=target_id==uid
         return p
+
+
+
+
+def _rh38_score_rows(db, tournament, limit=20):
+    game_key=tournament["game_key"]
+    args=[int(tournament["starts_at"]),int(tournament["ends_at"])]
+    where="g.created_at>=? AND g.created_at<?"
+    if game_key!="all":
+        where+=" AND g.game_key=?"
+        args.append(game_key)
+
+    rows=db.execute(
+        f"""
+        SELECT g.user_id,
+               COUNT(*) AS plays,
+               COALESCE(SUM(g.reward),0) AS score,
+               COALESCE(MAX(g.reward),0) AS best,
+               u.username,u.first_name
+        FROM game_plays g
+        JOIN users u ON u.telegram_id=g.user_id
+        WHERE {where}
+        GROUP BY g.user_id,u.username,u.first_name
+        ORDER BY score DESC,plays DESC,best DESC
+        LIMIT ?
+        """,
+        tuple(args+[limit])
+    ).fetchall()
+    return rows
+
+
+@app.get("/api/tournaments-v38")
+async def tournaments_v38(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        rows=db.execute(
+            """
+            SELECT * FROM tournaments_v38
+            WHERE active=1
+            ORDER BY ends_at ASC,id ASC
+            """
+        ).fetchall()
+
+        items=[]
+        for t in rows:
+            leaders=_rh38_score_rows(db,t,5)
+            my_score=0
+            my_place=None
+            top=[]
+            for i,r in enumerate(leaders,1):
+                top.append({
+                    "place":i,
+                    "id":int(r["user_id"]),
+                    "username":r["username"],
+                    "first_name":r["first_name"],
+                    "score":int(r["score"] or 0),
+                    "plays":int(r["plays"] or 0),
+                    "best":int(r["best"] or 0)
+                })
+
+            all_rows=_rh38_score_rows(db,t,100)
+            for i,r in enumerate(all_rows,1):
+                if int(r["user_id"])==uid:
+                    my_score=int(r["score"] or 0)
+                    my_place=i
+                    break
+
+            items.append({
+                "id":int(t["id"]),
+                "key":t["tournament_key"],
+                "title":t["title"],
+                "subtitle":t["subtitle"],
+                "game_key":t["game_key"],
+                "icon":t["icon"],
+                "starts_at":int(t["starts_at"]),
+                "ends_at":int(t["ends_at"]),
+                "seconds_left":max(0,int(t["ends_at"])-now),
+                "status":"live" if int(t["starts_at"])<=now<int(t["ends_at"]) else ("upcoming" if now<int(t["starts_at"]) else "ended"),
+                "prizes":[int(t["prize_1"]),int(t["prize_2"]),int(t["prize_3"])],
+                "my_score":my_score,
+                "my_place":my_place,
+                "leaders":top
+            })
+
+    return {"items":items}
+
+
+@app.get("/api/tournaments-v38/{tournament_id}")
+async def tournament_v38_detail(
+    tournament_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        t=db.execute(
+            "SELECT * FROM tournaments_v38 WHERE id=? AND active=1",
+            (tournament_id,)
+        ).fetchone()
+        if not t:
+            raise HTTPException(404,"Турнір не знайдено")
+
+        rows=_rh38_score_rows(db,t,50)
+        leaderboard=[]
+        my_place=None
+        my_score=0
+
+        for i,r in enumerate(rows,1):
+            item={
+                "place":i,
+                "id":int(r["user_id"]),
+                "username":r["username"],
+                "first_name":r["first_name"],
+                "score":int(r["score"] or 0),
+                "plays":int(r["plays"] or 0),
+                "best":int(r["best"] or 0),
+                "self":int(r["user_id"])==uid
+            }
+            leaderboard.append(item)
+            if item["self"]:
+                my_place=i
+                my_score=item["score"]
+
+        return {
+            "id":int(t["id"]),
+            "title":t["title"],
+            "subtitle":t["subtitle"],
+            "game_key":t["game_key"],
+            "icon":t["icon"],
+            "seconds_left":max(0,int(t["ends_at"])-now),
+            "status":"live" if int(t["starts_at"])<=now<int(t["ends_at"]) else ("upcoming" if now<int(t["starts_at"]) else "ended"),
+            "prizes":[int(t["prize_1"]),int(t["prize_2"]),int(t["prize_3"])],
+            "leaderboard":leaderboard,
+            "my_place":my_place,
+            "my_score":my_score
+        }
 
 
 

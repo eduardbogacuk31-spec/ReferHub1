@@ -1,0 +1,18 @@
+ReferHub v3.8 — Tournaments 2.0
+
+NEW:
+- Server-backed tournaments.
+- Three seeded tournament types:
+  Reaction Sprint / Dice Cup / Arcade Masters.
+- Live leaderboard based on real game_play rewards.
+- Top-3 RH prize display.
+- Personal rank and score.
+- Dedicated tournament detail page.
+- Compact tournament cards: 2 per row on phones.
+- Direct game entry from tournament detail.
+- Home dashboard tournament shortcut.
+
+QUALITY:
+- Profile v3.7.3 nav/scroll fixes preserved untouched.
+- Global scroll cleanup preserved.
+- Compact mobile design maintained.

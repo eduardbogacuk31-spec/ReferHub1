@@ -1,0 +1,19 @@
+ReferHub v3.6 — Profile 3.0
+
+NEW:
+- Completely redesigned premium player profile.
+- Large profile cover with avatar/frame, rank, title and ID.
+- Unified Overview / Statistics / Collection tabs.
+- Account rank based on level.
+- Live RH balance and account level.
+- Game, lottery, achievement and social statistics.
+- Player showcase for title, frame and background.
+- Compact collection shortcuts to Achievements, Journey, Rewards and Cosmetics.
+- Sticky compact profile navigation.
+- Mobile-first responsive layout.
+
+QUALITY:
+- Replaces scattered profile information with one structured screen.
+- Keeps compact 2-column mobile cards.
+- Keeps all v3.1 scroll/overflow fixes.
+- Preserves v2.3 through v3.5 systems.

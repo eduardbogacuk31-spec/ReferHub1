@@ -4258,6 +4258,102 @@ async def journey_v35(
 
 
 
+
+@app.get("/api/profile-v36")
+async def profile_v36(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    with connect_db() as db:
+        u=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        if not u:
+            raise HTTPException(404,"Користувача не знайдено")
+
+        def uv(name, default=0):
+            return u[name] if name in u.keys() and u[name] is not None else default
+
+        xp=int(uv("xp",0))
+        level=max(1,xp//100+1)
+        balance=int(uv("balance",0))
+        total_earned=int(uv("total_earned",0))
+
+        try:
+            gs=db.execute("""
+                SELECT COUNT(*) AS plays,
+                       COALESCE(SUM(reward),0) AS earned,
+                       COALESCE(MAX(reward),0) AS best
+                FROM game_plays WHERE user_id=?
+            """,(uid,)).fetchone()
+            plays=int(gs["plays"] or 0)
+            game_earned=int(gs["earned"] or 0)
+            best_win=int(gs["best"] or 0)
+        except Exception:
+            plays=game_earned=best_win=0
+
+        try:
+            tickets=int(db.execute(
+                "SELECT COUNT(*) FROM lottery_tickets WHERE user_id=?",(uid,)
+            ).fetchone()[0] or 0)
+        except Exception:
+            tickets=0
+
+        try:
+            lottery_wins=int(db.execute(
+                "SELECT COUNT(*) FROM lotteries WHERE winner_id=? AND status='drawn'",(uid,)
+            ).fetchone()[0] or 0)
+        except Exception:
+            lottery_wins=0
+
+        try:
+            achievements=int(db.execute(
+                "SELECT COUNT(*) FROM achievement_claims_v32 WHERE user_id=?",(uid,)
+            ).fetchone()[0] or 0)
+        except Exception:
+            achievements=0
+
+        try:
+            followers=int(db.execute(
+                "SELECT COUNT(*) FROM social_follows WHERE followed_id=?",(uid,)
+            ).fetchone()[0] or 0)
+            following=int(db.execute(
+                "SELECT COUNT(*) FROM social_follows WHERE follower_id=?",(uid,)
+            ).fetchone()[0] or 0)
+        except Exception:
+            followers=following=0
+
+        # Cosmetic/profile data: normalize whichever columns exist in current build.
+        frame=str(uv("active_frame",uv("profile_frame","default")))
+        title=str(uv("active_title",uv("profile_title","Player")))
+        background=str(uv("active_background",uv("profile_background","default")))
+
+        # Rank is presentation only, calculated from level.
+        if level>=20: rank=("MASTER","♛")
+        elif level>=15: rank=("DIAMOND","◆")
+        elif level>=10: rank=("ELITE","✦")
+        elif level>=5: rank=("PRO","◈")
+        else: rank=("ROOKIE","•")
+
+        return {
+            "id":uid,
+            "username":str(user.get("username") or ""),
+            "first_name":str(user.get("first_name") or "Player"),
+            "balance":balance,
+            "xp":xp,
+            "level":level,
+            "level_progress":xp%100,
+            "total_earned":total_earned,
+            "games":{"plays":plays,"earned":game_earned,"best":best_win},
+            "lottery":{"tickets":tickets,"wins":lottery_wins},
+            "achievements":achievements,
+            "social":{"followers":followers,"following":following},
+            "cosmetics":{"frame":frame,"title":title,"background":background},
+            "rank":{"name":rank[0],"icon":rank[1]}
+        }
+
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

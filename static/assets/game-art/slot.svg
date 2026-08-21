@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2b141b"/><stop offset="1" stop-color="#0b0d12"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#e95782" stop-opacity=".42"/><stop offset="1" stop-color="#e95782" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-opacity=".45"/></filter>
+</defs>
+<rect width="800" height="800" rx="96" fill="url(#bg)"/>
+<circle cx="620" cy="120" r="260" fill="url(#glow)" filter="url(#soft)"/>
+<path d="M0 610 C160 520 290 690 470 585 S690 520 800 610 V800 H0Z" fill="#ffffff" opacity=".025"/>
+<g opacity=".08" stroke="#fff"><path d="M0 160H800M0 320H800M0 480H800M160 0V800M320 0V800M480 0V800M640 0V800"/></g>
+<g filter="url(#shadow)">
+<rect x="155" y="190" width="490" height="340" rx="44" fill="#1b1116" stroke="#e25882" stroke-width="9"/>
+<rect x="205" y="250" width="390" height="170" rx="30" fill="#0b0e13" stroke="#6f3449" stroke-width="6"/>
+<g font-family="Arial" font-size="72" font-weight="900" text-anchor="middle">
+<text x="285" y="355" fill="#ffdd64">7</text><text x="400" y="355" fill="#e95b86">★</text><text x="515" y="355" fill="#ffdd64">7</text>
+</g>
+<rect x="260" y="455" width="280" height="42" rx="21" fill="#7d2d49"/>
+<circle cx="580" cy="165" r="34" fill="#edc65f"/>
+</g>
+<text x="70" y="720" fill="#fff" opacity=".56" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="4">NEON SLOTS</text>
+</svg>

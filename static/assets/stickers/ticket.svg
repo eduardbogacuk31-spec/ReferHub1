@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 340">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8e5ce1"/><stop offset="1" stop-color="#11141b"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-opacity=".4"/></filter></defs>
+<g filter="url(#s)"><path d="M95 70h150v54a35 35 0 0 0 0 70v54H95v-54a35 35 0 0 0 0-70Z" fill="url(#g)" stroke="#fff" stroke-opacity=".18" stroke-width="4"/></g>
+<text x="170" y="300" text-anchor="middle" fill="#8e5ce1" font-family="Arial" font-size="24" font-weight="900" letter-spacing="3">TICKET</text>
+</svg>

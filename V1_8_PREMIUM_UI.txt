@@ -1,0 +1,2 @@
+ReferHub Lottery v1.8 Premium UI
+Global premium polish, navigation, controls, game center, mobile safe-area and micro-interactions.

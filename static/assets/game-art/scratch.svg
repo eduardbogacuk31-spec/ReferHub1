@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2b1831"/><stop offset="1" stop-color="#0d0e13"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#dc64e0" stop-opacity=".42"/><stop offset="1" stop-color="#dc64e0" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-opacity=".45"/></filter>
+</defs>
+<rect width="800" height="800" rx="96" fill="url(#bg)"/>
+<circle cx="620" cy="120" r="260" fill="url(#glow)" filter="url(#soft)"/>
+<path d="M0 610 C160 520 290 690 470 585 S690 520 800 610 V800 H0Z" fill="#ffffff" opacity=".025"/>
+<g opacity=".08" stroke="#fff"><path d="M0 160H800M0 320H800M0 480H800M160 0V800M320 0V800M480 0V800M640 0V800"/></g>
+<g filter="url(#shadow)">
+<rect x="170" y="205" width="460" height="300" rx="42" fill="#25152a" stroke="#df65de" stroke-width="9"/>
+<path d="M220 260H580M220 315H580M220 370H580M220 425H580" stroke="#d7dde6" stroke-width="26" stroke-linecap="round" opacity=".72"/>
+<path d="M240 470 C330 410 440 520 560 430" stroke="#ffb6ff" stroke-width="16" fill="none" opacity=".8"/>
+</g>
+<text x="70" y="720" fill="#fff" opacity=".56" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="4">SCRATCH NEON</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#332015"/><stop offset="1" stop-color="#0d0f11"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#ed944b" stop-opacity=".42"/><stop offset="1" stop-color="#ed944b" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-opacity=".45"/></filter>
+</defs>
+<rect width="800" height="800" rx="96" fill="url(#bg)"/>
+<circle cx="620" cy="120" r="260" fill="url(#glow)" filter="url(#soft)"/>
+<path d="M0 610 C160 520 290 690 470 585 S690 520 800 610 V800 H0Z" fill="#ffffff" opacity=".025"/>
+<g opacity=".08" stroke="#fff"><path d="M0 160H800M0 320H800M0 480H800M160 0V800M320 0V800M480 0V800M640 0V800"/></g>
+<g transform="translate(400 340) rotate(-11)" filter="url(#shadow)">
+<rect x="-170" y="-170" width="340" height="340" rx="70" fill="#3c2215" stroke="#f0a65e" stroke-width="12"/>
+<g fill="#ffd3a8"><circle cx="-80" cy="-80" r="25"/><circle cx="80" cy="-80" r="25"/><circle cx="0" cy="0" r="25"/><circle cx="-80" cy="80" r="25"/><circle cx="80" cy="80" r="25"/></g>
+</g>
+<text x="70" y="720" fill="#fff" opacity=".56" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="4">DICE DUEL</text>
+</svg>

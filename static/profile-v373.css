@@ -1,0 +1,108 @@
+
+/* ReferHub v3.7.3 — Profile navigation + scroll repair */
+
+/* Profile must use the document scroll, never its own heavy nested scroll. */
+.rp372{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overscroll-behavior:auto!important;
+  -webkit-overflow-scrolling:auto!important;
+  touch-action:pan-y!important;
+}
+.rp372 *{
+  touch-action:manipulation;
+}
+
+/* Tabs were sticky and made scrolling feel like it was "catching". */
+.rp372-tabs{
+  position:relative!important;
+  top:auto!important;
+  z-index:2!important;
+  backdrop-filter:none!important;
+}
+
+/* Keep profile content clear of bottom navigation without a huge dead zone. */
+.rp372{
+  padding-bottom:96px!important;
+}
+body.rp373-profile-open #content{
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  padding-bottom:0!important;
+}
+
+/* Active profile button is obvious and consistent with the rest of the app. */
+[data-page="profile"].active,
+[data-nav="profile"].active,
+.profile-nav.active,
+.nav-profile.active,
+#navProfile.active{
+  opacity:1!important;
+  color:#d0a5ef!important;
+  border-color:rgba(157,99,233,.22)!important;
+  background:linear-gradient(145deg,rgba(80,44,111,.88),rgba(34,22,45,.92))!important;
+  box-shadow:0 8px 22px rgba(86,42,126,.18)!important;
+}
+[data-page="profile"].active svg,
+[data-nav="profile"].active svg,
+.profile-nav.active svg,
+.nav-profile.active svg,
+#navProfile.active svg{
+  opacity:1!important;
+}
+
+/* Reduce layout weight on mobile to make scroll feel much lighter. */
+@media(max-width:650px){
+  .rp372{
+    padding-bottom:92px!important;
+  }
+
+  .rp372-cover{
+    border-radius:20px!important;
+    box-shadow:0 14px 34px rgba(0,0,0,.24)!important;
+  }
+
+  .rp372-tabs{
+    margin-top:7px!important;
+  }
+
+  .rp372-stats,
+  .rp372-shortcuts{
+    gap:6px!important;
+  }
+
+  .rp372-stats article,
+  .rp372-shortcuts button,
+  .rp372-statcards>article,
+  .rp372-level{
+    box-shadow:none!important;
+  }
+
+  .rp372-stats article{
+    padding:9px!important;
+  }
+
+  .rp372-shortcuts button{
+    min-height:58px!important;
+  }
+}
+
+/* On very narrow phones avoid any accidental two-axis drag. */
+@media(max-width:390px){
+  .rp372,
+  .rp372-cover,
+  .rp372-main,
+  .rp372-id,
+  .rp372-stats,
+  .rp372-shortcuts,
+  .rp372-statcards{
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+}

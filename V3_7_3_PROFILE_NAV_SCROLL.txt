@@ -1,0 +1,12 @@
+ReferHub v3.7.3 — Profile Nav + Scroll Fix
+
+FIXED:
+- Profile button now remains highlighted while Profile is open.
+- Previous active tab is cleared when Profile opens.
+- aria-current is synchronized with Profile state.
+- Profile no longer uses nested/sticky scrolling behavior.
+- Removed sticky Profile tabs that made mobile scrolling feel heavy.
+- Profile uses normal document scrolling.
+- Reduced shadows/layout weight on phones for smoother WebView scrolling.
+- Fixed narrow-phone horizontal drag.
+- Existing v3.7.2 single-profile rebuild preserved.

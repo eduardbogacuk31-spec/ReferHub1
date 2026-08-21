@@ -1,0 +1,143 @@
+
+/* ReferHub v4.2.2
+   ONE AND ONLY vertical scroll container = body > main
+   This restores the original application architecture. */
+
+html,
+body{
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  max-height:100%!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+
+/* The actual app viewport */
+body > main{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  max-width:680px!important;
+  height:calc(100dvh - 96px - env(safe-area-inset-bottom,0px))!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0 auto!important;
+  padding:
+    calc(18px + env(safe-area-inset-top,0px))
+    16px
+    28px!important;
+
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  scrollbar-gutter:auto!important;
+}
+
+/* Everything rendered INSIDE main expands naturally.
+   No second vertical scroll regions. */
+body > main #content,
+body > main #content > *,
+body > main .rp372,
+body > main .rh30,
+body > main .rh32,
+body > main .rh33,
+body > main .rh35,
+body > main .rh37,
+body > main .rh37-public,
+body > main .rh38,
+body > main .rh38-detail,
+body > main .rh39,
+body > main .rh40,
+body > main .rh41,
+body > main .gp-page,
+body > main .gp-game,
+body > main .pc82-shell,
+body > main .rh28-shell,
+body > main .rh29-shell,
+body > main .rh29-detail{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  overscroll-behavior:visible!important;
+}
+
+/* Expanding lists/grids — never internal scrolling */
+body > main .rh30-actions,
+body > main .rh37-feed,
+body > main .rh37-players,
+body > main .rh38-grid,
+body > main .rh38-board,
+body > main .rh39-grid,
+body > main .rh40-week,
+body > main .rh41-grid,
+body > main .rh41-chests,
+body > main .rh42-livegrid,
+body > main .gp-grid,
+body > main .rh32-grid,
+body > main .rh34-ch-grid,
+body > main .rh28-grid,
+body > main .pc82-list,
+body > main .rh29-list{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+
+/* Do not let sticky feature bars fight the main swipe gesture. */
+body > main .rh42-topbar,
+body > main .rp372-tabs,
+body > main .rh281-tabs,
+body > main .rh32-tabs,
+body > main .rh37-tabs,
+body > main .pc82-tabs{
+  position:relative!important;
+  top:auto!important;
+}
+
+/* Bottom nav stays outside main and fixed. */
+.bottom-nav,
+.premium-bottom-nav,
+.lottery-nav{
+  position:fixed!important;
+  z-index:200!important;
+}
+
+/* Modals are the only allowed nested scroll area because they are overlays. */
+.rh42-overlay,
+.polish91-settings,
+body.rh25-lock,
+body.gp-modal-open{
+  touch-action:auto!important;
+}
+.rh42-panel,
+.polish91-settings-card{
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+/* Enough space before fixed bottom nav, but not a second viewport. */
+body > main #content{
+  padding-bottom:20px!important;
+}
+
+@media(max-width:700px){
+  body > main{
+    max-width:100%!important;
+    height:calc(100dvh - 86px - env(safe-area-inset-bottom,0px))!important;
+    padding:
+      calc(12px + env(safe-area-inset-top,0px))
+      12px
+      22px!important;
+  }
+
+  body > main #content{
+    width:100%!important;
+    max-width:100%!important;
+  }
+}

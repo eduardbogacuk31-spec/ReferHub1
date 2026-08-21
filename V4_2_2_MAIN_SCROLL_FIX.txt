@@ -1,0 +1,16 @@
+ReferHub v4.2.2 — Main Scroll Fix
+
+ROOT CAUSE:
+The original app architecture already used body > main as the single scroll container.
+v4.2.1 incorrectly moved scrolling to html/body, conflicting with style.css.
+
+FIX:
+- Removed v4.2.1 single-scroll CSS and JS from index.html.
+- Restored html/body as fixed application viewport.
+- body > main is now the ONLY vertical app scroll container.
+- Feature pages, lists, grids, profile, games, achievements, tournaments,
+  missions, streak and Quest Center expand inside main and cannot own vertical scroll.
+- Sticky feature bars disabled so they do not interfere with swipe scrolling.
+- Main scroll resets to top when normal openPage navigation changes page.
+- Modal overlays remain separately scrollable by design.
+- v4.2 Evolution UI preserved.

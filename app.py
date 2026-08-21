@@ -3100,6 +3100,87 @@ async def social_v26_follow(target_id:int,x_telegram_init_data: str | None = Hea
     return {"ok":True,"followed":followed}
 
 
+
+@app.get("/api/game-center-v27")
+async def game_center_v27(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+    day_index=int(time.strftime("%j", time.gmtime(now)))
+
+    game_keys=[
+        "roulette","daily_case","slot","coin_flip","number_guess","scratch",
+        "safe_crack","dice_duel","rps","treasure_grid","reaction"
+    ]
+    featured=game_keys[day_index % len(game_keys)]
+
+    with connect_db() as db:
+        my=db.execute(
+            """
+            SELECT COUNT(*) AS plays,
+                   COALESCE(SUM(reward),0) AS earned,
+                   COALESCE(MAX(reward),0) AS best,
+                   COUNT(DISTINCT game_key) AS modes
+            FROM game_plays WHERE user_id=?
+            """,
+            (uid,),
+        ).fetchone()
+
+        top=db.execute(
+            """
+            SELECT u.telegram_id,u.username,u.first_name,
+                   COUNT(g.id) AS plays,
+                   COALESCE(SUM(g.reward),0) AS earned,
+                   COALESCE(MAX(g.reward),0) AS best
+            FROM game_plays g
+            JOIN users u ON u.telegram_id=g.user_id
+            GROUP BY u.telegram_id,u.username,u.first_name
+            ORDER BY earned DESC,plays DESC
+            LIMIT 8
+            """
+        ).fetchall()
+
+        recent=db.execute(
+            """
+            SELECT game_key,reward,result_text,created_at
+            FROM game_plays
+            WHERE user_id=?
+            ORDER BY id DESC LIMIT 8
+            """,
+            (uid,),
+        ).fetchall()
+
+    return {
+        "featured_game": featured,
+        "stats": {
+            "plays": int(my["plays"] or 0),
+            "earned": int(my["earned"] or 0),
+            "best": int(my["best"] or 0),
+            "modes": int(my["modes"] or 0),
+        },
+        "leaderboard": [
+            {
+                "id": int(r["telegram_id"]),
+                "username": r["username"],
+                "first_name": r["first_name"],
+                "plays": int(r["plays"] or 0),
+                "earned": int(r["earned"] or 0),
+                "best": int(r["best"] or 0),
+            } for r in top
+        ],
+        "recent": [
+            {
+                "game_key": r["game_key"],
+                "reward": int(r["reward"] or 0),
+                "result_text": r["result_text"],
+                "created_at": int(r["created_at"] or 0),
+            } for r in recent
+        ],
+    }
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

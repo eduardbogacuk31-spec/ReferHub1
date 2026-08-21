@@ -1,0 +1,10 @@
+ReferHub Lottery v2.7 — Games 2.0
+- Game Center locked to all 11 existing game modes.
+- Server-backed Game Center statistics.
+- Game of the Day selected deterministically each day.
+- Global arcade leaderboard by RH earned in games.
+- Personal performance strip inside game pages.
+- Recent results pulse.
+- Compact 2-column mobile game catalog retained.
+- Major premium visual pass for Game Center and game detail pages.
+- All previous v2.3–v2.6.1 systems preserved.

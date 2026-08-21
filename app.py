@@ -3982,6 +3982,104 @@ async def achievements_v32_claim(
 
 
 
+
+@app.get("/api/reward-center-v33")
+async def reward_center_v33(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        u=db.execute("SELECT * FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        if not u:
+            raise HTTPException(404,"Користувача не знайдено")
+
+        balance=int(u["balance"] or 0) if "balance" in u.keys() else 0
+
+        # Achievement rewards ready to claim
+        achievements=[]
+        try:
+            metrics=_rh32_metrics(db,uid)
+            claimed={r["achievement_key"] for r in db.execute(
+                "SELECT achievement_key FROM achievement_claims_v32 WHERE user_id=?",(uid,)
+            ).fetchall()}
+            for r in db.execute(
+                "SELECT * FROM achievements_v32 WHERE active=1 ORDER BY sort_order,id"
+            ).fetchall():
+                value=int(metrics.get(r["metric"],0))
+                if value>=int(r["goal"] or 1) and r["achievement_key"] not in claimed:
+                    achievements.append({
+                        "key":r["achievement_key"],
+                        "title":r["title"],
+                        "icon":r["icon"],
+                        "reward":int(r["reward_rh"] or 0),
+                        "rarity":r["rarity"]
+                    })
+        except Exception:
+            pass
+
+        # Daily state
+        daily={"ready":False,"streak":0}
+        try:
+            day_key=time.strftime("%Y-%m-%d",time.gmtime(now))
+            daily["ready"]=not bool(db.execute(
+                "SELECT 1 FROM daily_calendar_claims WHERE user_id=? AND day_key=?",
+                (uid,day_key)
+            ).fetchone())
+            keys={r["day_key"] for r in db.execute(
+                "SELECT day_key FROM daily_calendar_claims WHERE user_id=? ORDER BY claimed_at DESC LIMIT 45",
+                (uid,)
+            ).fetchall()}
+            for off in range(45):
+                k=time.strftime("%Y-%m-%d",time.gmtime(now-off*86400))
+                if k in keys: daily["streak"]+=1
+                elif off==0: continue
+                else: break
+        except Exception:
+            pass
+
+        # Season summary
+        season=None
+        try:
+            s=db.execute(
+                "SELECT * FROM seasons WHERE active=1 AND starts_at<=? AND ends_at>? ORDER BY id DESC LIMIT 1",
+                (now,now)
+            ).fetchone()
+            if s:
+                p=db.execute(
+                    "SELECT xp FROM season_progress WHERE season_id=? AND user_id=?",
+                    (int(s["id"]),uid)
+                ).fetchone()
+                sxp=int(p["xp"] or 0) if p else 0
+                season={"title":s["title"],"xp":sxp,"level":min(20,sxp//100)}
+        except Exception:
+            pass
+
+        # Lottery tickets / current draw
+        lottery=None
+        try:
+            rows=db.execute("SELECT * FROM lotteries ORDER BY id DESC").fetchall()
+            for r in rows:
+                x=dict(r)
+                if str(x.get("status","")).lower() in ("active","open","live","running"):
+                    lottery=_rh29_lottery_payload(db,r,uid) if "_rh29_lottery_payload" in globals() else x
+                    break
+        except Exception:
+            pass
+
+        return {
+            "balance":balance,
+            "ready_count":len(achievements)+(1 if daily["ready"] else 0),
+            "achievements":achievements,
+            "daily":daily,
+            "season":season,
+            "lottery":lottery
+        }
+
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

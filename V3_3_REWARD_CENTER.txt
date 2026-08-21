@@ -1,0 +1,15 @@
+ReferHub v3.3 — Reward Center
+
+NEW:
+- Unified premium Reward Center.
+- Shows claimable achievement rewards.
+- Daily reward state and streak.
+- Season progress shortcut.
+- Active lottery / ticket shortcut.
+- RH balance and ready reward counter.
+- Home dashboard entry.
+- Responsive mobile layout.
+
+DESIGN:
+- Another global premium visual pass.
+- Preserves v3.1 scroll/overflow cleanup and v3.2 rarity system.

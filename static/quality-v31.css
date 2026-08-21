@@ -1,0 +1,115 @@
+
+/* ReferHub v3.1 — Global Cleanup */
+html.rh31-scroll-root,body.rh31-scroll-root{
+ height:auto!important;
+ min-height:100%!important;
+ overflow-x:hidden!important;
+ overflow-y:auto!important;
+ overscroll-behavior-y:auto!important;
+ -webkit-overflow-scrolling:touch!important;
+}
+body.rh25-lock{overflow:hidden!important}
+#content,.rh31-scroll-safe{
+ min-width:0!important;
+ max-width:100%!important;
+ overflow-x:hidden!important;
+ overflow-y:visible!important;
+}
+main{
+ min-height:100dvh!important;
+ overflow-x:hidden!important;
+ overflow-y:visible!important;
+}
+.rh31-active-panel{
+ overflow:visible!important;
+ max-height:none!important;
+}
+.rh31-wrap{
+ min-width:0!important;
+ max-width:100%!important;
+ overflow-wrap:anywhere!important;
+ word-break:normal!important;
+ white-space:normal!important;
+}
+.rh31-card-safe{min-width:0!important;max-width:100%!important}
+
+/* Unified classification system */
+.rh31-class-badge{
+ display:inline-flex!important;
+ align-items:center!important;
+ width:max-content!important;
+ max-width:100%!important;
+ padding:4px 7px!important;
+ border:1px solid rgba(255,255,255,.06)!important;
+ border-radius:999px!important;
+ font-size:6px!important;
+ font-weight:950!important;
+ letter-spacing:.10em!important;
+ line-height:1!important;
+}
+.rh31-common{color:#9aa3ad!important;background:#15191e!important;border-color:#30363d!important}
+.rh31-rare{color:#a68aef!important;background:#18142a!important;border-color:#4c3b79!important}
+.rh31-epic{color:#d999ef!important;background:#25142d!important;border-color:#6e3d7f!important}
+.rh31-legendary{color:#e7c462!important;background:#271f0e!important;border-color:#7a6129!important}
+.rh31-pill{
+ display:inline-flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ min-height:22px!important;
+ padding:4px 7px!important;
+ border-radius:999px!important;
+ line-height:1!important;
+}
+.rh31-tab{
+ min-width:0!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+}
+.rh31-tab>*{min-width:0!important}
+
+/* Consistent card rhythm */
+.rh30-card,.rh29-card,.rh28-item,.rh26-user,.pc82-mission,.pc82-task,.gp-card,.rh24-level,.rh23-day{
+ box-sizing:border-box!important;
+}
+.rh30-card h3,.rh29-card h3,.rh28-item h3,.rh26-user b,.pc82-mission h3,.pc82-task h3,.gp-card h2{
+ line-height:1.15!important;
+}
+.rh30-card p,.rh29-card p,.rh28-item p,.pc82-mission p,.pc82-task p,.gp-card p{
+ line-height:1.35!important;
+}
+
+/* Fix common sticky/scroll conflicts in Telegram WebView */
+.rh281-tabs{
+ top:max(6px,env(safe-area-inset-top))!important;
+}
+.rh281-tab-wrap,.rh281-panel,.pc82-panel,.rh29-list,.rh30,.rh28-shell,.rh26,.gp-page,.gp-game{
+ max-height:none!important;
+ overflow:visible!important;
+}
+
+/* Bottom nav safe area */
+.bottom-nav,.premium-bottom-nav,.lottery-nav{
+ padding-bottom:max(8px,env(safe-area-inset-bottom))!important;
+}
+
+/* Mobile cleanup */
+@media(max-width:700px){
+ #content{padding-bottom:110px!important}
+ .rh281-tabs{overflow:visible!important}
+ .rh281-tabs button{min-width:0!important}
+ .rh29-toolbar nav,.pc82-tabs,.social831-tabs{
+   width:100%!important;
+   overflow-x:auto!important;
+   overflow-y:hidden!important;
+   scrollbar-width:none!important;
+   -webkit-overflow-scrolling:touch!important;
+ }
+ .rh29-toolbar nav::-webkit-scrollbar,.pc82-tabs::-webkit-scrollbar,.social831-tabs::-webkit-scrollbar{display:none}
+ .rh30-card,.rh29-card,.rh28-item,.gp-card{border-radius:16px!important}
+}
+
+/* Narrow phones */
+@media(max-width:360px){
+ .rh281-tabs{grid-template-columns:repeat(2,1fr)!important}
+ .rh30-actions,.rh30-grid,.rh29-list,.rh28-grid{grid-template-columns:1fr!important}
+}

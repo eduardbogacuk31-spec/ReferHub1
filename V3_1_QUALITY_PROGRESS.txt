@@ -1,0 +1,25 @@
+ReferHub Lottery v3.1 — Quality & Progress
+
+GLOBAL FIXES:
+- Fixed pages that could not scroll in Telegram WebView.
+- Removed conflicting max-height / overflow rules on active screens.
+- Added safe mobile bottom spacing above bottom navigation.
+- Fixed horizontal overflow and text escaping card boundaries.
+- Unified classification/rarity visual system:
+  Common / Rare / Epic / Legendary.
+- Unified status pills and tab sizing.
+- Normalized card spacing, text wrapping and narrow-phone layouts.
+- Sticky cosmetic tabs now respect Telegram safe-area.
+
+FEATURE:
+- Added progression v3.1 endpoint with level XP and milestone rewards.
+
+PRESERVED:
+- v2.3 Daily
+- v2.4 Seasons
+- v2.5 Lottery Experience
+- v2.6 Social / Earn fix
+- v2.7 Games 2.0
+- v2.8 Cosmetics Tabs
+- v2.9 Lottery 2.0
+- v3.0 Home 2.0

@@ -3701,6 +3701,46 @@ async def home_v30(
 
 
 
+
+@app.get("/api/progression-v31")
+async def progression_v31(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    with connect_db() as db:
+        u=db.execute("SELECT xp,total_earned,balance FROM users WHERE telegram_id=?",(uid,)).fetchone()
+        if not u:
+            raise HTTPException(404,"Користувача не знайдено")
+
+        xp=int(u["xp"] or 0)
+        level=max(1,xp//100+1)
+        level_xp=xp%100
+        next_xp=100-level_xp if level_xp else 100
+
+        rewards=[
+            {"level":2,"reward":20,"icon":"✦","title":"Starter Boost"},
+            {"level":5,"reward":50,"icon":"🎁","title":"Milestone Drop"},
+            {"level":10,"reward":100,"icon":"🏆","title":"Elite Reward"},
+            {"level":15,"reward":150,"icon":"◈","title":"Veteran Reward"},
+            {"level":20,"reward":250,"icon":"♛","title":"Master Reward"}
+        ]
+        for r in rewards:
+            r["unlocked"]=level>=r["level"]
+
+        return {
+            "xp":xp,
+            "level":level,
+            "level_xp":level_xp,
+            "next_xp":next_xp,
+            "balance":int(u["balance"] or 0),
+            "total_earned":int(u["total_earned"] or 0),
+            "rewards":rewards
+        }
+
+
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

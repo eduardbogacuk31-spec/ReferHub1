@@ -1,0 +1,22 @@
+
+@import url("/static/games-v19.css?v=25101");
+@import url("/static/draw-v20.css?v=25101");
+@import url("/static/bugfix-v201.css?v=25101");
+@import url("/static/profile-v21.css?v=25101");
+@import url("/static/profile-v22.css?v=25101");
+@import url("/static/profile-v221.css?v=25101");
+@import url("/static/events-v22.css?v=25101");
+@import url("/static/daily-v23.css?v=25101");
+@import url("/static/season-v24.css?v=25101");
+@import url("/static/lottery-v25.css?v=25101");
+
+/* v2.5.1 consolidation guarantees */
+.rh20-fair-chip{display:none!important}
+.rh22-events-root,.rh23-root,.rh24-root{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;max-width:100%!important}
+.rh221-avatar-frame,.rh221-avatar-halo,.rh221-level-gem,.rh221-showcase{visibility:visible!important}
+.rh221-profile-photo{display:block!important}
+.rh24-root,.rh23-root,.rh22-events-root,.rh22-profile{isolation:isolate}
+#content{overflow-x:hidden}
+@media(max-width:650px){
+ .rh24-root,.rh23-root,.rh22-events-root{margin-left:0!important;margin-right:0!important}
+}

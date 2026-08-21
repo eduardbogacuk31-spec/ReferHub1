@@ -27,6 +27,7 @@
    const c=document.getElementById("content")||document.querySelector(".content")||document.querySelector("main"); if(c)c.prepend(root);
  }
  window.rh24Claim=async l=>{try{const r=await api(`/api/season-v24/claim/${l}`,{method:"POST"});me.balance=+r.balance;const b=document.getElementById("balance");if(b)b.textContent=me.balance;rewardToast?.("Season Reward",`+${r.reward} RH`,"✦");await render()}catch(e){toast(e.message,"error")}};
- const old=window.homePage;if(typeof old==="function")window.homePage=async function(){await old.apply(this,arguments);await render()};
+ window.rh251RenderSeason=render;
+ const old=window.homePage;
  document.addEventListener("DOMContentLoaded",()=>setTimeout(render,340));
 })();

@@ -1,0 +1,11 @@
+ReferHub Lottery v2.5.1 — Consolidation Fix
+- One deterministic loader for Profile, Live Events, Daily, Season and Lottery 2.0.
+- Daily Rewards and Mystery Drop explicitly render on Home.
+- Season 01 and 20-level reward road explicitly render on Home.
+- Live Events explicitly render on Home.
+- Premium avatar frame/background/showcase retained; Telegram photo fallback added.
+- FAIR DRAW remains fully hidden.
+- Lottery Experience 2.0 retained.
+- JS/CSS cache version unified to 25101.
+- HTML/JS/CSS revalidate; personalized API responses are private/no-store.
+- Syntax and required feature files validated before packaging.

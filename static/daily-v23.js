@@ -33,6 +33,7 @@
  }
  window.rh23ClaimDaily=async()=>{try{const r=await api("/api/daily-v23/claim",{method:"POST"});me.balance=+r.balance;const b=document.getElementById("balance");if(b)b.textContent=me.balance;rewardToast?.("Daily Reward",`+${r.reward} RH`,"🔥");await render()}catch(e){toast(e.message,"error")}};
  window.rh23ClaimDrop=async id=>{try{const r=await api(`/api/mystery-drop-v23/${id}/claim`,{method:"POST"});me.balance=+r.balance;const b=document.getElementById("balance");if(b)b.textContent=me.balance;rewardToast?.("Mystery Drop",`+${r.reward} RH`,"🎁");await render()}catch(e){toast(e.message,"error")}};
- const old=window.homePage;if(typeof old==="function")window.homePage=async function(){await old.apply(this,arguments);await render()};
+ window.rh251RenderDaily=render;
+ const old=window.homePage;
  document.addEventListener("DOMContentLoaded",()=>setTimeout(render,260));
 })();

@@ -2286,6 +2286,19 @@ app = FastAPI(title="ReferHub Rewards", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
+
+@app.middleware("http")
+async def rh251_cache_control(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/api/"):
+        response.headers["Cache-Control"] = "private, no-store"
+    elif path == "/" or path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
+    elif path.endswith(".js") or path.endswith(".css"):
+        response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
+    return response
+
 @app.get("/")
 async def index():
     return FileResponse(BASE_DIR / "static" / "index.html")

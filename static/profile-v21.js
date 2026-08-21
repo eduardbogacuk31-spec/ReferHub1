@@ -47,7 +47,7 @@
            <div class="rh221-avatar-halo"></div>
            <div class="rh221-avatar-frame">
              <div class="rh21-avatar-ring">
-               ${me.photo_url ? `<img class="rh221-profile-photo" src="${esc(me.photo_url)}" alt="">` : `<span>${esc((me.first_name||me.username||"R").slice(0,1).toUpperCase())}</span>`}
+               ${(me.photo_url||window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) ? `<img class="rh221-profile-photo" src="${esc(me.photo_url||window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url)}" alt="">` : `<span>${esc((me.first_name||me.username||"R").slice(0,1).toUpperCase())}</span>`}
              </div>
            </div>
            <div class="rh221-level-gem">${p.level?.number||1}</div>

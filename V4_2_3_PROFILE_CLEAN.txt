@@ -1,0 +1,11 @@
+ReferHub v4.2.3 — Profile Clean Mode
+
+FIXED:
+- Profile now contains only Profile content.
+- Removed Home/Lottery fragments that could remain visible when switching to Profile.
+- Hides legacy global balance/header blocks while Profile is open.
+- Hides Evolution topbar and floating ONLINE badge inside Profile.
+- Clears old page content immediately before rendering Profile.
+- Reuses the single stable Profile v3.7.2 renderer.
+- Keeps bottom Profile navigation active.
+- Keeps the single-main-scroll architecture from v4.2.2.

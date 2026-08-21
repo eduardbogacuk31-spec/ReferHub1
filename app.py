@@ -4936,6 +4936,84 @@ async def quest_center_claim_v41(level:int,x_telegram_init_data: str | None = He
         db.commit()
     return {"ok":True,"reward":chest["reward"],"level":level}
 
+
+@app.get("/api/game-center-v43")
+async def game_center_v43(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+
+    games=[
+        {"id":"roulette","name":"Рулетка","icon":"🎯","category":"casino","tag":"HOT","desc":"Ставка на число, колір або діапазон.","max_reward":10000,"theme":"violet"},
+        {"id":"slot","name":"Слоти","icon":"🎰","category":"casino","tag":"HOT","desc":"Злови виграшну комбінацію символів.","max_reward":5000,"theme":"amber"},
+        {"id":"coin_flip","name":"Coin Flip","icon":"🪙","category":"quick","tag":"HOT","desc":"Орел чи решка — швидкий ризик.","max_reward":2000,"theme":"gold"},
+        {"id":"dice_duel","name":"Dice Duel","icon":"🎲","category":"quick","tag":"NEW","desc":"Кидай кубики та бий рекорд.","max_reward":3000,"theme":"blue"},
+        {"id":"reaction","name":"Reaction","icon":"⚡","category":"skill","tag":"NEW","desc":"Перевір швидкість своєї реакції.","max_reward":1500,"theme":"cyan"},
+        {"id":"mines","name":"Mines","icon":"💣","category":"risk","tag":"NEW","desc":"Відкривай безпечні клітинки та зупиняйся вчасно.","max_reward":20000,"theme":"green"},
+        {"id":"number_guess","name":"Guess","icon":"🔢","category":"quick","tag":"","desc":"Вгадай число за мінімум спроб.","max_reward":1200,"theme":"purple"},
+        {"id":"safe_crack","name":"Safe Crack","icon":"🔐","category":"skill","tag":"","desc":"Зламай код сейфа та забери RH.","max_reward":2500,"theme":"red"},
+        {"id":"scratch","name":"Scratch","icon":"🎫","category":"quick","tag":"","desc":"Стирай поле й шукай нагороду.","max_reward":1800,"theme":"pink"},
+        {"id":"treasure_grid","name":"Treasure Grid","icon":"🧭","category":"risk","tag":"","desc":"Обирай клітинки та шукай скарб.","max_reward":4000,"theme":"teal"},
+        {"id":"rps","name":"Камінь-Ножиці","icon":"✊","category":"quick","tag":"","desc":"Класична дуель проти бота.","max_reward":900,"theme":"slate"},
+    ]
+
+    with connect_db() as db:
+        try:
+            rows=db.execute(
+                """
+                SELECT game_key,
+                       COUNT(*) AS plays,
+                       COALESCE(SUM(reward),0) AS earned,
+                       COALESCE(MAX(reward),0) AS best
+                FROM game_plays
+                WHERE user_id=?
+                GROUP BY game_key
+                """,(uid,)
+            ).fetchall()
+            stats={r["game_key"]:{
+                "plays":int(r["plays"] or 0),
+                "earned":int(r["earned"] or 0),
+                "best":int(r["best"] or 0)
+            } for r in rows}
+        except Exception:
+            stats={}
+
+        try:
+            recent_rows=db.execute(
+                """
+                SELECT game_key,reward,created_at
+                FROM game_plays
+                WHERE user_id=?
+                ORDER BY created_at DESC
+                LIMIT 12
+                """,(uid,)
+            ).fetchall()
+            recent=[{
+                "game_key":r["game_key"],
+                "reward":int(r["reward"] or 0),
+                "created_at":int(r["created_at"] or 0)
+            } for r in recent_rows]
+        except Exception:
+            recent=[]
+
+        try:
+            u=db.execute("SELECT balance FROM users WHERE telegram_id=?",(uid,)).fetchone()
+            balance=int((u["balance"] if u and "balance" in u.keys() else 0) or 0)
+        except Exception:
+            balance=0
+
+    for g in games:
+        g["stats"]=stats.get(g["id"],{"plays":0,"earned":0,"best":0})
+
+    return {
+        "balance":balance,
+        "games":games,
+        "recent":recent,
+        "total_plays":sum(g["stats"]["plays"] for g in games),
+        "total_earned":sum(g["stats"]["earned"] for g in games),
+    }
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()

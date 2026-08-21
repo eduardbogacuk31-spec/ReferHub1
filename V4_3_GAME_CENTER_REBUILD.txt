@@ -1,0 +1,17 @@
+ReferHub v4.3 — Game Center Rebuild
+
+MAJOR UPDATE:
+- Completely rebuilt Game Center.
+- New balance/wallet header.
+- Horizontal category navigation:
+  All / Popular / New / Casino / Quick / Skill / Risk.
+- Compact game cards, 2 per row on phones.
+- Dedicated premium page for every game.
+- Per-game statistics:
+  plays / earned RH / best reward.
+- Per-game instructions.
+- Recent rounds block.
+- Full personal game history screen.
+- Existing real game engine reused via openGameDetail().
+- Added catalog entries for Mines and other existing/expanded games.
+- v4.2.3 Profile Clean and v4.2.2 single-main-scroll fixes preserved.

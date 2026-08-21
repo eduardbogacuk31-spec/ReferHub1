@@ -1,0 +1,45 @@
+
+/* ReferHub v4.2.3 — Profile means PROFILE ONLY */
+
+/* These are legacy global home elements located outside #content.
+   Hide them only while profile is open. */
+body.rh423-profile-mode .profile-head,
+body.rh423-profile-mode .hero-balance,
+body.rh423-profile-mode .rh42-topbar,
+body.rh423-profile-mode .polish91-network{
+  display:none!important;
+}
+
+/* No Home / Lottery / Evolution dashboard fragments in profile. */
+body.rh423-profile-mode .rh42-dashboard,
+body.rh423-profile-mode .rh30,
+body.rh423-profile-mode .rh29-shell,
+body.rh423-profile-mode .rh29-detail{
+  display:none!important;
+}
+
+/* Profile begins cleanly at top of the single main scroller. */
+body.rh423-profile-mode > main{
+  padding-top:calc(12px + env(safe-area-inset-top,0px))!important;
+}
+
+body.rh423-profile-mode #content{
+  padding-top:0!important;
+  margin-top:0!important;
+}
+
+body.rh423-profile-mode .rp372{
+  margin-top:0!important;
+}
+
+/* Keep only the actual bottom Profile tab visible as active navigation. */
+body.rh423-profile-mode .bottom-nav,
+body.rh423-profile-mode .premium-bottom-nav{
+  display:flex!important;
+}
+
+/* No stray fixed ONLINE badge over profile content. */
+body.rh423-profile-mode .polish91-network{
+  visibility:hidden!important;
+  pointer-events:none!important;
+}

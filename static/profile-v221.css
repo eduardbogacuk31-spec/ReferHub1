@@ -1,0 +1,28 @@
+
+/* v2.2.1 — restore premium profile identity */
+.rh221-hero{min-height:205px!important;isolation:isolate}
+.rh221-hero-orb{position:absolute!important;z-index:0!important;border-radius:50%;filter:blur(2px);pointer-events:none}
+.rh221-hero-orb.one{width:270px;height:270px;right:-80px;top:-120px;background:radial-gradient(circle,rgba(158,92,232,.24),rgba(158,92,232,0) 68%)}
+.rh221-hero-orb.two{width:220px;height:220px;left:-90px;bottom:-130px;background:radial-gradient(circle,rgba(229,191,92,.11),rgba(229,191,92,0) 68%)}
+.rh221-hero-lines{position:absolute!important;z-index:0!important;inset:0!important;opacity:.24;pointer-events:none;background:linear-gradient(120deg,transparent 15%,rgba(255,255,255,.035) 15.3%,transparent 15.6%,transparent 53%,rgba(166,100,234,.08) 53.2%,transparent 53.6%)}
+.rh221-avatar{width:132px;height:132px;display:grid;place-items:center}
+.rh221-avatar-halo{position:absolute;inset:-8px;border-radius:42px;background:conic-gradient(from 0deg,rgba(229,191,92,.9),rgba(157,99,233,.9),rgba(92,126,230,.75),rgba(229,191,92,.9));filter:blur(8px);opacity:.28}
+.rh221-avatar-frame{position:relative;padding:4px;border-radius:39px;background:linear-gradient(145deg,#e4bd5a,#9c63e9 48%,#4d5c95);box-shadow:0 18px 42px rgba(0,0,0,.42),0 0 0 5px rgba(255,255,255,.025)}
+.rh221-avatar-frame .rh21-avatar-ring{width:112px!important;height:112px!important;overflow:hidden!important;border:4px solid #10131a!important;border-radius:34px!important;background:#17131e!important}
+.rh221-profile-photo{width:100%!important;height:100%!important;display:block!important;object-fit:cover!important;border-radius:29px!important}
+.rh221-level-gem{position:absolute;z-index:5;left:-2px;bottom:-7px;min-width:34px;height:34px;padding:0 7px;display:grid;place-items:center;border:2px solid #17131d;border-radius:12px;background:linear-gradient(145deg,#e3bd59,#8c641d);color:#171108;font-size:12px;font-weight:950;box-shadow:0 8px 18px rgba(0,0,0,.35)}
+.rh221-avatar .rh21-rank-sticker{right:-11px!important;bottom:-10px!important;width:56px!important;z-index:4}
+.rh22-wallet{position:relative;overflow:hidden}
+.rh22-wallet:after{content:"";position:absolute;right:-45px;top:-55px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(157,99,233,.11),transparent 67%);pointer-events:none}
+.rh22-wallet.rh:after{background:radial-gradient(circle,rgba(229,191,92,.12),transparent 67%)}
+.rh221-showcase{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.rh221-showcase-card{min-width:0;display:grid;grid-template-columns:44px 1fr;gap:9px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.06);border-radius:15px;background:linear-gradient(145deg,#14171e,#0f1218);box-shadow:0 14px 30px rgba(0,0,0,.2)}
+.rh221-sc-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;font-size:22px;background:#1e1727}
+.rh221-showcase-card span,.rh221-showcase-card b,.rh221-showcase-card small{display:block}.rh221-showcase-card span{font-size:6px;font-weight:950;letter-spacing:.1em;color:#7d7488}.rh221-showcase-card b{margin-top:3px;font-size:13px;overflow-wrap:anywhere}.rh221-showcase-card small{margin-top:2px;color:#727b87!important;font-size:7px}
+.rh221-showcase-card.purple{border-color:rgba(157,99,233,.13)}.rh221-showcase-card.gold{border-color:rgba(229,191,92,.13)}.rh221-showcase-card.blue{border-color:rgba(94,126,230,.13)}.rh221-showcase-card.green{border-color:rgba(83,207,155,.13)}
+.rh221-showcase-card.gold .rh221-sc-icon{background:#241c10}.rh221-showcase-card.blue .rh221-sc-icon{background:#11182a}.rh221-showcase-card.green .rh221-sc-icon{background:#101f19}
+.rh21-badge.unlocked{position:relative;overflow:hidden;background:linear-gradient(145deg,#15131c,#0f1218)!important;box-shadow:inset 0 1px rgba(255,255,255,.025)}
+.rh21-badge.unlocked:after{content:"";position:absolute;right:-35px;top:-40px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(157,99,233,.12),transparent 67%)}
+@media(max-width:850px){.rh221-showcase{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.rh221-avatar{margin:0 auto}.rh221-showcase{grid-template-columns:repeat(2,1fr)}.rh221-hero{padding-top:24px!important}}
+@media(max-width:360px){.rh221-showcase{grid-template-columns:1fr}}

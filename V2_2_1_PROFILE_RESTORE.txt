@@ -1,0 +1,7 @@
+ReferHub v2.2.1
+- Restored premium avatar frame and layered profile background.
+- Uses Telegram photo_url when available, fallback to initial.
+- Restored visual rank identity, level gem, RH rank sticker.
+- Added four premium profile showcase cards.
+- Preserved single-profile layout and Live Events.
+- FAIR DRAW remains removed.

@@ -39,11 +39,18 @@
 
    content.innerHTML=`
      <section class="rh22-profile">
-       <section class="rh21-hero rh22-hero">
-         <div class="rh21-avatar">
-           <div class="rh21-avatar-ring">
-             <span>${esc((me.first_name||me.username||"R").slice(0,1).toUpperCase())}</span>
+       <section class="rh21-hero rh22-hero rh221-hero">
+         <div class="rh221-hero-orb one"></div>
+         <div class="rh221-hero-orb two"></div>
+         <div class="rh221-hero-lines"></div>
+         <div class="rh21-avatar rh221-avatar">
+           <div class="rh221-avatar-halo"></div>
+           <div class="rh221-avatar-frame">
+             <div class="rh21-avatar-ring">
+               ${me.photo_url ? `<img class="rh221-profile-photo" src="${esc(me.photo_url)}" alt="">` : `<span>${esc((me.first_name||me.username||"R").slice(0,1).toUpperCase())}</span>`}
+             </div>
            </div>
+           <div class="rh221-level-gem">${p.level?.number||1}</div>
            <img class="rh21-rank-sticker" src="/static/assets/stickers/rh.svg" alt="">
          </div>
 
@@ -100,6 +107,13 @@
              <div><i>⭐</i><span><small>Зірки</small><b>${p.stars}</b></span></div>
            </div>
          </div>
+       </section>
+
+       <section class="rh221-showcase">
+         <article class="rh221-showcase-card purple"><div class="rh221-sc-icon">✦</div><div><span>ПОТОЧНИЙ РАНГ</span><b>${esc(p.level?.name||"Новачок")}</b><small>LVL ${p.level?.number||1}</small></div></article>
+         <article class="rh221-showcase-card gold"><div class="rh221-sc-icon">🔥</div><div><span>АКТИВНА СЕРІЯ</span><b>${p.streak} днів</b><small>Не втрать streak</small></div></article>
+         <article class="rh221-showcase-card blue"><div class="rh221-sc-icon">🎮</div><div><span>GAME RECORD</span><b>${p.games_won}</b><small>переможних ігор</small></div></article>
+         <article class="rh221-showcase-card green"><div class="rh221-sc-icon">👑</div><div><span>LOTTERY WINS</span><b>${p.wins}</b><small>великих перемог</small></div></article>
        </section>
 
        <section class="rh21-badges-panel rh22-badges">

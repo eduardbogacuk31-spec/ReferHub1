@@ -517,6 +517,41 @@ def init_database():
                 events,
             )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS daily_calendar_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                day_key TEXT NOT NULL,
+                cycle_day INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                UNIQUE(user_id, day_key)
+            );
+
+            CREATE TABLE IF NOT EXISTS mystery_drops (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                drop_key TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                reward INTEGER NOT NULL,
+                starts_at INTEGER NOT NULL,
+                ends_at INTEGER NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS mystery_drop_claims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                drop_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                reward INTEGER NOT NULL,
+                claimed_at INTEGER NOT NULL,
+                UNIQUE(drop_id, user_id)
+            );
+            """
+        )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -2736,6 +2771,188 @@ async def claim_live_event(
             "SELECT balance FROM users WHERE telegram_id = ?",
             (user_id,),
         ).fetchone()[0]
+
+    return {"ok":True,"reward":reward,"balance":int(balance)}
+
+
+
+@app.get("/api/daily-v23")
+async def daily_v23(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+    day_key = time.strftime("%Y-%m-%d", time.gmtime(now))
+    rewards = [10, 15, 20, 25, 35, 50, 100]
+
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT day_key, cycle_day, reward, claimed_at
+            FROM daily_calendar_claims
+            WHERE user_id = ?
+            ORDER BY claimed_at DESC LIMIT 14
+            """,
+            (user_id,),
+        ).fetchall()
+
+        claimed_today = next((r for r in rows if r["day_key"] == day_key), None)
+        streak = 0
+        if rows:
+            keys = {r["day_key"] for r in rows}
+            for offset in range(0, 14):
+                k = time.strftime("%Y-%m-%d", time.gmtime(now - offset * 86400))
+                if k in keys:
+                    streak += 1
+                elif offset == 0:
+                    continue
+                else:
+                    break
+
+        cycle_day = (streak % 7) + 1 if not claimed_today else int(claimed_today["cycle_day"])
+        calendar = []
+        for i, reward in enumerate(rewards, start=1):
+            calendar.append({
+                "day": i,
+                "reward": reward,
+                "current": i == cycle_day,
+                "claimed": i < cycle_day or (claimed_today is not None and i == cycle_day),
+                "final": i == 7,
+            })
+
+        drops = db.execute(
+            """
+            SELECT * FROM mystery_drops
+            WHERE active = 1 AND starts_at <= ? AND ends_at > ?
+            ORDER BY ends_at ASC
+            """,
+            (now, now),
+        ).fetchall()
+        drop_items = []
+        for d in drops:
+            claimed = db.execute(
+                "SELECT 1 FROM mystery_drop_claims WHERE drop_id = ? AND user_id = ?",
+                (int(d["id"]), user_id),
+            ).fetchone()
+            drop_items.append({
+                "id": int(d["id"]),
+                "title": d["title"],
+                "reward": int(d["reward"]),
+                "ends_at": int(d["ends_at"]),
+                "seconds_left": max(0, int(d["ends_at"]) - now),
+                "claimed": bool(claimed),
+            })
+
+        return {
+            "day_key": day_key,
+            "streak": streak,
+            "cycle_day": cycle_day,
+            "claimed_today": bool(claimed_today),
+            "today_reward": rewards[cycle_day - 1],
+            "calendar": calendar,
+            "drops": drop_items,
+        }
+
+
+@app.post("/api/daily-v23/claim")
+async def claim_daily_v23(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+    day_key = time.strftime("%Y-%m-%d", time.gmtime(now))
+    rewards = [10, 15, 20, 25, 35, 50, 100]
+
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        exists = db.execute(
+            "SELECT 1 FROM daily_calendar_claims WHERE user_id = ? AND day_key = ?",
+            (user_id, day_key),
+        ).fetchone()
+        if exists:
+            db.rollback()
+            raise HTTPException(409, "Сьогоднішню нагороду вже отримано")
+
+        yesterday = time.strftime("%Y-%m-%d", time.gmtime(now - 86400))
+        last = db.execute(
+            """
+            SELECT cycle_day, day_key FROM daily_calendar_claims
+            WHERE user_id = ? ORDER BY claimed_at DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+        cycle_day = ((int(last["cycle_day"]) % 7) + 1) if last and last["day_key"] == yesterday else 1
+        reward = rewards[cycle_day - 1]
+
+        db.execute(
+            """
+            INSERT INTO daily_calendar_claims(user_id,day_key,cycle_day,reward,claimed_at)
+            VALUES (?,?,?,?,?)
+            """,
+            (user_id,day_key,cycle_day,reward,now),
+        )
+        db.execute(
+            """
+            UPDATE users SET balance = balance + ?, total_earned = total_earned + ?
+            WHERE telegram_id = ?
+            """,
+            (reward,reward,user_id),
+        )
+        db.execute(
+            "INSERT INTO ledger(user_id,amount,note,created_at) VALUES (?,?,?,?)",
+            (user_id,reward,f"Daily Calendar Day {cycle_day}",now),
+        )
+        db.commit()
+        balance = db.execute("SELECT balance FROM users WHERE telegram_id = ?",(user_id,)).fetchone()[0]
+
+    return {"ok":True,"reward":reward,"cycle_day":cycle_day,"balance":int(balance)}
+
+
+@app.post("/api/mystery-drop-v23/{drop_id}/claim")
+async def claim_mystery_drop_v23(
+    drop_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user = current_user(x_telegram_init_data)
+    user_id = int(user["id"])
+    now = int(time.time())
+
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        drop = db.execute(
+            """
+            SELECT * FROM mystery_drops
+            WHERE id = ? AND active = 1 AND starts_at <= ? AND ends_at > ?
+            """,
+            (drop_id,now,now),
+        ).fetchone()
+        if not drop:
+            db.rollback()
+            raise HTTPException(404,"Mystery Drop уже не активний")
+        if db.execute(
+            "SELECT 1 FROM mystery_drop_claims WHERE drop_id = ? AND user_id = ?",
+            (drop_id,user_id),
+        ).fetchone():
+            db.rollback()
+            raise HTTPException(409,"Mystery Drop уже отримано")
+
+        reward=int(drop["reward"])
+        db.execute(
+            "INSERT INTO mystery_drop_claims(drop_id,user_id,reward,claimed_at) VALUES (?,?,?,?)",
+            (drop_id,user_id,reward,now),
+        )
+        db.execute(
+            "UPDATE users SET balance=balance+?, total_earned=total_earned+? WHERE telegram_id=?",
+            (reward,reward,user_id),
+        )
+        db.execute(
+            "INSERT INTO ledger(user_id,amount,note,created_at) VALUES (?,?,?,?)",
+            (user_id,reward,"Mystery Drop",now),
+        )
+        db.commit()
+        balance=db.execute("SELECT balance FROM users WHERE telegram_id=?",(user_id,)).fetchone()[0]
 
     return {"ok":True,"reward":reward,"balance":int(balance)}
 

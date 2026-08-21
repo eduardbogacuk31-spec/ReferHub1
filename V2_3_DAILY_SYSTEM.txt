@@ -1,0 +1,7 @@
+ReferHub Lottery v2.3
+- 7-day Daily Reward calendar.
+- Real server-backed daily claims and streak reset/continuation.
+- Day 7 premium 100 RH reward.
+- Mystery Drop backend and claim system ready for timed drops.
+- Premium Daily UI and another global design-quality pass.
+- Profile v2.2.1, Live Events, Game Center and FAIR DRAW removal preserved.

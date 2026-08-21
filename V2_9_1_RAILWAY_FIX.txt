@@ -1,0 +1,12 @@
+ReferHub Lottery v2.9.1 — Railway Startup Fix
+
+CAUSE:
+v2.9 added the route:
+    request: Request
+but Request was not imported from FastAPI.
+Python evaluates that annotation while importing app.py, so Railway crashed before Uvicorn could start the application.
+
+FIX:
+- Added Request to the FastAPI import.
+- Added `from __future__ import annotations` as an additional startup safeguard.
+- Kept all v2.9 Lottery 2.0 UI and previous v2.3–v2.8.1 features unchanged.

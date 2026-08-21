@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 import hashlib
 import hmac
@@ -13,7 +14,7 @@ from urllib.parse import parse_qsl
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles

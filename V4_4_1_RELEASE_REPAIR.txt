@@ -1,0 +1,27 @@
+ReferHub v4.4.1 — Release Repair
+
+TASKS
+- Fixed Visit tasks: Open -> wait -> Verify.
+- Telegram subscription tasks now have separate Channel + Verify actions.
+- Referral tasks now show Verify instead of incorrectly claiming immediately.
+- Task availability, claim limits and remaining wait are returned by server.
+- Existing claimed/unavailable tasks get correct disabled states.
+
+ADMIN
+- Removed every old message saying the admin panel is below Profile.
+- Admin remains separate from Profile.
+- Settings contains General / Admin tabs; Admin is visible only for admins.
+- Settings Admin shows live dashboard stats and opens full Admin Panel.
+- Admin task enable/disable now works.
+- Added a real compact Create Task form inside Admin Panel.
+
+PEOPLE SEARCH
+- Added Search tab directly to the main Friends page.
+- Search by first name, @username or Telegram ID.
+- Search shows online status, XP/RH and follow button.
+- Follow/unfollow works from search results.
+
+STABILITY
+- Profile v4.3.4 preserved.
+- Game Center v4.4 preserved.
+- Core openPage and scroll architecture not wrapped.

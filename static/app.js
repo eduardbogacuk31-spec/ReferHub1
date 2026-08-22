@@ -948,6 +948,80 @@ function switchProgress82Tab(name,button){
   document.querySelectorAll("[data-pc82-panel]").forEach(p=>p.classList.toggle("active",p.dataset.pc82Panel===name));
 }
 
+
+function task82OpenLink(link){
+  if(!link)return;
+  try{
+    if(window.Telegram?.WebApp?.openLink){
+      window.Telegram.WebApp.openLink(link);
+    }else{
+      window.open(link,"_blank","noopener,noreferrer");
+    }
+  }catch(_){
+    window.open(link,"_blank","noopener,noreferrer");
+  }
+}
+
+async function openTask82(id,link){
+  try{
+    const result=await api(`/api/tasks/${id}/open`,{method:"POST"});
+    task82OpenLink(result.link||link);
+    toast(result.wait_seconds?`Відкрито. Перевірка через ${result.wait_seconds} сек.`:"Посилання відкрито");
+    setTimeout(()=>tasksPage(),350);
+  }catch(error){
+    toast(error.message,"error");
+  }
+}
+
+async function verifyTask82(id){
+  try{
+    const old=Number(me.balance||0);
+    const result=await api(`/api/tasks/${id}/claim`,{method:"POST"});
+    me.balance=Number(result.balance||me.balance||0);
+    motionBalanceUpdate?.(old,me.balance);
+    rewardToast?.("Завдання виконано",`+${result.reward} RH`,"📋");
+    toast(`+${result.reward} RH`);
+    await tasksPage();
+  }catch(error){
+    toast(error.message,"error");
+  }
+}
+
+function task82Actions(task){
+  if(task.claimed){
+    return `<button disabled>✓ ВИКОНАНО</button>`;
+  }
+  if(task.available===false){
+    return `<button disabled title="${esc(task.availability_message||"Недоступно")}">НЕДОСТУПНО</button>`;
+  }
+
+  const type=task.verification_type||"visit";
+  const link=task.link||"";
+
+  if(type==="visit"){
+    if(task.action==="open" || !task.opened_at){
+      return `<button onclick="openTask82(${task.id},'${esc(link)}')">ВІДКРИТИ</button>`;
+    }
+    if(Number(task.remaining_wait||0)>0){
+      return `<button disabled>ЩЕ ${Number(task.remaining_wait)} СЕК.</button>`;
+    }
+    return `<button onclick="verifyTask82(${task.id})">ПЕРЕВІРИТИ</button>`;
+  }
+
+  if(type==="telegram_member"){
+    return `<div class="pc82-task-actions">
+      ${link?`<button class="secondary" onclick="openTask82(${task.id},'${esc(link)}')">КАНАЛ</button>`:""}
+      <button onclick="verifyTask82(${task.id})">ПЕРЕВІРИТИ</button>
+    </div>`;
+  }
+
+  if(type==="referral"){
+    return `<button onclick="verifyTask82(${task.id})">ПЕРЕВІРИТИ</button>`;
+  }
+
+  return `<button onclick="verifyTask82(${task.id})">ЗАБРАТИ</button>`;
+}
+
 async function tasksPage(){
   content.innerHTML=`<div class="loader"></div>`;
 
@@ -1024,9 +1098,7 @@ async function tasksPage(){
                 <p>${esc(task.description||"Виконай умову та забери RH")}</p>
                 <strong>+${task.reward||0} RH</strong>
               </div>
-              <button ${task.claimed?"disabled":""} onclick="${task.claimed?"":`claimTask(${task.id})`}">
-                ${task.claimed?"✓":"Виконати"}
-              </button>
+              ${task82Actions(task)}
             </article>`).join(""):`
             <div class="pc82-empty"><span>◆</span><h3>Усі завдання виконано</h3><p>Нові завдання з'являться пізніше.</p></div>`}
         </div>
@@ -1038,15 +1110,52 @@ async function tasksPage(){
   setupMotionForPage();
 }
 
-async function claimTask(id){
+async function claimTask(id){ return verifyTask82(id); }
+
+
+
+async function social441Search(){
+  const input=document.getElementById("social441Query");
+  const box=document.getElementById("social441Results");
+  const q=(input?.value||"").trim();
+  if(!box)return;
+  if(q.length<2){
+    box.innerHTML=`<div class="social831-empty"><span>⌕</span><h3>Замало символів</h3><p>Введи хоча б 2 символи.</p></div>`;
+    return;
+  }
+
+  box.innerHTML=`<div class="social441-loading"><div class="loader"></div><span>Шукаємо…</span></div>`;
+
   try{
-    const old=me.balance;
-    const result=await api(`/api/tasks/${id}/claim`,{method:"POST"});
-    me.balance=result.balance;
-    motionBalanceUpdate(old,result.balance);
-    toast(`+${result.reward} RH ⭐`);
-    tasksPage();
-  }catch(error){toast(error.message)}
+    const result=await api(`/api/social-v26/search?q=${encodeURIComponent(q)}`);
+    const users=Array.isArray(result?.users)?result.users:[];
+    box.innerHTML=users.length?users.map(user=>`
+      <article class="social441-user">
+        <div class="social831-avatar"><span>${esc((user.first_name||user.username||"R").slice(0,1).toUpperCase())}</span></div>
+        <div class="grow">
+          <b>${esc(user.first_name||user.username||"Користувач")}</b>
+          <small>${user.username?"@"+esc(user.username):"ID "+user.id} · ${user.is_online?"🟢 Онлайн":"⚪ Неактивний"}</small>
+          <span>LVL / XP ${Number(user.xp||0)} · ${Number(user.total_earned||0)} RH</span>
+        </div>
+        <button class="${user.followed?"active":""}" onclick="social441Follow(${user.id},this)">
+          ${user.followed?"✓ ДОДАНО":"+ ДОДАТИ"}
+        </button>
+      </article>`).join(""):`
+      <div class="social831-empty"><span>⌕</span><h3>Нікого не знайдено</h3><p>Перевір ім’я або username.</p></div>`;
+  }catch(error){
+    box.innerHTML=`<div class="social831-empty"><span>!</span><h3>Помилка пошуку</h3><p>${esc(error.message)}</p></div>`;
+  }
+}
+
+async function social441Follow(id,button){
+  try{
+    const result=await api(`/api/social-v26/follow/${id}`,{method:"POST"});
+    button.classList.toggle("active",Boolean(result.followed));
+    button.textContent=result.followed?"✓ ДОДАНО":"+ ДОДАТИ";
+    toast(result.followed?"Гравця додано":"Підписку скасовано");
+  }catch(error){
+    toast(error.message,"error");
+  }
 }
 
 
@@ -1188,6 +1297,7 @@ async function friendsPage(){
 
       <nav class="social831-tabs">
         <button class="active" onclick="social831SwitchTab('friends',this)">Мої друзі</button>
+        <button onclick="social831SwitchTab('search',this)">Пошук</button>
         <button onclick="social831SwitchTab('leaderboard',this)">Рейтинг</button>
         <button onclick="social831SwitchTab('invite',this)">Запрошення</button>
       </nav>
@@ -1222,6 +1332,29 @@ async function friendsPage(){
               <p>Надішли своє посилання другу та отримай першу нагороду.</p>
               <button onclick="shareReferral()">Запросити друга</button>
             </div>`}
+        </div>
+      </div>
+
+
+      <div class="social831-panel" data-social831-panel="search">
+        <div class="social831-title">
+          <div><span>DISCOVER</span><h2>Знайти людей</h2></div>
+          <small>ім’я · @username · Telegram ID</small>
+        </div>
+
+        <div class="social441-search">
+          <span>⌕</span>
+          <input id="social441Query" placeholder="Наприклад @username або ім’я"
+            onkeydown="if(event.key==='Enter')social441Search()">
+          <button onclick="social441Search()">ЗНАЙТИ</button>
+        </div>
+
+        <div id="social441Results" class="social441-results">
+          <div class="social831-empty">
+            <span>⌕</span>
+            <h3>Пошук гравців</h3>
+            <p>Введи щонайменше 2 символи.</p>
+          </div>
         </div>
       </div>
 
@@ -3595,6 +3728,31 @@ async function adminPanelPage(){
         <div><span>TASKS</span><h2>Завдання</h2></div>
         <button onclick="openAdminTaskCreator()">+ Створити</button>
       </div>
+      <div id="admin6TaskCreator" class="admin441-creator" hidden>
+        <div class="admin6-section-title">
+          <div><span>NEW TASK</span><h2>Нове завдання</h2></div>
+          <button onclick="document.getElementById('admin6TaskCreator').hidden=true">×</button>
+        </div>
+        <input id="admin441Title" placeholder="Назва">
+        <textarea id="admin441Description" placeholder="Опис"></textarea>
+        <div class="admin441-grid">
+          <input id="admin441Reward" type="number" value="10" min="0" placeholder="RH">
+          <input id="admin441Icon" value="⭐" placeholder="Іконка">
+        </div>
+        <div class="admin441-grid">
+          <select id="admin441Verification">
+            <option value="visit">Перехід + таймер</option>
+            <option value="telegram_member">Підписка Telegram</option>
+            <option value="referral">Запрошений друг</option>
+            <option value="instant">Миттєве</option>
+          </select>
+          <input id="admin441Wait" type="number" value="5" min="0" placeholder="Очікування, сек">
+        </div>
+        <input id="admin441Link" placeholder="Посилання">
+        <input id="admin441Chat" placeholder="@канал / chat_id для Telegram-перевірки">
+        <button class="primary full" onclick="createAdmin441Task()">СТВОРИТИ ЗАВДАННЯ</button>
+      </div>
+
       <div class="admin6-content-grid">
         ${tasks.map(task=>`
           <article>
@@ -3682,6 +3840,34 @@ function openAdminUser(id){
   requestAnimationFrame(()=>modal.classList.add("show"));
 }
 
+
+async function createAdmin441Task(){
+  try{
+    const verification=document.getElementById("admin441Verification")?.value||"visit";
+    await api("/api/admin/tasks",{
+      method:"POST",
+      body:JSON.stringify({
+        title:(document.getElementById("admin441Title")?.value||"").trim(),
+        description:(document.getElementById("admin441Description")?.value||"").trim(),
+        reward:Number(document.getElementById("admin441Reward")?.value||0),
+        icon:(document.getElementById("admin441Icon")?.value||"⭐").trim(),
+        category:"other",
+        verification_type:verification,
+        link:(document.getElementById("admin441Link")?.value||"").trim()||null,
+        telegram_chat_id:(document.getElementById("admin441Chat")?.value||"").trim()||null,
+        wait_seconds:Number(document.getElementById("admin441Wait")?.value||0),
+        sort_order:0,
+        max_claims:0,
+        starts_at:0,
+        ends_at:0
+      })
+    });
+    toast("Завдання створено");
+    await adminPanelPage();
+    setTimeout(()=>showAdmin6Tab("tasks",document.querySelector('.admin6-tabs button:nth-child(4)')),100);
+  }catch(error){toast(error.message,"error")}
+}
+
 async function adminBalanceChange(userId,direction){
   const amount=Math.abs(Number(document.getElementById("admin6BalanceAmount")?.value||0))*direction;
   if(!amount)return toast("Вкажи суму");
@@ -3720,19 +3906,33 @@ async function updateAdminOrderStatus(orderId,status){
 }
 
 function openAdminTaskCreator(){
-  toast("Форма створення завдання залишається в поточній адмінці нижче профілю");
+  showAdmin6Tab("tasks",document.querySelector('.admin6-tabs button:nth-child(4)'));
+  const host=document.getElementById("admin6TaskCreator");
+  if(host){ host.hidden=false; host.scrollIntoView({behavior:"smooth",block:"start"}); }
 }
 
 function openAdminGiftCreator(){
-  toast("Форма додавання товару залишається в поточній адмінці нижче профілю");
+  openPage("admin");
+  setTimeout(()=>showAdmin6Tab("shop",document.querySelector('.admin6-tabs button:nth-child(5)')),120);
+  toast("Керування товарами відкрито");
 }
 
-function toggleAdminTask(id,isActive){
-  toast("Керування активністю завдання залишено через поточну форму адмінки");
+async function toggleAdminTask(id,isActive){
+  try{
+    if(isActive){
+      await api(`/api/admin/tasks/${id}/restore`,{method:"POST"});
+    }else{
+      await api(`/api/admin/tasks/${id}`,{method:"DELETE"});
+    }
+    toast(isActive?"Завдання увімкнено":"Завдання вимкнено");
+    adminPanelPage();
+  }catch(error){toast(error.message,"error")}
 }
 
 function editAdminGift(id){
-  toast("Редагування товару залишено через поточну форму адмінки");
+  openPage("admin");
+  setTimeout(()=>showAdmin6Tab("shop",document.querySelector('.admin6-tabs button:nth-child(5)')),120);
+  toast(`Товар #${id} — відкрито розділ магазину`);
 }
 
 

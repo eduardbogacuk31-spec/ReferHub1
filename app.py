@@ -3365,14 +3365,29 @@ async def social_v26_search(q: str="", x_telegram_init_data: str | None = Header
     user=current_user(x_telegram_init_data); uid=int(user["id"]); q=(q or "").strip().lstrip("@")
     if len(q)<2: return {"users":[]}
     with connect_db() as db:
-        rows=db.execute("""SELECT telegram_id,username,first_name,xp FROM users
-          WHERE telegram_id<>? AND (LOWER(COALESCE(username,'')) LIKE LOWER(?) OR LOWER(COALESCE(first_name,'')) LIKE LOWER(?))
-          ORDER BY xp DESC LIMIT 12""",(uid,f"%{q}%",f"%{q}%")).fetchall()
+        rows=db.execute("""SELECT telegram_id,username,first_name,xp,total_earned,last_seen FROM users
+          WHERE telegram_id<>? AND (
+            LOWER(COALESCE(username,'')) LIKE LOWER(?)
+            OR LOWER(COALESCE(first_name,'')) LIKE LOWER(?)
+            OR CAST(telegram_id AS TEXT) LIKE ?
+          )
+          ORDER BY
+            CASE WHEN LOWER(COALESCE(username,'')) = LOWER(?) THEN 0 ELSE 1 END,
+            xp DESC
+          LIMIT 20""",(uid,f"%{q}%",f"%{q}%",f"%{q}%",q)).fetchall()
         out=[]
         for r in rows:
             rid=int(r["telegram_id"])
             followed=bool(db.execute("SELECT 1 FROM social_follows WHERE follower_id=? AND followed_id=?",(uid,rid)).fetchone())
-            out.append({"id":rid,"username":r["username"],"first_name":r["first_name"],"xp":int(r["xp"] or 0),"followed":followed})
+            out.append({
+                "id":rid,
+                "username":r["username"],
+                "first_name":r["first_name"],
+                "xp":int(r["xp"] or 0),
+                "total_earned":int(r["total_earned"] or 0),
+                "is_online":int(time.time())-int(r["last_seen"] or 0)<=300,
+                "followed":followed,
+            })
         return {"users":out}
 
 @app.post("/api/social-v26/follow/{target_id}")
@@ -5328,6 +5343,31 @@ async def api_tasks(x_telegram_init_data: str | None = Header(default=None)):
                 if item["max_claims"]
                 else None
             )
+
+            available, availability_message = task_availability(db, row)
+            item["available"] = bool(available)
+            item["availability_message"] = availability_message
+
+            remaining_wait = 0
+            if item.get("opened_at") and item.get("wait_seconds"):
+                remaining_wait = max(
+                    0,
+                    int(item["opened_at"]) + int(item["wait_seconds"]) - int(time.time()),
+                )
+            item["remaining_wait"] = remaining_wait
+
+            verification = item.get("verification_type") or "visit"
+            if item["claimed"]:
+                item["action"] = "claimed"
+            elif not item["available"]:
+                item["action"] = "unavailable"
+            elif verification == "visit" and not item.get("opened_at"):
+                item["action"] = "open"
+            elif verification == "visit" and remaining_wait > 0:
+                item["action"] = "wait"
+            else:
+                item["action"] = "verify"
+
             result.append(item)
 
     return result

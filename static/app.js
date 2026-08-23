@@ -5382,6 +5382,7 @@ async function openPage(page){
         if(invite)invite.click();
       },30);
     },
+    season:()=>window.seasonHub426(),
     games:gamesPage,
     shop:shopPage,
     tournaments:tournamentsPage,

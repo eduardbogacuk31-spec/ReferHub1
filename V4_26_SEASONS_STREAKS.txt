@@ -1,0 +1,22 @@
+ReferHub v4.26 — Seasons + Streaks
+
+NEW:
+- Dedicated Season tab.
+- Season I: Genesis Season.
+- 30-level season progression.
+- Season XP calculated from existing real account/referral data.
+- Referrals are the dominant XP source: +500 seasonal XP each.
+- Active referrals: +180 seasonal XP each.
+- 25% of account XP contributes to season score.
+- Live progress to next level.
+- Season countdown.
+- Season reward path with cosmetic/title concepts.
+- Referral Boost card linking directly to Referral Hub.
+- Streak UI foundation.
+
+IMPORTANT:
+- No fake login history was created.
+- Current backend does not expose a historical daily-login ledger, so v4.26
+  only shows a safe current streak indicator.
+- Reward cards are progression/cosmetic UI and do not mutate RH balance.
+- Existing referral system, games, admin and economy are preserved.

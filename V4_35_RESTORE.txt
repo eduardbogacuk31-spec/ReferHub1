@@ -1,0 +1,19 @@
+ReferHub v4.35 — Restore correct Lottery + repair four modern games
+
+LOTTERY
+- Restored lottery-v29.js / lottery-v29.css from the known-good v4.30 line.
+- Kept its original visual design and lottery detail screen.
+- Removed ONLY its document-wide navigation click hook.
+- openPage('lotteries') from the existing app still opens rh29Open().
+- No new lottery tab or replacement lottery UI added.
+- Existing Admin Center “Новий розіграш” feature remains.
+- Existing referral reward admin control remains.
+
+MODERN GAMES
+- Color Pick / High-Low / Lucky Card / Triple Pick now have one self-contained module.
+- Game Center itself is NOT replaced.
+- 11 classic games are NOT changed.
+- The four modern games call their real backend endpoints directly.
+- Result + history update on the same screen.
+- Live availability/cooldown runs on the same screen.
+- Uses the app's single vertical main scroller; no nested scroll lock.

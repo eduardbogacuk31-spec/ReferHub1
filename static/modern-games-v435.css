@@ -1,0 +1,128 @@
+
+/* ReferHub v4.35 — four modern games only */
+.mg435-page{
+  position:relative!important;
+  width:100%!important;
+  max-width:920px!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:0 0 130px!important;
+  overflow:visible!important;
+  touch-action:pan-y!important;
+}
+.mg435-back{
+  min-height:37px;padding:7px 10px;border:1px solid rgba(255,255,255,.055);
+  border-radius:9px;background:#101318;color:#8b95a0;font-size:6px;font-weight:900
+}
+.mg435-hero{
+  display:grid;grid-template-columns:72px minmax(0,1fr) 135px;gap:11px;align-items:center;
+  margin-top:8px;padding:13px;border:1px solid rgba(133,88,160,.14);border-radius:17px;
+  background:radial-gradient(circle at 90% 0%,rgba(128,77,158,.16),transparent 34%),linear-gradient(145deg,#15141a,#0e1116)
+}
+.mg435-icon{
+  width:72px;height:72px;display:grid;place-items:center;border-radius:17px;
+  background:#211729;font-size:31px
+}
+.mg435-title small,.mg435-history small,.mg435-stage small,.mg435-cooldown small{
+  color:#916aa5;font-size:5px;font-weight:950;letter-spacing:.1em
+}
+.mg435-title h1{margin:2px 0;font-size:23px}
+.mg435-title p{margin:0;color:#747e89;font-size:6px;line-height:1.45}
+.mg435-attempts{
+  padding:10px;border:1px solid rgba(255,255,255,.05);border-radius:11px;background:#101318
+}
+.mg435-attempts small,.mg435-attempts b{display:block}
+.mg435-attempts small{font-size:4.5px;color:#707985}
+.mg435-attempts b{margin-top:3px;font-size:10px}
+
+.mg435-cooldown{
+  display:none;grid-template-columns:58px minmax(0,1fr);gap:9px;align-items:center;
+  margin-top:8px;padding:9px;border:1px solid rgba(214,174,77,.13);border-radius:13px;background:#17150f
+}
+.mg435-cooldown.show{display:grid}
+.mg435-clock{
+  width:58px;height:58px;display:grid;place-items:center;border:1px solid rgba(217,178,77,.18);
+  border-radius:50%;background:#211c10
+}
+.mg435-clock b{color:#e0bb5d;font-size:9px;font-variant-numeric:tabular-nums}
+.mg435-cooldown h3{margin:2px 0;font-size:9px}
+.mg435-cooldown p{margin:0;color:#747d87;font-size:5px}
+
+.mg435-stage{
+  margin-top:8px;padding:12px;border:1px solid rgba(255,255,255,.05);
+  border-radius:15px;background:#101318
+}
+.mg435-stage>header{
+  display:flex;justify-content:space-between;gap:9px;align-items:center;margin-bottom:10px
+}
+.mg435-stage h2{margin:2px 0;font-size:14px}
+#mg435Result{
+  max-width:55%;text-align:right;color:#7c8691;font-size:6px
+}
+#mg435Result.win{color:#6bcf99}
+
+.mg435-choices{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px
+}
+.mg435-choices button{
+  min-height:88px;display:grid;place-items:center;align-content:center;gap:6px;
+  border:1px solid rgba(255,255,255,.06);border-radius:13px;background:#15191f;color:#e9ebed;
+  touch-action:manipulation
+}
+.mg435-choices button>b{font-size:10px}
+.mg435-choices button small{font-size:4.5px;color:#707a85}
+.mg435-choices button.red{border-color:rgba(198,68,88,.18);background:#211217}
+.mg435-choices button.blue{border-color:rgba(72,130,193,.18);background:#101824}
+.mg435-choices button.green{border-color:rgba(65,164,112,.18);background:#0f1b16}
+.mg435-choices button.black{background:#0c0e12}
+.mg435-choices button.center{border-color:rgba(142,90,172,.18);background:#1b1321}
+.mg435-choices button:disabled{opacity:.42}
+
+.mg435-history{
+  margin-top:8px;padding:11px;border:1px solid rgba(255,255,255,.05);
+  border-radius:14px;background:#0f1217
+}
+.mg435-history h2{margin:2px 0 8px;font-size:13px}
+#mg435History{display:grid;gap:5px}
+#mg435History article{
+  display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:7px;align-items:center;
+  padding:7px;border:1px solid rgba(255,255,255,.04);border-radius:9px;background:#11151a
+}
+#mg435History article>span{
+  width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:#191720
+}
+#mg435History article b,#mg435History article small{display:block}
+#mg435History article b{font-size:6px}
+#mg435History article small{margin-top:2px;color:#6e7882;font-size:4.5px}
+#mg435History article strong{font-size:6px;color:#737d87}
+#mg435History article strong.win{color:#69cd98}
+.mg435-empty{text-align:center;color:#717b86;font-size:6px}
+
+/* Critical: game page uses the app's single outer scroller. */
+body:has(.mg435-page) > main{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+body:has(.mg435-page) #content{
+  height:auto!important;
+  min-height:100%!important;
+  overflow:visible!important;
+  touch-action:pan-y!important;
+}
+body:has(.mg435-page) .mg435-page,
+body:has(.mg435-page) .mg435-stage,
+body:has(.mg435-page) .mg435-history{
+  max-height:none!important;
+  overflow:visible!important;
+}
+
+@media(max-width:650px){
+  .mg435-hero{grid-template-columns:58px minmax(0,1fr)}
+  .mg435-icon{width:58px;height:58px;font-size:25px}
+  .mg435-attempts{grid-column:1/3}
+  .mg435-choices{grid-template-columns:1fr!important}
+  .mg435-choices button{min-height:58px}
+}

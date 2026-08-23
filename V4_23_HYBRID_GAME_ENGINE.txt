@@ -1,0 +1,33 @@
+ReferHub v4.23 — Hybrid Game Engine
+
+REAL FIX:
+- Restored Game Pro visual/game screens for the 11 classic games:
+  roulette, daily_case, slot, coin_flip, number_guess, scratch,
+  safe_crack, dice_duel, rps, treasure_grid, reaction.
+- Preserved the modern engine for:
+  color_pick, high_low, lucky_card, triple_pick.
+- The 15-game catalog remains available.
+
+REMOVED FROM CLASSIC GAMES:
+- All post-round setTimeout(() => openGameDetail(...)) full-page reloads.
+
+ADDED:
+- Live availability timer directly inside the old Game Pro stage.
+- Old result/animation remains visible first.
+- Cooldown begins after the animation finishes.
+- Screen and scroll position remain unchanged.
+- Daily reset uses the real backend countdown.
+- At 00:00 ONLY the game stage rerenders and becomes playable again.
+
+PRESERVED:
+- Old Roulette wheel.
+- Daily Vault presentation.
+- Slot reels.
+- Coin animation.
+- Scratch interaction.
+- Safe/Vault presentation.
+- Dice animation.
+- RPS arena.
+- Treasure grid.
+- Reaction pad.
+- Modern four games.

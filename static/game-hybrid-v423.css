@@ -1,0 +1,53 @@
+
+/* ReferHub v4.23 — classic Game Pro live timer */
+.gp423-live-wait{
+  display:grid!important;
+  grid-template-columns:72px minmax(0,1fr)!important;
+  gap:11px!important;
+  align-items:center!important;
+  margin:8px 0 12px!important;
+  padding:11px!important;
+  border:1px solid rgba(211,174,78,.15)!important;
+  border-radius:14px!important;
+  background:radial-gradient(circle at 12% 50%,rgba(205,164,62,.10),transparent 30%),linear-gradient(145deg,#18160f,#111318)!important;
+}
+.gp423-clock{
+  position:relative!important;
+  width:72px!important;height:72px!important;
+  display:grid!important;place-items:center!important;
+  border-radius:50%!important;
+  background:#211d12!important;
+  border:1px solid rgba(218,180,77,.18)!important;
+}
+.gp423-clock::after{
+  content:"";
+  position:absolute!important;inset:-4px!important;
+  border:2px solid transparent!important;
+  border-top-color:#dfbc5d!important;
+  border-right-color:rgba(223,188,93,.30)!important;
+  border-radius:50%!important;
+  animation:gp423spin 1.15s linear infinite!important;
+}
+@keyframes gp423spin{to{transform:rotate(360deg)}}
+.gp423-clock b{
+  color:#e2bf62!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  font-variant-numeric:tabular-nums!important;
+}
+.gp423-live-wait small,.gp423-live-wait h3,.gp423-live-wait p{display:block!important}
+.gp423-live-wait small{color:#a58847!important;font-size:5px!important;font-weight:950!important;letter-spacing:.12em!important}
+.gp423-live-wait h3{margin:2px 0!important;font-size:10px!important}
+.gp423-live-wait p{margin:0!important;color:#747d88!important;font-size:6px!important;line-height:1.45!important}
+.gp423-ready{color:#69cf99!important}
+.gp423-ready-flash{animation:gp423ready .65s ease!important}
+@keyframes gp423ready{
+  0%{box-shadow:0 0 0 rgba(94,210,148,0)}
+  45%{box-shadow:0 0 0 3px rgba(94,210,148,.10),0 0 28px rgba(94,210,148,.09)}
+  100%{box-shadow:0 0 0 rgba(94,210,148,0)}
+}
+@media(max-width:500px){
+  .gp423-live-wait{grid-template-columns:58px minmax(0,1fr)!important}
+  .gp423-clock{width:58px!important;height:58px!important}
+  .gp423-clock b{font-size:9px!important}
+}

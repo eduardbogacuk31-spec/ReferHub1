@@ -240,7 +240,7 @@ async function gv2PlayRoulette(){
       if(box){box.querySelector("strong").textContent=result.is_jackpot?`★ +${result.reward}`:`+${result.reward} ⭐`;box.classList.add("show");}
       toast(result.result_text);
     },3000);
-    setTimeout(()=>openGameDetail("roulette"),4200);
+    setTimeout(()=>gp423AfterPlay("roulette"),4200);
   }catch(e){btn.disabled=false;toast(e.message,"error");}
 }
 
@@ -255,7 +255,7 @@ async function gv2OpenCase(){
     me.balance=Number(result.balance||0);gv2Balance();
     const r=document.getElementById("gv2CaseResult");if(r){r.textContent=`+${result.reward} RH`;r.classList.add("win");}
     toast(result.result_text);
-    setTimeout(()=>openGameDetail("daily_case"),2600);
+    setTimeout(()=>gp423AfterPlay("daily_case"),2600);
   }catch(e){gv2CaseBusy=false;if(box)box.disabled=false;if(btn)btn.disabled=false;toast(e.message,"error");}
 }
 
@@ -267,7 +267,7 @@ async function gv2PlaySlot(){
   try{
     const bet=Number(document.getElementById("gv2SlotBet")?.value||0),result=await api("/api/games/slot",{method:"POST",body:JSON.stringify({bet})});
     setTimeout(()=>{clearInterval(timer);reels.forEach((r,i)=>r.textContent=result.symbols[i]);document.getElementById("gv2SlotResult").textContent=result.reward?`Виграш +${result.reward} RH`:"Без виграшу";me.balance=Number(result.balance);gv2Balance();},1200);
-    setTimeout(()=>openGameDetail("slot"),2500);
+    setTimeout(()=>gp423AfterPlay("slot"),2500);
   }catch(e){clearInterval(timer);btn.disabled=false;toast(e.message,"error");}
 }
 
@@ -277,7 +277,7 @@ async function gv2PlayCoin(choice){
   try{
     const bet=Number(document.getElementById("gv2CoinBet")?.value||0),result=await api("/api/games/coin-flip",{method:"POST",body:JSON.stringify({bet,choice})});
     setTimeout(()=>{coin?.classList.remove("flip");if(coin)coin.textContent=result.result==="heads"?"🦅":"🪙";document.getElementById("gv2CoinResult").textContent=result.win?`Перемога +${result.reward} RH`:`Випала ${result.result==="heads"?"орел":"решка"}`;me.balance=Number(result.balance);gv2Balance();},900);
-    setTimeout(()=>openGameDetail("coin_flip"),2100);
+    setTimeout(()=>gp423AfterPlay("coin_flip"),2100);
   }catch(e){coin?.classList.remove("flip");document.querySelectorAll(".gv2-two button").forEach(b=>b.disabled=false);toast(e.message,"error");}
 }
 
@@ -289,7 +289,7 @@ async function gv2PlayGuess(n){
     document.getElementById("gv2GuessResult").textContent=result.win?`Точно! +${result.reward} RH`:`Ти обрав ${n}. Правильно: ${result.answer}`;
     document.querySelectorAll(".gv2-five button").forEach(b=>{if(Number(b.textContent)===Number(result.answer))b.classList.add("correct");else if(Number(b.textContent)===n)b.classList.add("wrong");});
     me.balance=Number(result.balance);gv2Balance();
-    setTimeout(()=>openGameDetail("number_guess"),2200);
+    setTimeout(()=>gp423AfterPlay("number_guess"),2200);
   }catch(e){document.querySelectorAll(".gv2-five button").forEach(b=>b.disabled=false);toast(e.message,"error");}
 }
 
@@ -312,6 +312,6 @@ async function gv2PlaySafe(n){
     document.querySelectorAll(".gv2-six button").forEach(b=>{if(Number(b.textContent)===Number(result.correct))b.classList.add("correct");else if(Number(b.textContent)===n)b.classList.add("wrong");});
     document.getElementById("gv2SafeResult").textContent=result.win?`Сейф відкрито! +${result.reward} RH`:`Код був ${result.correct}`;
     me.balance=Number(result.balance);gv2Balance();
-    setTimeout(()=>openGameDetail("safe_crack"),2200);
+    setTimeout(()=>gp423AfterPlay("safe_crack"),2200);
   }catch(e){document.querySelectorAll(".gv2-six button").forEach(b=>b.disabled=false);toast(e.message,"error");}
 }

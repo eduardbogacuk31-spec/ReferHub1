@@ -606,6 +606,7 @@ function startScratchInteraction(surface){
         : "ПУСТО";
       under.classList.toggle("win",scratchResult.reward>0);
       motionBalanceUpdate(old,scratchResult.balance,"Скретч-картка");
+      gc418AfterPlay?.("scratch",scratchResult.result_text||"Скретч-картка",Number(scratchResult.reward||0));
     }catch(error){
       scratchResult={error:error.message};
       under.textContent=error.message;
@@ -1903,10 +1904,10 @@ async function openGameDetail(gameId){
     : (game?.daily_limit&&Number(game.plays_today||0)>=Number(game.daily_limit) ? "Ліміт" : "Готово");
 
   content.innerHTML=`
-    <section class="gc14-page ${g.cls}">
+    <section class="gc14-page ${g.cls}" data-game-id="${gameId}">
       <div class="gc14-topbar">
         <button onclick="gamesPage()">← Каталог ігор</button>
-        <div><span>${Number(me.balance||0)} RH</span><small>${status}</small></div>
+        <div><span id="gc418Balance">${Number(me.balance||0)} RH</span><small id="gc418TopStatus">${status}</small></div>
       </div>
 
       <section class="gc14-hero">
@@ -1932,7 +1933,7 @@ async function openGameDetail(gameId){
       <section class="gc14-game-shell">
         <div class="gc14-game-head">
           <div><span>LIVE GAME</span><h2>${g.name}</h2></div>
-          <b>${status}</b>
+          <b id="gc418HeadStatus">${status}</b>
         </div>
         ${gc14GameMarkup(gameId,game,gameHistory)}
       </section>
@@ -2137,7 +2138,7 @@ async function gc44SimplePlay(endpoint,body,gameId){
     }
     const reward=Number(result.reward||0);
     toast(reward>0?`+${reward} RH 🎉`:(result.result_text||"Цього разу без нагороди"),reward>0?"success":"info");
-    setTimeout(()=>openGameDetail(gameId),350);
+    gc418AfterPlay?.(gameId,result.result_text||"",Number(result.reward||0));
     return result;
   }catch(error){toast(error.message,"error")}
 }
@@ -2161,7 +2162,7 @@ async function startReaction44(){
       me.balance=Number(result.balance??me.balance);
       toast(`⚡ ${reaction_ms} ms · +${Number(result.reward||0)} RH`,Number(result.reward||0)>0?"success":"info");
       reaction44Token=null; reaction44Ready=false;
-      setTimeout(()=>openGameDetail("reaction"),400);
+      gc418AfterPlay?.("reaction",`Reaction: ${reaction_ms} ms`,Number(result.reward||0));
     }catch(error){toast(error.message,"error")}
     return;
   }
@@ -2634,7 +2635,7 @@ async function playCoinFlip(choice){
     if(typeof coinAnimation==="function")coinAnimation(result.result);
     if(result.win&&typeof celebrateUltra==="function")celebrateUltra("coin");
     toast(result.win?`Виграш ${result.reward} RH ⭐`:`Випала ${result.result==="heads"?"орел":"решка"}`);
-    setTimeout(()=>openGameDetail('coin_flip'),850);
+    gc418AfterPlay?.("coin_flip",result.win?`Виграш ${result.reward} RH`:`Випала ${result.result==="heads"?"орел":"решка"}`,Number(result.reward||0));
   }catch(error){
     buttons.forEach(button=>button.disabled=false);
     toast(error.message);
@@ -2659,7 +2660,7 @@ async function playNumberGuess(number){
     });
     if(result.win&&typeof celebrateUltra==="function")celebrateUltra("guess");
     toast(result.win?`Вгадав! +${result.reward} RH ⭐`:`Правильне число: ${result.answer}`);
-    setTimeout(()=>openGameDetail('number_guess'),1100);
+    gc418AfterPlay?.("number_guess",result.win?`Вгадав число ${result.answer}`:`Правильне число: ${result.answer}`,Number(result.reward||0));
   }catch(error){
     buttons.forEach(button=>button.disabled=false);
     toast(error.message);
@@ -2693,7 +2694,7 @@ async function playSafeCrack(number){
     if(result.win&&typeof safeUnlockAnimation==="function")safeUnlockAnimation();
     if(result.win&&typeof celebrateUltra==="function")celebrateUltra("safe");
     toast(result.win?`Сейф відкрито! +${result.reward} RH ⭐`:`Код був у комірці ${result.correct}`);
-    setTimeout(()=>openGameDetail('safe_crack'),1100);
+    gc418AfterPlay?.("safe_crack",result.win?`Сейф відкрито`:`Код був у комірці ${result.correct}`,Number(result.reward||0));
   }catch(error){
     buttons.forEach(button=>button.disabled=false);
     toast(error.message);
@@ -2741,7 +2742,7 @@ async function playRoulette(){
       luxuryWinBurst("win");
     }
     toast(result.result_text);
-    setTimeout(()=>openGameDetail('roulette'),850);
+    gc418AfterPlay?.("roulette",result.result_text||"Рулетка завершена",Number(result.reward||0));
   }catch(error){
     if(button)button.disabled=false;
     toast(error.message);
@@ -2770,7 +2771,7 @@ async function playSlot(){
     if(result.reward>=bet*4&&typeof celebrateUltra==="function")celebrateUltra("jackpot");
     else if(result.reward&&typeof celebrateUltra==="function")celebrateUltra("slot");
     toast(result.reward?`Виграш: ${result.reward} RH ⭐`:"Цього разу без виграшу");
-    setTimeout(()=>openGameDetail('slot'),1300);
+    gc418AfterPlay?.("slot",result.reward?`Виграш: ${result.reward} RH`:"Без виграшу",Number(result.reward||0));
   }catch(error){
     slotResult?.classList.remove("slot-spinning");
     if(button)button.disabled=false;
@@ -2796,7 +2797,7 @@ async function openDailyCase(){
     if(Number(result.reward)>=5)luxuryWinBurst("jackpot");
     else luxuryWinBurst("win");
     toast(result.result_text);
-    setTimeout(()=>openGameDetail('daily_case'),950);
+    gc418AfterPlay?.("daily_case",result.result_text||"Daily Case відкрито",Number(result.reward||0));
   }catch(error){
     if(button)button.disabled=false;
     toast(error.message);

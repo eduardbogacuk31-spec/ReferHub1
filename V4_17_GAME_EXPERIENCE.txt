@@ -1,0 +1,10 @@
+ReferHub v4.17 — Game Experience
+- Game of the Day.
+- Search games.
+- Favorites.
+- Recently played.
+- Quick launch.
+- Favorite star on cards.
+- Continue Playing row.
+- Better detail tip.
+- Existing 15 game mechanics preserved.

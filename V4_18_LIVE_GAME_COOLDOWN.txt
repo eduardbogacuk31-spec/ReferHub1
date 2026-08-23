@@ -1,0 +1,20 @@
+ReferHub v4.18 — Live Game Cooldown
+
+FIXED:
+- Game screen no longer fully rerenders after each completed round.
+- Player stays at the same scroll position / same game screen.
+- Cooldown is a real live countdown, updated several times per second.
+- Top status and game status update live.
+- Controls remain disabled only while cooldown is active.
+- At 00:00 controls automatically unlock.
+- Player can immediately play the next round without reopening the game.
+- Latest result is added to history locally without remounting the page.
+- Remaining daily attempts update without a page refresh.
+- Scratch card is reset automatically after its cooldown.
+- Reaction, Roulette, Daily Case and Slot primary controls reset automatically.
+
+PRESERVED:
+- Existing server-side cooldown and daily-limit enforcement.
+- Existing 15 game endpoints and reward logic.
+- Existing Game Center navigation.
+- No core scroll rewrite.

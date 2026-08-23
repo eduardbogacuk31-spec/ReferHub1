@@ -1,0 +1,7 @@
+v4.33 targeted repair
+- Original v4.31 lottery-v29.js preserved byte-for-byte.
+- No replacement lottery tab/UI added.
+- Removed navigation-v431.js isolation wrapper.
+- Added only active-nav repair.
+- Added vertical scrolling repair for Games and game-detail screens.
+- Existing game UI/routes/backend remain untouched.

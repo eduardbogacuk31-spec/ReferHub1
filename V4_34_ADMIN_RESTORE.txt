@@ -1,0 +1,18 @@
+ReferHub v4.34 — Admin Restore
+
+BASE:
+- v4.33 kept as the base.
+- lottery-v29.js preserved byte-for-byte.
+- v4.33 Games scroll repair preserved.
+
+RESTORED FROM v4.29:
+- Persistent referral_reward setting.
+- Current referral reward getter.
+- New referral signup payout uses the saved setting.
+- Referral summary displays the saved setting.
+- GET/POST admin referral reward endpoints.
+- Admin Center quick action “Нагорода за реферала”.
+- Admin reward modal and save handler.
+- Admin modal CSS.
+
+No lottery, game UI, customization or referral catalog redesign in this patch.

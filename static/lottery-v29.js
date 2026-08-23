@@ -192,4 +192,13 @@
  };
 
  setInterval(()=>EA("[data-rh29-end]").forEach(e=>e.textContent=left(e.dataset.rh29End)),1000);
+
+ // Hook existing lottery/menu buttons without destroying old navigation.
+ document.addEventListener("click",ev=>{
+   const b=ev.target.closest("[data-page='lotteries'],[data-page='lottery'],[data-nav='lottery'],.rh-lottery-open");
+   if(!b)return;
+   ev.preventDefault();
+   ev.stopPropagation();
+   setTimeout(load,0);
+ },true);
 })();

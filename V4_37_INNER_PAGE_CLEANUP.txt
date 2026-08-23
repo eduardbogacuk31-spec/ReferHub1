@@ -1,0 +1,21 @@
+ReferHub v4.37 — Inner Page Cleanup
+
+FIXED FROM SCREENSHOTS:
+- profile-head and hero-balance are static elements outside #content.
+- They are now visible ONLY on Home.
+- Season / Lottery / Referrals / Games / Profile / other inner pages start cleanly at top.
+- Global ONLINE badge no longer overlays inner page content.
+
+LOTTERY:
+- Active / Mine / Finished always remain in one row on mobile.
+- Removed the v4.36 mobile 1-column tab behavior.
+- Lottery card title/text sizes are explicitly constrained.
+- Ticket card cannot inherit huge global heading sizes.
+- Card stats remain 3 compact columns.
+- Single vertical page scroll preserved.
+
+SEASON:
+- Starts at top without the old purple balance card.
+- Main Season title sizes are protected from global Large UI scaling.
+
+No backend, admin, referral economy or game logic changed.

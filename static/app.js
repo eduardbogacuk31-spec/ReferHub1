@@ -5366,6 +5366,8 @@ async function createTournament(){
 
 async function openPage(page){
   document.body.classList.toggle("rhx-home-active",page==="home");
+  document.body.classList.toggle("rh437-inner-page",page!=="home");
+  document.body.dataset.rh437Page=page;
   const pages={
     home:homePage,
     lotteries:async()=>{

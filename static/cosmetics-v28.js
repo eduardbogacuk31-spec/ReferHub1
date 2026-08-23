@@ -16,8 +16,22 @@
 
  function itemCard(x){
    return `<article class="rh28-item ${x.rarity} ${x.unlocked?"open":"locked"} ${x.equipped?"equipped":""}">
-     <div class="rh28-preview ${x.css_class}">
-       <i>${x.icon}</i>
+     <div class="rh28-preview ${x.css_class}" data-cosmetic-type="${esc28(x.type)}">
+       <div class="rh430-demo">
+         <div class="rh430-demo-bg"></div>
+         <div class="rh430-demo-card">
+           <div class="rh430-demo-avatar"><span>R</span></div>
+           <div class="rh430-demo-copy">
+             <b>REFERHUB</b>
+             <small>PLAYER PROFILE</small>
+           </div>
+           <div class="rh430-demo-badge">${x.type==="badge"?(x.icon||"★"):""}</div>
+         </div>
+         <div class="rh430-demo-title">${x.type==="title"?esc28(x.title):""}</div>
+         <div class="rh430-demo-effect"></div>
+         <div class="rh430-demo-accent"></div>
+         <div class="rh430-demo-cardstyle"><i></i><i></i><i></i></div>
+       </div>
        <em></em>
      </div>
      <div class="rh28-item-copy">
@@ -56,7 +70,7 @@
        <div class="rh28-hero-copy">
          <span>PROFILE CUSTOMIZATION</span>
          <h1>Твій стиль у ReferHub</h1>
-         <p>Відкривай рамки, фони, титули та ефекти за прогрес у грі.</p>
+         <p>Кожна картка нижче показує реальний вигляд нагороди до її відкриття.</p>
        </div>
        <div class="rh28-stats">
          <article><small>LEVEL</small><b>${rh28Data.level}</b></article>

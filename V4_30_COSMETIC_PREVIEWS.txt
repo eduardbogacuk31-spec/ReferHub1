@@ -1,0 +1,13 @@
+ReferHub v4.30 — Cosmetic Preview Upgrade
+
+- Every cosmetic card now contains a real miniature profile preview.
+- Frames show the actual avatar-frame appearance.
+- Backgrounds show the actual background treatment.
+- Titles display their title directly on the sample profile.
+- Effects visibly demonstrate glow/sparks/prism/scan/crimson/genesis.
+- Badges show their badge position on the profile.
+- Accent colors show a real UI accent strip.
+- Card Styles show a three-card miniature layout.
+- Locked rewards remain visible enough to understand what will be unlocked.
+- Responsive mobile sizing preserved.
+- v4.29 game repair and admin referral-reward control are preserved.

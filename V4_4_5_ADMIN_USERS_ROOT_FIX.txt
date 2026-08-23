@@ -1,0 +1,15 @@
+ReferHub v4.4.5 — Admin Users Root Fix
+
+ROOT CAUSE:
+- app.js contained TWO async function openAdminUser() declarations.
+- The later legacy function overrode the new v4.4.4 participant manager.
+- That legacy function required #adminUserDetail, which does not exist inside Admin Panel PRO.
+- Result: pressing Manage silently failed.
+
+FIXED:
+- One public openAdminUser() remains.
+- It always routes to the backend-driven full participant manager.
+- No dependency on legacy #adminUserDetail.
+- Manage button and whole user row receive mobile pointer/touch events.
+- Add/remove RH, ban/unban, history, orders and achievements remain available.
+- Added visible error screen instead of silent failure.

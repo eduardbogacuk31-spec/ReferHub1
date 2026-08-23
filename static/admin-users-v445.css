@@ -1,0 +1,44 @@
+
+/* v4.4.5 root fix — ensure participant controls receive taps */
+.admin6-users-table .admin444-user-item,
+.admin6-users-table .admin444-user-item button{
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+
+.admin6-users-table .admin444-user-item button{
+  position:relative!important;
+  z-index:3!important;
+}
+
+.admin444-user-page{
+  position:relative!important;
+  z-index:1!important;
+}
+
+.admin444-balance-buttons button,
+.admin444-ban,
+.admin444-tabs button,
+.admin444-back{
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+
+.admin445-error{
+  padding:28px 16px!important;
+  text-align:center!important;
+  border:1px solid rgba(220,90,110,.15)!important;
+  border-radius:16px!important;
+  background:#121318!important;
+}
+.admin445-error>span{font-size:30px!important}
+.admin445-error h2{margin:8px 0 4px!important;font-size:17px!important}
+.admin445-error p{margin:0 0 12px!important;color:#8b7b84!important;font-size:7px!important}
+.admin445-error button{
+  padding:10px 12px!important;
+  border:1px solid #4a5668!important;
+  border-radius:10px!important;
+  background:#171c24!important;
+  color:#fff!important;
+  font-size:7px!important;
+}

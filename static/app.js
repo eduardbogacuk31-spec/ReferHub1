@@ -3806,7 +3806,7 @@ function filterAdminUsers(){
   });
 }
 
-async function openAdminUser(id){
+async function openAdminUser444(id){
   try{
     content.innerHTML=`<div class="loader"></div>`;
     const data=await api(`/api/admin/users/${id}`);
@@ -3892,9 +3892,15 @@ async function openAdminUser(id){
     `;
     document.querySelector("main")?.scrollTo({top:0,behavior:"auto"});
   }catch(error){
-    toast(error.message,"error");
-    await adminPanelPage();
-    setTimeout(()=>showAdmin6Tab("users",document.querySelector('.admin6-tabs button:nth-child(2)')),60);
+    const message=error?.message||"Не вдалося відкрити користувача";
+    content.innerHTML=`
+      <section class="admin445-error">
+        <span>⚠️</span>
+        <h2>Не вдалося відкрити учасника</h2>
+        <p>${esc(message)}</p>
+        <button onclick="adminPanelPage().then(()=>setTimeout(()=>showAdmin6Tab('users',document.querySelector('.admin6-tabs button:nth-child(2)')),60))">← Назад до учасників</button>
+      </section>`;
+    toast(message,"error");
   }
 }
 
@@ -4715,94 +4721,7 @@ async function searchAdminUsers(){
 }
 
 async function openAdminUser(userId){
-  try{
-    const data=await api(`/api/admin/users/${userId}`);
-    const p=data.profile;
-    const target=document.getElementById("adminUserDetail");
-
-    target.innerHTML=`
-      ${section("Користувач",`ID ${p.telegram_id}`)}
-      <div class="card admin-user-detail">
-        <div class="row">
-          <div class="feed-icon">${p.first_name?.[0]||"U"}</div>
-          <div class="grow">
-            <h3>${esc(p.first_name||p.username||String(p.telegram_id))}</h3>
-            <div class="muted">${p.username?"@"+esc(p.username):"Без username"}</div>
-          </div>
-          <span class="status-pill ${p.is_banned?"bad":"good"}">${p.is_banned?"Заблокований":"Активний"}</span>
-        </div>
-
-        <div class="stats">
-          <div class="stat-card"><span>Баланс</span><strong>${p.balance} ★</strong></div>
-          <div class="stat-card"><span>XP</span><strong>${p.xp||0}</strong></div>
-          <div class="stat-card"><span>Рівень</span><strong>${Math.floor((p.xp||0)/100)+1}</strong></div>
-          <div class="stat-card"><span>Зароблено</span><strong>${p.total_earned} ★</strong></div>
-          <div class="stat-card"><span>Друзі</span><strong>${p.referrals_count}</strong></div>
-          <div class="stat-card"><span>Реферер</span><strong>${p.referrer_id||"—"}</strong></div>
-        </div>
-
-        <div class="admin-balance-box">
-          <input id="balanceAmount${p.telegram_id}" type="number" placeholder="+100 або -50">
-          <input id="balanceNote${p.telegram_id}" placeholder="Причина зміни">
-          <button class="primary" onclick="changeUserBalance(${p.telegram_id})">Змінити баланс</button>
-        </div>
-
-        <div class="admin-pro-grid">
-          <div class="admin-control-card">
-            <b>XP</b>
-            <input id="xpAmount${p.telegram_id}" type="number" placeholder="+100 або -50">
-            <input id="xpNote${p.telegram_id}" placeholder="Причина зміни XP">
-            <button class="secondary full" onclick="changeUserXP(${p.telegram_id})">Змінити XP</button>
-          </div>
-          <div class="admin-control-card">
-            <b>Рівень</b>
-            <input id="levelValue${p.telegram_id}" type="number" min="1" value="${Math.floor((p.xp||0)/100)+1}">
-            <button class="secondary full" onclick="setUserLevel(${p.telegram_id})">Встановити рівень</button>
-          </div>
-        </div>
-
-        <div class="admin-control-card">
-          <b>Видати досягнення</b>
-          <select id="achievement${p.telegram_id}">
-            ${data.achievements.map(a=>`<option value="${a.id}" ${a.unlocked?"disabled":""}>${a.icon} ${esc(a.title)}${a.unlocked?" — вже є":""}</option>`).join("")}
-          </select>
-          <label class="admin-check"><input id="achievementReward${p.telegram_id}" type="checkbox" checked> Одразу видати нагороду</label>
-          <button class="primary full" onclick="grantUserAchievement(${p.telegram_id})">Видати досягнення</button>
-        </div>
-
-        <button class="${p.is_banned?"primary":"danger"} full" onclick="toggleUserBan(${p.telegram_id},${p.is_banned?0:1})">
-          ${p.is_banned?"Розблокувати":"Заблокувати"}
-        </button>
-      </div>
-
-      ${section("Останні операції",`${data.history.length}`)}
-      <div class="card">
-        ${data.history.length?data.history.map(item=>`
-          <div class="row">
-            <div class="grow">
-              <b>${esc(item.note)}</b>
-              <div class="muted">${new Date(item.created_at*1000).toLocaleString("uk-UA")}</div>
-            </div>
-            <strong class="${item.amount>=0?"plus":"minus"}">${item.amount>=0?"+":""}${item.amount}</strong>
-          </div>`).join(""):`<div class="empty">Операцій немає</div>`}
-      </div>
-
-      ${section("Заявки",`${data.orders.length}`)}
-      <div class="card">
-        ${data.orders.length?data.orders.map(order=>`
-          <div class="row">
-            <div class="feed-icon">${order.emoji}</div>
-            <div class="grow">
-              <b>${esc(order.title)}</b>
-              <div class="muted">#${order.id} • ${orderStatus(order.status)}</div>
-            </div>
-            <strong>${order.price} ★</strong>
-          </div>`).join(""):`<div class="empty">Заявок немає</div>`}
-      </div>
-    `;
-
-    target.scrollIntoView({behavior:"smooth"});
-  }catch(error){toast(error.message)}
+  return openAdminUser444(userId);
 }
 
 async function changeUserBalance(userId){

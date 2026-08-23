@@ -1,0 +1,87 @@
+
+/* ReferHub v4.11 — Admin Level & XP controls */
+
+.admin411-level-control{
+  border-color:rgba(103,84,164,.15)!important;
+}
+
+.admin411-level-current{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+  margin-bottom:8px!important;
+}
+
+.admin411-level-current article{
+  min-width:0!important;
+  padding:10px!important;
+  border:1px solid rgba(255,255,255,.055)!important;
+  border-radius:11px!important;
+  background:#0d1117!important;
+}
+
+.admin411-level-current small,
+.admin411-level-current b{
+  display:block!important;
+}
+
+.admin411-level-current small{
+  color:#78708f!important;
+  font-size:5px!important;
+}
+
+.admin411-level-current b{
+  margin-top:3px!important;
+  color:#c3a5dc!important;
+  font-size:15px!important;
+}
+
+.admin411-level-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+
+.admin411-level-grid>div{
+  min-width:0!important;
+  padding:9px!important;
+  border:1px solid rgba(255,255,255,.05)!important;
+  border-radius:11px!important;
+  background:#11151b!important;
+}
+
+.admin411-level-grid label{
+  display:block!important;
+  margin-bottom:5px!important;
+  color:#747e8a!important;
+  font-size:6px!important;
+}
+
+.admin411-level-grid input{
+  width:100%!important;
+  min-width:0!important;
+  padding:9px!important;
+  border:1px solid #344052!important;
+  border-radius:9px!important;
+  background:#0b0f15!important;
+  color:#fff!important;
+  font-size:16px!important;
+}
+
+.admin411-level-grid button{
+  width:100%!important;
+  min-height:38px!important;
+  margin-top:6px!important;
+  border:1px solid #654989!important;
+  border-radius:9px!important;
+  background:linear-gradient(145deg,#3f2957,#2a1c3a)!important;
+  color:#d8b8ed!important;
+  font-size:6px!important;
+  font-weight:950!important;
+}
+
+@media(max-width:650px){
+  .admin411-level-grid{
+    grid-template-columns:1fr!important;
+  }
+}

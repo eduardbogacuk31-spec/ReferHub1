@@ -1,0 +1,21 @@
+ReferHub v4.8 — Support & Feedback Center
+
+USER:
+- New Support Center.
+- Categories: Question / Bug / Idea / Complaint / Other.
+- Create support tickets inside the bot.
+- View ticket status and admin response.
+- Support button automatically appears in Settings > Help.
+
+ADMIN:
+- New Support button in Admin Center.
+- View all user tickets.
+- Open / In Progress / Resolved / Closed states.
+- Reply to users directly inside the bot.
+- Replies remain visible in the user's Support Center.
+- Admin actions are logged when possible.
+
+STABILITY:
+- Isolated backend tables/endpoints.
+- No core navigation rewrite.
+- No Profile/Game Center/scroll changes.

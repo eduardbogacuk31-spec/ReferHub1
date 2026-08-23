@@ -1,0 +1,16 @@
+ReferHub v4.7 — User Experience Pack
+
+NEW:
+- First-run onboarding for new users.
+- Help Center tab inside Settings.
+- Compact guides for RH, Tasks, Games, Lottery and Friends.
+- What's New modal.
+- No long instruction lists; each topic opens in its own modal.
+- Onboarding is shown once using localStorage.
+
+STABILITY:
+- No openPage wrapper.
+- No core scroll changes.
+- No backend changes.
+- v4.6 Admin Center preserved.
+- Existing Profile/Game Center/Tasks/Friends preserved.

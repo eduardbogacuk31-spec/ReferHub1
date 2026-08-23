@@ -1,0 +1,12 @@
+ReferHub v4.11 — Admin Level Control
+
+ADDED TO PARTICIPANT MANAGEMENT:
+- Current Level display.
+- Current XP display.
+- Set exact participant level.
+- Add or remove XP using positive/negative values.
+- Uses existing protected backend endpoints:
+  POST /api/admin/users/{user_id}/level
+  POST /api/admin/users/{user_id}/xp
+- Reloads participant details after every change.
+- No changes to Profile, Game Center, Daily Hub, Support or main scrolling.

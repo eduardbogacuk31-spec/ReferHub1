@@ -834,6 +834,47 @@ def init_database():
             """
         )
 
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS support_tickets_v48 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                admin_reply TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_support_tickets_v48_user
+                ON support_tickets_v48(user_id, created_at DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_support_tickets_v48_status
+                ON support_tickets_v48(status, updated_at DESC);
+            """
+        )
+
+
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS notifications_v49 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'info',
+                action_page TEXT,
+                is_read INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_notifications_v49_user
+                ON notifications_v49(user_id, is_read, created_at DESC);
+            """
+        )
+
         user_columns = {
             row["name"]
             for row in db.execute("PRAGMA table_info(users)").fetchall()
@@ -5059,6 +5100,468 @@ async def game_center_v43(
         "total_earned":sum(g["stats"]["earned"] for g in games),
     }
 
+
+class SupportTicketCreateV48(BaseModel):
+    category: str = Field(min_length=2, max_length=40)
+    subject: str = Field(min_length=2, max_length=120)
+    message: str = Field(min_length=5, max_length=2000)
+
+
+class SupportTicketUpdateV48(BaseModel):
+    status: str | None = None
+    admin_reply: str | None = Field(default=None, max_length=2000)
+
+
+@app.get("/api/support-v48")
+async def support_v48(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    with connect_db() as db:
+        rows=db.execute(
+            """
+            SELECT id,category,subject,message,status,admin_reply,created_at,updated_at
+            FROM support_tickets_v48
+            WHERE user_id=?
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (uid,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/support-v48")
+async def create_support_v48(
+    payload: SupportTicketCreateV48,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    category=payload.category.strip().lower()
+    allowed={"question","bug","idea","complaint","other"}
+    if category not in allowed:
+        raise HTTPException(400,"Невідома категорія звернення")
+
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT INTO support_tickets_v48(
+                user_id,category,subject,message,status,created_at,updated_at
+            ) VALUES(?,?,?,?, 'open', ?, ?)
+            """,
+            (uid,category,payload.subject.strip(),payload.message.strip(),now,now),
+        )
+        ticket_id=db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        db.commit()
+
+    return {"ok":True,"id":ticket_id,"status":"open"}
+
+
+@app.get("/api/admin/support-v48")
+async def admin_support_v48(
+    status: str = "",
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+
+    query="""
+        SELECT s.id,s.user_id,s.category,s.subject,s.message,s.status,
+               s.admin_reply,s.created_at,s.updated_at,
+               u.username,u.first_name
+        FROM support_tickets_v48 s
+        LEFT JOIN users u ON u.telegram_id=s.user_id
+    """
+    params=[]
+    if status.strip():
+        query+=" WHERE s.status=?"
+        params.append(status.strip())
+    query+=" ORDER BY CASE s.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END, s.updated_at DESC LIMIT 200"
+
+    with connect_db() as db:
+        rows=db.execute(query,params).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.patch("/api/admin/support-v48/{ticket_id}")
+async def admin_update_support_v48(
+    ticket_id: int,
+    payload: SupportTicketUpdateV48,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    admin_id=int(user["id"])
+    require_admin(admin_id)
+
+    if payload.status is None and payload.admin_reply is None:
+        raise HTTPException(400,"Немає змін")
+
+    allowed={"open","in_progress","resolved","closed"}
+    updates=[]
+    values=[]
+
+    if payload.status is not None:
+        if payload.status not in allowed:
+            raise HTTPException(400,"Невідомий статус")
+        updates.append("status=?")
+        values.append(payload.status)
+
+    if payload.admin_reply is not None:
+        updates.append("admin_reply=?")
+        values.append(payload.admin_reply.strip())
+
+    updates.append("updated_at=?")
+    values.append(int(time.time()))
+    values.append(ticket_id)
+
+    with connect_db() as db:
+        cur=db.execute(
+            f"UPDATE support_tickets_v48 SET {', '.join(updates)} WHERE id=?",
+            values,
+        )
+        if cur.rowcount==0:
+            raise HTTPException(404,"Звернення не знайдено")
+        try:
+            log_admin_action(
+                db,admin_id,"support_update",
+                f"Support ticket #{ticket_id}",None
+            )
+        except Exception:
+            pass
+        db.commit()
+
+    return {"ok":True}
+
+
+class AdminNotificationV49(BaseModel):
+    title: str = Field(min_length=2, max_length=100)
+    message: str = Field(min_length=2, max_length=1000)
+    kind: str = "info"
+    action_page: str | None = None
+    user_id: int | None = None
+
+
+@app.get("/api/notifications-v49")
+async def notifications_v49(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    with connect_db() as db:
+        rows=db.execute(
+            """SELECT id,title,message,kind,action_page,is_read,created_at
+               FROM notifications_v49 WHERE user_id=?
+               ORDER BY id DESC LIMIT 80""",(uid,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/notifications-v49/{notification_id}/read")
+async def notification_read_v49(
+    notification_id: int,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    with connect_db() as db:
+        db.execute("UPDATE notifications_v49 SET is_read=1 WHERE id=? AND user_id=?",(notification_id,uid))
+        db.commit()
+    return {"ok":True}
+
+
+@app.post("/api/notifications-v49/read-all")
+async def notifications_read_all_v49(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    with connect_db() as db:
+        db.execute("UPDATE notifications_v49 SET is_read=1 WHERE user_id=?",(uid,))
+        db.commit()
+    return {"ok":True}
+
+
+@app.post("/api/admin/notifications-v49")
+async def admin_notification_v49(
+    payload: AdminNotificationV49,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    admin_id=int(user["id"])
+    require_admin(admin_id)
+    now=int(time.time())
+    allowed={"info","reward","event","warning","update"}
+    kind=payload.kind if payload.kind in allowed else "info"
+
+    with connect_db() as db:
+        if payload.user_id is not None:
+            targets=[payload.user_id]
+        else:
+            targets=[int(r[0]) for r in db.execute("SELECT telegram_id FROM users").fetchall()]
+
+        db.executemany(
+            """INSERT INTO notifications_v49(user_id,title,message,kind,action_page,is_read,created_at)
+               VALUES(?,?,?,?,?,0,?)""",
+            [(uid,payload.title.strip(),payload.message.strip(),kind,payload.action_page,now) for uid in targets]
+        )
+        try:
+            log_admin_action(db,admin_id,"notification_send",f"Sent notification to {len(targets)} users",None)
+        except Exception:
+            pass
+        db.commit()
+    return {"ok":True,"sent":len(targets)}
+
+
+class PromoValidateV412(BaseModel):
+    code: str = Field(min_length=1, max_length=80)
+    gift_id: int
+
+
+class PromoUpdateV412(BaseModel):
+    is_active: bool | None = None
+    max_uses: int | None = Field(default=None, ge=0, le=1000000)
+    expires_at: int | None = Field(default=None, ge=0)
+
+
+@app.get("/api/admin/promos-v412")
+async def admin_promos_v412(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+    with connect_db() as db:
+        rows=db.execute(
+            """
+            SELECT id,code,discount_percent,max_uses,uses_count,expires_at,is_active
+            FROM promo_codes
+            ORDER BY id DESC
+            LIMIT 200
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.patch("/api/admin/promos-v412/{promo_id}")
+async def admin_update_promo_v412(
+    promo_id: int,
+    payload: PromoUpdateV412,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    admin_id=int(user["id"])
+    require_admin(admin_id)
+
+    updates=[]
+    values=[]
+    if payload.is_active is not None:
+        updates.append("is_active=?")
+        values.append(1 if payload.is_active else 0)
+    if payload.max_uses is not None:
+        updates.append("max_uses=?")
+        values.append(payload.max_uses)
+    if payload.expires_at is not None:
+        updates.append("expires_at=?")
+        values.append(payload.expires_at)
+
+    if not updates:
+        raise HTTPException(400,"Немає змін")
+
+    values.append(promo_id)
+    with connect_db() as db:
+        cur=db.execute(
+            f"UPDATE promo_codes SET {', '.join(updates)} WHERE id=?",
+            values,
+        )
+        if cur.rowcount==0:
+            raise HTTPException(404,"Промокод не знайдено")
+        try:
+            log_admin_action(db,admin_id,"promo_update",f"Promo #{promo_id}",None)
+        except Exception:
+            pass
+        db.commit()
+    return {"ok":True}
+
+
+@app.post("/api/promos-v412/validate")
+async def validate_promo_v412(
+    payload: PromoValidateV412,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    now=int(time.time())
+    code=payload.code.strip()
+
+    with connect_db() as db:
+        gift=db.execute(
+            "SELECT id,title,price FROM gifts WHERE id=? AND is_active=1",
+            (payload.gift_id,),
+        ).fetchone()
+        if not gift:
+            raise HTTPException(404,"Товар не знайдено")
+
+        promo=db.execute(
+            """
+            SELECT * FROM promo_codes
+            WHERE UPPER(code)=UPPER(?)
+              AND is_active=1
+              AND (expires_at=0 OR expires_at>=?)
+              AND (max_uses=0 OR uses_count<max_uses)
+            """,
+            (code,now),
+        ).fetchone()
+        if not promo:
+            raise HTTPException(400,"Промокод недійсний або вже недоступний")
+
+        final_price=max(
+            1,
+            int(gift["price"]*(100-int(promo["discount_percent"]))/100),
+        )
+
+    return {
+        "ok":True,
+        "code":promo["code"],
+        "discount_percent":int(promo["discount_percent"]),
+        "original_price":int(gift["price"]),
+        "final_price":final_price,
+        "remaining_uses":(
+            max(0,int(promo["max_uses"])-int(promo["uses_count"]))
+            if int(promo["max_uses"])>0 else None
+        ),
+    }
+
+
+class LiveEventCreateV414(BaseModel):
+    title: str = Field(min_length=2, max_length=100)
+    subtitle: str = Field(default="", max_length=120)
+    description: str = Field(default="", max_length=600)
+    icon: str = Field(default="⚡", max_length=12)
+    event_type: str = Field(default="info", max_length=30)
+    starts_at: int = Field(ge=0)
+    ends_at: int = Field(gt=0)
+    multiplier: float = Field(default=1.0, ge=0.0, le=100.0)
+    reward_amount: int = Field(default=0, ge=0, le=1000000)
+    game_key: str | None = None
+    lottery_id: int | None = None
+
+
+class LiveEventUpdateV414(BaseModel):
+    active: bool | None = None
+    title: str | None = Field(default=None, min_length=2, max_length=100)
+    subtitle: str | None = Field(default=None, max_length=120)
+    description: str | None = Field(default=None, max_length=600)
+    ends_at: int | None = Field(default=None, gt=0)
+
+
+@app.get("/api/admin/live-events-v414")
+async def admin_live_events_v414(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    require_admin(int(user["id"]))
+    with connect_db() as db:
+        rows=db.execute(
+            """
+            SELECT *,
+                   (SELECT COUNT(*) FROM live_event_claims c WHERE c.event_id=live_events.id) AS claims_count,
+                   COALESCE((SELECT SUM(reward) FROM live_event_claims c WHERE c.event_id=live_events.id),0) AS total_claimed
+            FROM live_events
+            ORDER BY id DESC
+            LIMIT 200
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/admin/live-events-v414")
+async def admin_create_live_event_v414(
+    payload: LiveEventCreateV414,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    admin_id=int(user["id"])
+    require_admin(admin_id)
+
+    if payload.ends_at <= payload.starts_at:
+        raise HTTPException(400,"Дата завершення має бути пізніше старту")
+
+    allowed={"claim","game","boost","lottery","info"}
+    event_type=payload.event_type if payload.event_type in allowed else "info"
+    now=int(time.time())
+    event_key=f"admin_{admin_id}_{now}_{secrets.token_hex(3)}"
+
+    with connect_db() as db:
+        cur=db.execute(
+            """
+            INSERT INTO live_events(
+                event_key,title,subtitle,description,icon,event_type,
+                starts_at,ends_at,multiplier,reward_amount,game_key,
+                lottery_id,active,created_at
+            )
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,1,?)
+            """,
+            (
+                event_key,payload.title.strip(),payload.subtitle.strip(),
+                payload.description.strip(),payload.icon.strip() or "⚡",
+                event_type,payload.starts_at,payload.ends_at,
+                payload.multiplier,payload.reward_amount,
+                payload.game_key.strip() if payload.game_key else None,
+                payload.lottery_id,now
+            ),
+        )
+        try:
+            log_admin_action(db,admin_id,"live_event_create",f"Event #{cur.lastrowid}: {payload.title}",None)
+        except Exception:
+            pass
+        db.commit()
+
+    return {"ok":True,"id":cur.lastrowid}
+
+
+@app.patch("/api/admin/live-events-v414/{event_id}")
+async def admin_update_live_event_v414(
+    event_id: int,
+    payload: LiveEventUpdateV414,
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    admin_id=int(user["id"])
+    require_admin(admin_id)
+
+    updates=[]
+    values=[]
+    for field in ("title","subtitle","description","ends_at"):
+        value=getattr(payload,field)
+        if value is not None:
+            updates.append(f"{field}=?")
+            values.append(value.strip() if isinstance(value,str) else value)
+
+    if payload.active is not None:
+        updates.append("active=?")
+        values.append(1 if payload.active else 0)
+
+    if not updates:
+        raise HTTPException(400,"Немає змін")
+
+    values.append(event_id)
+    with connect_db() as db:
+        cur=db.execute(
+            f"UPDATE live_events SET {', '.join(updates)} WHERE id=?",
+            values,
+        )
+        if cur.rowcount==0:
+            raise HTTPException(404,"Подію не знайдено")
+        try:
+            log_admin_action(db,admin_id,"live_event_update",f"Event #{event_id}",None)
+        except Exception:
+            pass
+        db.commit()
+
+    return {"ok":True}
+
 @app.get("/health")
 async def health():
     token = runtime_bot_token()
@@ -5753,6 +6256,66 @@ async def referral_summary(
             }
             for milestone in milestones
         ],
+    }
+
+
+
+@app.get("/api/referrals/v413")
+async def referrals_v413(
+    x_telegram_init_data: str | None = Header(default=None),
+):
+    user=current_user(x_telegram_init_data)
+    uid=int(user["id"])
+    now=int(time.time())
+
+    with connect_db() as db:
+        rows=db.execute(
+            """
+            SELECT telegram_id,username,first_name,xp,total_earned,last_seen,created_at
+            FROM users
+            WHERE referrer_id=?
+            ORDER BY created_at DESC, telegram_id DESC
+            LIMIT 100
+            """,
+            (uid,),
+        ).fetchall()
+
+        rewards=db.execute(
+            """
+            SELECT referred_id,amount,created_at
+            FROM referral_rewards
+            WHERE referrer_id=?
+            ORDER BY created_at DESC
+            """,
+            (uid,),
+        ).fetchall()
+
+    reward_by_user={}
+    for r in rewards:
+        rid=int(r["referred_id"])
+        reward_by_user[rid]=reward_by_user.get(rid,0)+int(r["amount"] or 0)
+
+    result=[]
+    for r in rows:
+        rid=int(r["telegram_id"])
+        result.append({
+            "telegram_id":rid,
+            "username":r["username"],
+            "first_name":r["first_name"],
+            "xp":int(r["xp"] or 0),
+            "total_earned":int(r["total_earned"] or 0),
+            "reward_generated":int(reward_by_user.get(rid,0)),
+            "is_active_7d":now-int(r["last_seen"] or 0)<=7*86400,
+            "is_online":now-int(r["last_seen"] or 0)<=300,
+            "created_at":int(r["created_at"] or 0),
+        })
+
+    return {
+        "users":result,
+        "total":len(result),
+        "active_7d":sum(1 for x in result if x["is_active_7d"]),
+        "online_now":sum(1 for x in result if x["is_online"]),
+        "generated_reward":sum(int(x["reward_generated"]) for x in result),
     }
 
 

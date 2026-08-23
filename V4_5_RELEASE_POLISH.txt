@@ -1,0 +1,11 @@
+ReferHub v4.5 — Release Polish
+- Safe text wrapping.
+- Game Center/mobile spacing polish.
+- Task button/mobile layout polish.
+- Friends search responsiveness.
+- Profile text/action polish.
+- Settings modal and tabs polish.
+- Admin tabs and participant controls polish.
+- Consistent empty/loading states.
+- Active bottom navigation readability.
+- No route wrappers, no MutationObserver, no backend changes, no global scroll rewrite.

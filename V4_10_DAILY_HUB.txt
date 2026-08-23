@@ -1,0 +1,15 @@
+ReferHub v4.10 — Daily Hub
+
+NEW:
+- Compact Daily Hub launcher.
+- Daily route across Tasks, Games, Lottery and Friends.
+- Progress indicator 0–100%.
+- Per-day completion tracking.
+- Daily tip and completed state.
+- Automatically recognizes when a user visits a relevant existing page.
+
+IMPORTANT:
+- No fake RH rewards.
+- No duplicate reward backend.
+- No core navigation rewrite.
+- No scroll/profile/game logic replacement.

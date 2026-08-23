@@ -1176,6 +1176,7 @@ function social831SwitchTab(name,button){
   document.querySelectorAll(".social831-panel").forEach(node=>node.classList.remove("active"));
   button.classList.add("active");
   document.querySelector(`[data-social831-panel="${name}"]`)?.classList.add("active");
+  if(name==="invite")setTimeout(()=>ref413LoadTeam(),30);
 }
 
 function social831ShowPlayer(telegramId){
@@ -1402,26 +1403,47 @@ async function friendsPage(){
           </div>`}
       </div>
 
-      <div class="social831-panel" data-social831-panel="invite">
-        <article class="social831-invite-card">
-          <div class="social831-invite-icon">♟</div>
-          <div>
-            <span>REFERRAL PROGRAM</span>
-            <h2>Запрошуй і заробляй</h2>
-            <p>За кожного нового користувача ти отримуєш <b>${Number(summary.reward_per_friend||0)} RH</b>.</p>
+      <div class="social831-panel referral413-panel" data-social831-panel="invite">
+        <article class="ref413-hero">
+          <div class="ref413-hero-icon">♟</div>
+          <div class="grow">
+            <span>REFERRAL CENTER · 2.0</span>
+            <h2>Запрошуй і розвивай команду</h2>
+            <p>Кожен новий користувач приносить <b>${Number(summary.reward_per_friend||0)} RH</b>.</p>
           </div>
-          <div class="social831-actions">
-            <button onclick="shareReferral()">Запросити друга</button>
-            <button class="secondary" onclick="copyReferralLink()">Копіювати посилання</button>
-          </div>
+          <div class="ref413-reward"><small>ЗАРОБЛЕНО</small><b>${Number(summary.total_reward||0)} RH</b></div>
         </article>
+
+        <section class="ref413-stats">
+          <article><span>👥</span><div><small>ЗАПРОШЕНО</small><b>${Number(summary.referrals_count||0)}</b></div></article>
+          <article><span>🟢</span><div><small>АКТИВНІ 7 ДНІВ</small><b>${Number(summary.active_count||0)}</b></div></article>
+          <article><span>✦</span><div><small>RH З РЕФЕРАЛІВ</small><b>${Number(summary.total_reward||0)}</b></div></article>
+        </section>
+
+        <section class="ref413-linkbox">
+          <div><small>ТВОЄ ПОСИЛАННЯ</small><b>${esc(summary.referral_link||me.referral_link||"")}</b></div>
+          <div class="ref413-link-actions">
+            <button onclick="shareReferral()">↗ ЗАПРОСИТИ</button>
+            <button class="secondary" onclick="copyReferralLink()">⧉ КОПІЮВАТИ</button>
+          </div>
+        </section>
+
+        <section class="ref413-next">
+          <div class="ref413-next-copy">
+            <span>NEXT MILESTONE</span>
+            <h3>${summary.next_milestone?esc(summary.next_milestone.label):"Максимальний рівень"}</h3>
+            <p>${summary.next_milestone?`${Math.max(0,Number(summary.next_milestone.count||0)-Number(summary.referrals_count||0))} друзів залишилось`:"Усі рівні програми відкрито"}</p>
+          </div>
+          <strong>${summary.next_milestone?`${Number(summary.referrals_count||0)}/${Number(summary.next_milestone.count||0)}`:"MAX"}</strong>
+          <div class="ref413-progress"><i style="width:${summary.next_milestone?Math.min(100,Math.round(Number(summary.referrals_count||0)/Math.max(1,Number(summary.next_milestone.count||1))*100)):100}%"></i></div>
+        </section>
 
         <div class="social831-title">
           <div><span>REFERRAL PATH</span><h2>Рівні програми</h2></div>
           <small>${esc(nextText)}</small>
         </div>
 
-        <div class="social831-milestones">
+        <div class="social831-milestones ref413-milestones">
           ${summary.milestones.length?summary.milestones.map((item,index)=>`
             <article class="${item.completed?"done":""}">
               <span>${item.completed?"✓":index+1}</span>
@@ -1429,6 +1451,15 @@ async function friendsPage(){
               <strong>${item.completed?"Відкрито":"Закрито"}</strong>
             </article>`).join(""):`
             <div class="social831-empty"><span>◇</span><h3>Рівні ще не налаштовані</h3><p>Реферальне посилання вже працює.</p></div>`}
+        </div>
+
+        <div class="social831-title ref413-team-title">
+          <div><span>MY TEAM</span><h2>Запрошені користувачі</h2></div>
+          <button onclick="ref413LoadTeam(true)">↻ Оновити</button>
+        </div>
+
+        <div id="ref413Team" class="ref413-team">
+          <div class="ref413-team-loading"><div class="loader"></div><span>Завантажуємо команду…</span></div>
         </div>
       </div>
     </section>
@@ -1438,23 +1469,67 @@ async function friendsPage(){
   setupMotionForPage();
 }
 
+function referral413CurrentLink(){
+  const node=document.querySelector(".ref413-linkbox b");
+  return (node?.textContent||me.referral_link||"").trim();
+}
+
 function copyReferralLink(){
-  const link=me.referral_link;
+  const link=referral413CurrentLink();
+  if(!link)return toast("Реферальне посилання недоступне","error");
   navigator.clipboard?.writeText(link)
-    .then(()=>toast("Посилання скопійовано"))
+    .then(()=>toast("Посилання скопійовано","success"))
     .catch(()=>prompt("Скопіюй посилання:",link));
 }
 
 function shareReferral(){
-  const url=encodeURIComponent(me.referral_link);
-  const text=encodeURIComponent("Приєднуйся до ReferHub Rewards!");
+  const link=referral413CurrentLink();
+  if(!link)return toast("Реферальне посилання недоступне","error");
+  const url=encodeURIComponent(link);
+  const text=encodeURIComponent("Приєднуйся до ReferHub!");
   if(tg?.openTelegramLink){
     tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${text}`);
   }else{
-    navigator.clipboard.writeText(me.referral_link);
-    toast("Посилання скопійовано");
+    navigator.clipboard?.writeText(link);
+    toast("Посилання скопійовано","success");
   }
 }
+
+async function ref413LoadTeam(force=false){
+  const host=document.getElementById("ref413Team");
+  if(!host)return;
+  if(host.dataset.loaded==="1"&&!force)return;
+
+  host.innerHTML=`<div class="ref413-team-loading"><div class="loader"></div><span>Завантажуємо команду…</span></div>`;
+
+  try{
+    const data=await api("/api/referrals/v413");
+    const users=Array.isArray(data.users)?data.users:[];
+    host.dataset.loaded="1";
+    host.innerHTML=users.length?`
+      <section class="ref413-team-summary">
+        <span>${Number(data.total||0)} у команді</span>
+        <span>🟢 ${Number(data.online_now||0)} онлайн</span>
+        <span>⚡ ${Number(data.active_7d||0)} активні</span>
+      </section>
+      <div class="ref413-team-list">
+        ${users.map((u,index)=>`
+          <article>
+            <span class="ref413-avatar">${esc((u.first_name||u.username||"U").slice(0,1).toUpperCase())}</span>
+            <div class="grow">
+              <b>${esc(u.first_name||u.username||"Користувач")}</b>
+              <small>${u.username?"@"+esc(u.username):"ID "+u.telegram_id} · ${u.is_online?"🟢 Онлайн":u.is_active_7d?"⚡ Активний":"⚪ Неактивний"}</small>
+              <i>XP ${Number(u.xp||0)} · заробив ${Number(u.total_earned||0)} RH</i>
+            </div>
+            <strong>+${Number(u.reward_generated||0)} RH</strong>
+          </article>`).join("")}
+      </div>`:
+      `<div class="social831-empty ref413-empty"><span>👥</span><h3>Команда ще порожня</h3><p>Надішли своє посилання першому другу.</p></div>`;
+  }catch(error){
+    host.innerHTML=`<div class="social831-empty ref413-empty"><span>!</span><h3>Не вдалося завантажити</h3><p>${esc(error.message)}</p></div>`;
+  }
+}
+
 
 function gameName(key){
   return {
@@ -1790,7 +1865,7 @@ async function gamesPage(){
               <small>${g.label}</small>
               <h3>${g.name}</h3>
               <p>${g.desc}</p>
-              <footer><b>${g.reward}</b><i>Відкрити →</i></footer>
+              <footer><b>${g.reward}</b><i>${g.label||"GAME"}</i></footer>
             </div>
           </button>
         `).join("")}
@@ -3097,6 +3172,7 @@ function filterShop3(){
   if(counter)counter.textContent=`${visible} позицій`;
 }
 
+
 function openGiftDetails(id){
   const gift=(window.shop3Gifts||[]).find(item=>Number(item.id)===Number(id));
   if(!gift)return;
@@ -3104,7 +3180,7 @@ function openGiftDetails(id){
   const modal=document.createElement("div");
   modal.className="shop3-modal";
   modal.innerHTML=`
-    <div class="shop3-modal-card">
+    <div class="shop3-modal-card promo412-card">
       <button class="shop3-modal-close" onclick="this.closest('.shop3-modal').remove()">×</button>
       <div class="shop3-modal-visual">
         ${gift.image_url?`<img src="${esc(gift.image_url)}">`:`<span>🎁</span>`}
@@ -3113,16 +3189,80 @@ function openGiftDetails(id){
       <span class="shop3-modal-category">${esc(gift.category||"Інше")}</span>
       <h2>${esc(gift.title)}</h2>
       <p>${esc(gift.description||"Подарунок ReferHub Rewards")}</p>
+
       <div class="shop3-modal-meta">
-        <div><span>Ціна</span><strong>${gift.price} RH ⭐</strong></div>
+        <div><span>Ціна</span><strong id="promo412Price-${gift.id}">${gift.price} RH ⭐</strong></div>
         <div><span>Залишок</span><strong>${Number(gift.stock||0)>0?gift.stock:"∞"}</strong></div>
       </div>
-      <button class="shop3-buy-button" onclick="buyGift(${gift.id});this.closest('.shop3-modal').remove()">
-        Купити за ${gift.price} RH ⭐
+
+      <div class="promo412-box">
+        <div class="promo412-input">
+          <input id="promo412Code-${gift.id}" placeholder="Є промокод?">
+          <button onclick="promo412Check(${gift.id},${gift.price})">ПЕРЕВІРИТИ</button>
+        </div>
+        <div id="promo412State-${gift.id}" class="promo412-state">Промокод необов’язковий</div>
+      </div>
+
+      <button class="shop3-buy-button" onclick="promo412Buy(${gift.id});this.closest('.shop3-modal').remove()">
+        КУПИТИ
       </button>
     </div>`;
   document.body.appendChild(modal);
   requestAnimationFrame(()=>modal.classList.add("show"));
+}
+
+
+
+async function promo412Check(id,originalPrice){
+  const input=document.getElementById(`promo412Code-${id}`);
+  const state=document.getElementById(`promo412State-${id}`);
+  const price=document.getElementById(`promo412Price-${id}`);
+  const code=(input?.value||"").trim();
+
+  if(!code){
+    if(state){state.textContent="Промокод необов’язковий";state.className="promo412-state";}
+    if(price)price.textContent=`${originalPrice} RH ⭐`;
+    return;
+  }
+
+  if(state){state.textContent="Перевіряємо…";state.className="promo412-state loading";}
+
+  try{
+    const r=await api("/api/promos-v412/validate",{
+      method:"POST",
+      body:JSON.stringify({code,gift_id:id})
+    });
+    if(price)price.innerHTML=`<del>${r.original_price} RH</del> ${r.final_price} RH ⭐`;
+    if(state){
+      state.textContent=`✓ ${r.code}: −${r.discount_percent}%${r.remaining_uses!==null?` · залишилось ${r.remaining_uses}`:""}`;
+      state.className="promo412-state success";
+    }
+    if(input)input.dataset.valid="1";
+  }catch(error){
+    if(price)price.textContent=`${originalPrice} RH ⭐`;
+    if(state){state.textContent=error.message;state.className="promo412-state error";}
+    if(input)delete input.dataset.valid;
+  }
+}
+
+async function promo412Buy(id){
+  const code=(document.getElementById(`promo412Code-${id}`)?.value||"").trim();
+
+  if(!confirm("Створити заявку і списати RH ⭐?"))return;
+
+  try{
+    const old=me.balance;
+    const endpoint=code?`/api/gifts/${id}/buy-with-promo`:`/api/gifts/${id}/buy`;
+    const options=code?{method:"POST",body:JSON.stringify({code})}:{method:"POST"};
+    const result=await api(endpoint,options);
+
+    me.balance=result.balance;
+    motionBalanceUpdate?.(old,result.balance);
+    toast(code?`Заявку створено за ${result.final_price} RH ⭐`:(result.message||"Заявку створено"),"success");
+    shopPage();
+  }catch(error){
+    toast(error.message,"error");
+  }
 }
 
 async function buyGiftPro(id){
@@ -3850,6 +3990,31 @@ async function openAdminUser444(id){
           </div>
         </section>
 
+        <section class="admin444-control admin411-level-control">
+          <div class="admin6-section-title">
+            <div><span>LEVEL & XP</span><h2>Рівень і досвід</h2></div>
+          </div>
+
+          <div class="admin411-level-current">
+            <article><small>ПОТОЧНИЙ РІВЕНЬ</small><b>${Number(user.level||1)}</b></article>
+            <article><small>ПОТОЧНИЙ XP</small><b>${Number(user.xp||0)}</b></article>
+          </div>
+
+          <div class="admin411-level-grid">
+            <div>
+              <label>Встановити рівень</label>
+              <input id="admin411LevelValue" type="number" min="1" value="${Number(user.level||1)}">
+              <button onclick="admin411SetLevel(${user.telegram_id})">ЗБЕРЕГТИ РІВЕНЬ</button>
+            </div>
+
+            <div>
+              <label>Змінити XP</label>
+              <input id="admin411XpValue" type="number" value="100" placeholder="+100 або -100">
+              <button onclick="admin411ChangeXp(${user.telegram_id})">ЗМІНИТИ XP</button>
+            </div>
+          </div>
+        </section>
+
         <section class="admin444-control">
           <div class="admin6-section-title">
             <div><span>MODERATION</span><h2>Модерація</h2></div>
@@ -3923,6 +4088,45 @@ async function admin444Balance(userId,direction){
     toast(`Баланс: ${result.balance} RH`,"success");
     await openAdminUser(userId);
   }catch(error){toast(error.message,"error")}
+}
+
+
+async function admin411SetLevel(userId){
+  const level=Math.max(1,Math.floor(Number(document.getElementById("admin411LevelValue")?.value||0)));
+  if(!level)return toast("Вкажи рівень","error");
+
+  try{
+    const result=await api(`/api/admin/users/${userId}/level`,{
+      method:"POST",
+      body:JSON.stringify({
+        level,
+        note:"Рівень змінено через Admin Center"
+      })
+    });
+    toast(`Рівень встановлено: ${result.level??level}`,"success");
+    await openAdminUser(userId);
+  }catch(error){
+    toast(error.message,"error");
+  }
+}
+
+async function admin411ChangeXp(userId){
+  const amount=Math.trunc(Number(document.getElementById("admin411XpValue")?.value||0));
+  if(!amount)return toast("Вкажи кількість XP","error");
+
+  try{
+    const result=await api(`/api/admin/users/${userId}/xp`,{
+      method:"POST",
+      body:JSON.stringify({
+        amount,
+        note:"XP змінено через Admin Center"
+      })
+    });
+    toast(`XP оновлено: ${result.xp??"готово"}`,"success");
+    await openAdminUser(userId);
+  }catch(error){
+    toast(error.message,"error");
+  }
 }
 
 async function admin444Ban(userId,isBanned){
@@ -5170,7 +5374,7 @@ async function openPage(page){
     shop:shopPage,
     tournaments:tournamentsPage,
     season:seasonPage,
-    admin:adminPanelPage,
+    admin:()=>window.adminCenter46(),
     profile:profilePage
   };
 

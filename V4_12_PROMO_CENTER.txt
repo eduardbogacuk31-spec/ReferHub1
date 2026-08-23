@@ -1,0 +1,21 @@
+ReferHub v4.12 — Promo Center
+
+SHOP:
+- Promo code field added directly to gift purchase modal.
+- Validate code before purchase.
+- Shows original price, discounted price and discount percent.
+- Shows remaining uses when code has a limit.
+- Purchase uses existing buy-with-promo backend route.
+
+ADMIN:
+- Promo Center shortcut in Admin Center.
+- List all promo codes.
+- Usage count, usage limit, expiration and active state.
+- Create promo codes.
+- Set discount %, max uses and expiration duration.
+- Enable/disable promo codes.
+
+IMPORTANT:
+- Promo codes remain SHOP DISCOUNTS, not free RH.
+- No reward economy rewrite.
+- Profile/Game Center/scroll untouched.

@@ -1,0 +1,21 @@
+ReferHub v4.15 — Premium Visual Overhaul
+
+DESIGN:
+- Unified premium dark visual language across the app.
+- Cleaner backgrounds with subtle depth and restrained purple accent.
+- Improved card surfaces, borders, shadows and hierarchy.
+- Better typography rhythm.
+- More tactile buttons and cleaner form focus states.
+- Upgraded Home, Game Center, Profile, Friends/Referral Center, Shop and Admin Center.
+- Unified modal styling.
+- Cleaner top/bottom navigation.
+- Subtle page entrance animation.
+- Better scrollbar styling.
+- Mobile/reduced-motion safeguards.
+
+IMPORTANT:
+- Presentation-only update.
+- No backend changes.
+- No navigation rewrite.
+- No scrolling containers added.
+- No game/profile/admin business logic replaced.

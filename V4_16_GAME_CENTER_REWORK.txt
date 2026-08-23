@@ -1,0 +1,22 @@
+ReferHub v4.16 — Game Center Rework
+
+DESIGN:
+- New premium Game Center header.
+- Stronger arcade identity without breaking ReferHub visual language.
+- Cleaner category navigation.
+- Distinct visual accents for:
+  Casino / Daily / Quick / Logic / Risk / Skill.
+- Improved 2-column mobile card design.
+- Better game artwork presentation.
+- New type badges on cards.
+- Cleaner reward/meta footer.
+- Improved game detail visual hierarchy.
+- Upgraded game controls, treasure grid and reaction screen.
+- 3 columns on larger screens.
+
+IMPORTANT:
+- Existing game engine preserved.
+- Existing openGameDetail preserved.
+- No new route wrapper.
+- No backend or economy changes.
+- No scroll container rewrite.

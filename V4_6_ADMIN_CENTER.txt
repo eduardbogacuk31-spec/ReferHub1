@@ -1,0 +1,17 @@
+ReferHub v4.6 — Admin Center
+
+NEW ADMIN CENTER:
+- Overview dashboard with users, RH economy, game rounds, pending orders.
+- Top referrals.
+- Full participant list/search -> existing v4.4.5 participant manager.
+- Task management + task creator.
+- Game controls: active state, daily limit, cooldown, min/max bet.
+- Order management with status changes.
+- Lottery creator and manual draw.
+- Admin audit log.
+- 7 dedicated admin sections in one interface.
+
+STABILITY:
+- Uses existing protected backend admin APIs.
+- Existing participant management preserved.
+- Profile/Game Center/scroll are not rewritten.

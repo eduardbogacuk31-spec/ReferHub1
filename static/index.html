@@ -39,6 +39,18 @@
 <link rel="stylesheet" href="/static/admin-settings-v443.css?v=44301">
 <link rel="stylesheet" href="/static/admin-users-v444.css?v=44401">
 <link rel="stylesheet" href="/static/admin-users-v445.css?v=44501">
+<link rel="stylesheet" href="/static/release-v45.css?v=45001">
+<link rel="stylesheet" href="/static/admin-center-v46.css?v=46001">
+<link rel="stylesheet" href="/static/ux-v47.css?v=47001">
+<link rel="stylesheet" href="/static/support-v48.css?v=48001">
+<link rel="stylesheet" href="/static/notifications-v49.css?v=49001">
+<link rel="stylesheet" href="/static/daily-hub-v410.css?v=410001">
+<link rel="stylesheet" href="/static/admin-level-v411.css?v=411001">
+<link rel="stylesheet" href="/static/promo-center-v412.css?v=412001">
+<link rel="stylesheet" href="/static/referral-center-v413.css?v=413001">
+<link rel="stylesheet" href="/static/live-events-v414.css?v=414001">
+<link rel="stylesheet" href="/static/visual-v415.css?v=415001">
+<link rel="stylesheet" href="/static/game-center-v416.css?v=416001">
 </head>
 <body>
   <div class="orb orb-a"></div>
@@ -93,6 +105,7 @@
       <nav class="settings44-tabs">
         <button type="button" class="active" data-settings44="general" onclick="showSettings44Tab('general',this)">Загальні</button>
         <button type="button" id="settings44AdminTab" data-settings44="admin" onclick="showSettings44Tab('admin',this)" hidden>Адмінка</button>
+        <button type="button" data-settings44="help" onclick="showSettings44Tab('help',this)">Допомога</button>
       </nav>
 
       <section id="settings44-general" class="settings44-panel active">
@@ -147,6 +160,26 @@
         </div>
         <button type="button" class="settings44-admin-open" onclick="closePolish91Settings();openPage('admin')">ВІДКРИТИ ПОВНУ АДМІНКУ →</button>
       </section>
+      <section id="settings44-help" class="settings44-panel">
+        <div class="ux47-help-hero">
+          <span>?</span>
+          <div>
+            <small>HELP CENTER</small>
+            <b>Як користуватись ReferHub</b>
+            <p>Короткі підказки без довгих інструкцій.</p>
+          </div>
+        </div>
+
+        <div class="ux47-help-grid">
+          <button type="button" onclick="ux47Help('rh')"><span>✦</span><div><b>Що таке RH?</b><small>Баланс і нагороди</small></div><i>→</i></button>
+          <button type="button" onclick="ux47Help('tasks')"><span>📋</span><div><b>Завдання</b><small>Як виконувати правильно</small></div><i>→</i></button>
+          <button type="button" onclick="ux47Help('games')"><span>🎮</span><div><b>Ігри</b><small>Ліміти, нагороди, історія</small></div><i>→</i></button>
+          <button type="button" onclick="ux47Help('lottery')"><span>🎟️</span><div><b>Розіграші</b><small>Білети та переможці</small></div><i>→</i></button>
+          <button type="button" onclick="ux47Help('friends')"><span>👥</span><div><b>Друзі</b><small>Пошук і підписки</small></div><i>→</i></button>
+          <button type="button" onclick="ux47WhatsNew()"><span>✧</span><div><b>Що нового</b><small>Версія 4.7</small></div><i>→</i></button>
+        </div>
+      </section>
+
     </section>
   </div>
 
@@ -211,5 +244,15 @@
 <script src="/static/profile-v434.js?v=43401"></script>
 <script src="/static/release-v44.js?v=44001"></script>
 <script src="/static/admin-settings-v443.js?v=44301"></script>
+<script src="/static/release-v45.js?v=45001"></script>
+<script src="/static/admin-center-v46.js?v=46001"></script>
+<script src="/static/ux-v47.js?v=47001"></script>
+<script src="/static/support-v48.js?v=48001"></script>
+<script src="/static/notifications-v49.js?v=49001"></script>
+<script src="/static/daily-hub-v410.js?v=410001"></script>
+<script src="/static/promo-center-v412.js?v=412001"></script>
+<script src="/static/live-events-v414.js?v=414001"></script>
+<script src="/static/visual-v415.js?v=415001"></script>
+<script src="/static/game-center-v416.js?v=416001"></script>
 </body>
 </html>

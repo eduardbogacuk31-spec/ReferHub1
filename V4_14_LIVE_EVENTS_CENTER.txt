@@ -1,0 +1,21 @@
+ReferHub v4.14 — Live Events Center
+
+USER:
+- New ⚡ Live Events button with active event counter.
+- Dedicated event feed with countdowns.
+- Existing claim events can grant RH exactly once through existing backend logic.
+- Game events can jump into the target game.
+- Lottery events can jump into Lotteries.
+- Boost/info events are clearly displayed as event information.
+- Existing live_events/live_event_claims are reused.
+
+ADMIN:
+- Live Events shortcut in Admin Center.
+- List events + claim statistics.
+- Create event: info / RH claim / game / lottery / boost.
+- Configure title, subtitle, description, icon, duration, reward and game key.
+- Enable / disable events.
+
+STABILITY:
+- No core openPage rewrite.
+- No profile/game engine/scroll replacement.

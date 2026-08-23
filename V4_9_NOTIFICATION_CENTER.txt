@@ -1,0 +1,9 @@
+ReferHub v4.9 — Notification Center
+- Notification inbox with unread badge.
+- Read one / read all.
+- Notification types: info, reward, event, update, warning.
+- Optional deep-link to Earn, Games, Lottery, Friends or Profile.
+- Admin broadcast composer.
+- Send to all users or one Telegram ID.
+- Quick notification button in Admin Center.
+- Isolated backend table and endpoints; core pages untouched.

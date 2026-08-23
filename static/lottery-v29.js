@@ -195,7 +195,10 @@
 
  // Hook existing lottery/menu buttons without destroying old navigation.
  document.addEventListener("click",ev=>{
-   const b=ev.target.closest("[data-page='lottery'],[data-nav='lottery'],.lottery-nav,.rh-lottery-open");
-   if(b){ev.preventDefault();setTimeout(load,0)}
+   const b=ev.target.closest("[data-page='lotteries'],[data-page='lottery'],[data-nav='lottery'],.rh-lottery-open");
+   if(!b)return;
+   ev.preventDefault();
+   ev.stopPropagation();
+   setTimeout(load,0);
  },true);
 })();

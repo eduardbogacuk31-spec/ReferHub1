@@ -5368,7 +5368,10 @@ async function openPage(page){
   document.body.classList.toggle("rhx-home-active",page==="home");
   const pages={
     home:homePage,
-    lotteries:lotteryPage,
+    lotteries:async()=>{
+      if(typeof window.rh29Open==="function")return await window.rh29Open();
+      return await lotteryPage();
+    },
     tasks:tasksPage,
     friends:friendsPage,
     referrals:async()=>{
@@ -5386,7 +5389,6 @@ async function openPage(page){
     games:gamesPage,
     shop:shopPage,
     tournaments:tournamentsPage,
-    season:seasonPage,
     admin:()=>window.adminCenter46(),
     profile:profilePage
   };

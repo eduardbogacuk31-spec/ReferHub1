@@ -1,0 +1,28 @@
+ReferHub v4.31 — Navigation + Customization Repair
+
+ROOT CAUSE OF RANDOM OLD LOTTERY PAGE:
+- lottery-v29.js listened to `.lottery-nav`.
+- `.lottery-nav` is the ENTIRE bottom navigation.
+- Therefore interactions with any bottom-nav tab could schedule the lottery renderer.
+- Removed that selector.
+- Lottery v29 now reacts only to actual lottery buttons.
+- openPage('lotteries') now opens Lottery v29 directly.
+- Old lottery-v1.js is no longer executed.
+- Added navigation isolation so stale lottery state cannot replace another page.
+- Also removed the duplicate Season route that overwrote Genesis Season.
+
+CUSTOMIZATION:
+- Removed generic miniature “REFERHUB / PLAYER PROFILE” previews.
+- Added type-specific visual previews:
+  Frames -> real avatar frame preview
+  Backgrounds -> miniature profile background
+  Titles -> name + title preview
+  Effects -> animated/effect-style orb preview
+  Badges -> name + badge preview
+  Accent -> UI accent preview
+  Card styles -> actual miniature card grid
+- Locked items stay visible enough to understand the reward.
+- Tabs stay in normal document flow.
+- Mobile tabs: 2 columns.
+- Mobile cosmetic cards: 1 per row.
+- No floating preview/text/icon overlap.

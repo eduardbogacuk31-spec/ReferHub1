@@ -14,26 +14,71 @@
    return "LOCKED";
  }
 
+
+ function previewCard(x){
+   const cls=esc28(x.css_class||"");
+   const type=esc28(x.type||"");
+   const icon=esc28(x.icon||"✦");
+
+   if(x.type==="frame"){
+     return `<div class="rh31-preview frame ${cls}">
+       <div class="rh31-frame-stage">
+         <div class="rh31-avatar"><span>R</span></div>
+       </div>
+       <small>РАМКА АВАТАРА</small>
+     </div>`;
+   }
+
+   if(x.type==="background"){
+     return `<div class="rh31-preview background ${cls}">
+       <div class="rh31-bg-sample">
+         <i></i><i></i><i></i>
+       </div>
+       <small>ФОН ПРОФІЛЮ</small>
+     </div>`;
+   }
+
+   if(x.type==="title"){
+     return `<div class="rh31-preview title ${cls}">
+       <div class="rh31-name"><span>R</span><div><b>Player</b><em>${esc28(x.title)}</em></div></div>
+       <small>ТИТУЛ</small>
+     </div>`;
+   }
+
+   if(x.type==="effect"){
+     return `<div class="rh31-preview effect ${cls}">
+       <div class="rh31-effect-orb"><span>R</span><i></i></div>
+       <small>ЕФЕКТ ПРОФІЛЮ</small>
+     </div>`;
+   }
+
+   if(x.type==="badge"){
+     return `<div class="rh31-preview badge ${cls}">
+       <div class="rh31-name badge-name"><span>R</span><div><b>Player</b><em>${icon} ${esc28(x.title)}</em></div></div>
+       <small>ЗНАЧОК БІЛЯ НІКУ</small>
+     </div>`;
+   }
+
+   if(x.type==="accent"){
+     return `<div class="rh31-preview accent ${cls}">
+       <div class="rh31-accent-card"><i></i><b></b><em></em></div>
+       <small>КОЛІР АКЦЕНТУ</small>
+     </div>`;
+   }
+
+   if(x.type==="cardstyle"){
+     return `<div class="rh31-preview cardstyle ${cls}">
+       <div class="rh31-mini-cards"><i></i><i></i><i></i></div>
+       <small>СТИЛЬ КАРТОК</small>
+     </div>`;
+   }
+
+   return `<div class="rh31-preview generic ${cls}"><b>${icon}</b><small>ПРЕДМЕТ</small></div>`;
+ }
+
  function itemCard(x){
    return `<article class="rh28-item ${x.rarity} ${x.unlocked?"open":"locked"} ${x.equipped?"equipped":""}">
-     <div class="rh28-preview ${x.css_class}" data-cosmetic-type="${esc28(x.type)}">
-       <div class="rh430-demo">
-         <div class="rh430-demo-bg"></div>
-         <div class="rh430-demo-card">
-           <div class="rh430-demo-avatar"><span>R</span></div>
-           <div class="rh430-demo-copy">
-             <b>REFERHUB</b>
-             <small>PLAYER PROFILE</small>
-           </div>
-           <div class="rh430-demo-badge">${x.type==="badge"?(x.icon||"★"):""}</div>
-         </div>
-         <div class="rh430-demo-title">${x.type==="title"?esc28(x.title):""}</div>
-         <div class="rh430-demo-effect"></div>
-         <div class="rh430-demo-accent"></div>
-         <div class="rh430-demo-cardstyle"><i></i><i></i><i></i></div>
-       </div>
-       <em></em>
-     </div>
+${previewCard(x)}
      <div class="rh28-item-copy">
        <span>${rarityLabel[x.rarity]||x.rarity.toUpperCase()}</span>
        <h3>${esc28(x.title)}</h3>
@@ -70,7 +115,7 @@
        <div class="rh28-hero-copy">
          <span>PROFILE CUSTOMIZATION</span>
          <h1>Твій стиль у ReferHub</h1>
-         <p>Кожна картка нижче показує реальний вигляд нагороди до її відкриття.</p>
+         <p>Прев’ю показує, як кожен предмет виглядатиме у профілі до відкриття.</p>
        </div>
        <div class="rh28-stats">
          <article><small>LEVEL</small><b>${rh28Data.level}</b></article>

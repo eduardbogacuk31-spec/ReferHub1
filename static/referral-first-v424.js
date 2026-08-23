@@ -26,7 +26,7 @@
    const url=encodeURIComponent(value);
    const text=encodeURIComponent("Приєднуйся до ReferHub за моїм посиланням!");
    if(window.tg?.openTelegramLink){
-     tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${text}`);
+     window.tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${text}`);
    }else{
      ref424Copy();
    }
@@ -58,10 +58,23 @@
    c.innerHTML='<div class="loader"></div>';
 
    try{
-     const [summary,team]=await Promise.all([
-       api("/api/referrals/summary"),
-       api("/api/referrals/v413")
-     ]);
+     const summary=await api("/api/referrals/summary");
+     let team={users:[],active_7d:0,online_now:0,generated_reward:0};
+     try{
+       team=await api("/api/referrals/v413");
+     }catch(teamError){
+       console.warn("Referral team endpoint unavailable, using friends fallback",teamError);
+       try{
+         const friends=await api("/api/friends");
+         const rows=Array.isArray(friends)?friends:[];
+         team={
+           users:rows,
+           active_7d:rows.filter(x=>x.is_active_7d||x.is_online).length,
+           online_now:rows.filter(x=>x.is_online).length,
+           generated_reward:Number(summary?.total_reward||0)
+         };
+       }catch(_){}
+     }
 
      lastSummary=summary||{};
      lastTeam=team||{users:[]};

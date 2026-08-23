@@ -5371,7 +5371,17 @@ async function openPage(page){
     lotteries:lotteryPage,
     tasks:tasksPage,
     friends:friendsPage,
-    referrals:()=>window.referralHub424(),
+    referrals:async()=>{
+      if(typeof window.referralHub424==="function"){
+        return await window.referralHub424();
+      }
+      // Safe fallback: the existing referral/social page already uses the real referral APIs.
+      await friendsPage();
+      setTimeout(()=>{
+        const invite=document.querySelector('.social831-tabs button[onclick*="invite"]');
+        if(invite)invite.click();
+      },30);
+    },
     games:gamesPage,
     shop:shopPage,
     tournaments:tournamentsPage,

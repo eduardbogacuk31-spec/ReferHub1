@@ -1,0 +1,14 @@
+ReferHub v4.25 — Referral Repair
+
+FIXED:
+- Referral script now loads BEFORE app.js.
+- openPage('referrals') has a safe dispatcher and fallback.
+- Referral Hub no longer dies completely if /api/referrals/v413 fails.
+- Team data falls back to the existing /api/friends endpoint.
+- Telegram share uses window.tg explicitly.
+- Added a route-rescue listener for Telegram/WebView cache edge cases.
+
+IMPORTANT:
+- Existing referral reward logic was not changed.
+- Existing Social Hub remains available.
+- v4.23 Hybrid Game Engine remains preserved.

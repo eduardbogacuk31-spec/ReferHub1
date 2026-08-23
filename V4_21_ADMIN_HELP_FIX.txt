@@ -1,0 +1,17 @@
+ReferHub v4.21 — Admin Scroll + Help Render Fix
+
+ADMIN:
+- Removed nested vertical scroll regions from Admin Center.
+- Admin Center now expands naturally and uses one page-level vertical scroll.
+- Horizontal scrolling remains only for tabs/wide tables.
+- Participant management, lists, forms and logs no longer trap vertical scrolling.
+- Added bottom spacing so the last controls are reachable above bottom navigation.
+
+HELP:
+- Removed delayed opacity/transform rendering.
+- Help text is visible immediately when modal opens.
+- Disabled problematic blur/compositing on Help overlay.
+- Help modal content no longer appears only during closing animation.
+- Settings Help panel no longer creates its own nested vertical scroll.
+
+No backend, game engine, economy or navigation logic changed.

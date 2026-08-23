@@ -1,0 +1,204 @@
+
+/* ReferHub v4.21 — Admin single-scroll + Help instant render */
+
+/* =========================
+   ADMIN: ONE SCROLL ONLY
+   ========================= */
+
+/* The main document owns vertical scrolling. */
+.a46,
+.a46-body,
+.a46-section,
+.a46-overview,
+.a46-users,
+.a46-cardgrid,
+.a46-games,
+.a46-list,
+.a46-logs,
+.admin6,
+.admin6-panel,
+.admin6-content-grid,
+.admin6-users-table,
+.admin444-user-page,
+.admin444-panel,
+.admin444-control,
+.support48-admin-list{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-y:visible!important;
+}
+
+/* Never trap vertical scroll inside admin cards/lists. */
+.a46 *,
+.admin6 *,
+.admin444-user-page *{
+  overscroll-behavior-y:auto!important;
+}
+
+/* Horizontal tabs may still scroll horizontally only. */
+.a46-tabs,
+.admin6-tabs{
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  max-height:none!important;
+  touch-action:pan-x!important;
+}
+
+/* Admin root must remain part of the page flow. */
+.a46{
+  position:relative!important;
+  width:100%!important;
+  padding-bottom:120px!important;
+  overflow:visible!important;
+}
+
+/* Remove nested scroll traps from old admin components. */
+.a46-body{
+  overflow:visible!important;
+}
+.a46-section{
+  overflow:visible!important;
+}
+.admin444-user-page{
+  overflow:visible!important;
+  padding-bottom:120px!important;
+}
+
+/* Forms/lists must expand naturally. */
+.a46-form,
+.a46-admin-list,
+.a46-users,
+.a46-games,
+.a46-cardgrid,
+.a46-list,
+.a46-logs,
+.support48-admin-list{
+  overflow:visible!important;
+  max-height:none!important;
+}
+
+/* If an old rule forced internal scrolling, neutralize it. */
+[class*="admin"][style*="overflow-y"],
+[class*="a46"][style*="overflow-y"]{
+  overflow-y:visible!important;
+}
+
+/* Preserve horizontal scrolling for wide tables only. */
+.a46-table-wrap,
+.admin-table-wrap{
+  overflow-x:auto!important;
+  overflow-y:visible!important;
+  max-height:none!important;
+}
+
+/* =========================
+   HELP: SHOW TEXT IMMEDIATELY
+   ========================= */
+
+.ux47-overlay{
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  transition:none!important;
+}
+
+.ux47-overlay.show{
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+
+/* Modal itself must never inherit delayed opacity/transform. */
+.ux47-overlay.show .ux47-modal{
+  opacity:1!important;
+  visibility:visible!important;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+
+/* All help content is immediately visible. */
+.ux47-modal,
+.ux47-modal *,
+.ux47-help-hero,
+.ux47-help-hero *,
+.ux47-help-grid,
+.ux47-help-grid *,
+.ux47-onboarding,
+.ux47-onboarding *,
+.ux47-changelog,
+.ux47-changelog *{
+  opacity:1!important;
+  visibility:visible!important;
+}
+
+/* Avoid WebView compositing bugs where text appears only on close. */
+.ux47-modal{
+  transform:translateZ(0)!important;
+  will-change:auto!important;
+  backface-visibility:visible!important;
+  contain:none!important;
+  filter:none!important;
+}
+
+/* Backdrop can stay dark, but no delayed blur/composition. */
+.ux47-overlay{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  background:rgba(4,6,9,.82)!important;
+}
+
+/* Make help modal a stable readable surface. */
+.ux47-modal{
+  background:#101318!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.48)!important;
+}
+
+/* Text should paint immediately and clearly. */
+.ux47-modal h2,
+.ux47-modal p,
+.ux47-modal b,
+.ux47-modal small,
+.ux47-modal span,
+.ux47-modal div{
+  color:inherit;
+  text-rendering:optimizeLegibility;
+}
+
+/* Settings help panel itself must not create an inner scroll. */
+#settings44-help,
+.settings44-panel,
+.polish91-settings-card{
+  overflow-x:hidden!important;
+}
+
+#settings44-help{
+  height:auto!important;
+  max-height:none!important;
+  overflow-y:visible!important;
+}
+
+/* Keep the Settings modal usable, but do not create a second scrolling region
+   inside Help. The settings shell can scroll as one whole card. */
+.polish91-settings-card{
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;
+}
+
+/* Mobile */
+@media(max-width:650px){
+  .a46{
+    padding-bottom:140px!important;
+  }
+
+  .admin444-user-page{
+    padding-bottom:140px!important;
+  }
+
+  .ux47-modal{
+    max-height:86vh!important;
+    overflow-y:auto!important;
+  }
+}

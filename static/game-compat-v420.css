@@ -1,0 +1,27 @@
+
+.gc420-load-error{
+  padding:28px 16px!important;
+  text-align:center!important;
+  border:1px solid rgba(220,90,110,.14)!important;
+  border-radius:16px!important;
+  background:#111318!important;
+}
+.gc420-load-error>span{font-size:30px!important}
+.gc420-load-error h2{margin:7px 0 4px!important;font-size:16px!important}
+.gc420-load-error p{margin:0 0 12px!important;color:#7b838d!important;font-size:7px!important}
+.gc420-load-error button{
+  width:100%!important;
+  min-height:40px!important;
+  margin-top:6px!important;
+  border:1px solid #66478a!important;
+  border-radius:9px!important;
+  background:#24182f!important;
+  color:#d2afe8!important;
+  font-size:6px!important;
+  font-weight:950!important;
+}
+.gc420-load-error button.secondary{
+  border-color:#394556!important;
+  background:#141922!important;
+  color:#87929e!important;
+}

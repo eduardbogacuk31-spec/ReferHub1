@@ -1,0 +1,21 @@
+ReferHub v4.20 — Game Compatibility Restore
+
+WHAT WAS WRONG:
+- v4.19 removed game-v2.js and game-pro.js entirely.
+- Those files contained not only obsolete game engines, but also some legacy visual helpers/effects.
+- Removing them caused features to disappear and exposed hidden dependencies.
+
+FIX:
+- game-v2.js and game-pro.js are loaded again BEFORE app.js.
+- app.js loads afterwards and becomes the authoritative game engine.
+- v4.17 Game Experience remains active.
+- v4.18 Live Cooldown remains active.
+- Compatibility layer reasserts only canonical engine entry points.
+- Legacy visual/helper functions remain available.
+- Added 5-second loader watchdog with visible Retry instead of infinite spinner.
+
+EXPECTED:
+- Old visual/game effects return.
+- Current Game Center remains active.
+- Live cooldown still runs without full-screen refresh.
+- Legacy engines no longer override app.js.

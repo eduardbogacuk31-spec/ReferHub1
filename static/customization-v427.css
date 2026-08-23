@@ -1,0 +1,253 @@
+
+/* ReferHub v4.27 — stable customization tabs */
+
+.rh281-shell{
+  width:100%!important;
+  max-width:1080px!important;
+  margin:0 auto!important;
+  padding-bottom:110px!important;
+  overflow:visible!important;
+}
+
+.rh281-shell .rh28-hero{
+  margin-bottom:8px!important;
+  border-radius:18px!important;
+}
+
+/* Four clear tabs, no long horizontal list. */
+.rh281-tabs{
+  position:sticky!important;
+  top:4px!important;
+  z-index:20!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;
+  width:100%!important;
+  margin:0 0 8px!important;
+  padding:6px!important;
+  overflow:visible!important;
+  border:1px solid rgba(255,255,255,.055)!important;
+  border-radius:14px!important;
+  background:rgba(12,15,20,.96)!important;
+}
+
+.rh281-tabs button{
+  min-width:0!important;
+  min-height:54px!important;
+  display:grid!important;
+  grid-template-columns:27px minmax(0,1fr) auto!important;
+  gap:6px!important;
+  align-items:center!important;
+  padding:7px!important;
+  border:1px solid transparent!important;
+  border-radius:10px!important;
+  background:#11151b!important;
+  color:#747d88!important;
+  text-align:left!important;
+  overflow:hidden!important;
+}
+
+.rh281-tabs button>span{
+  width:27px!important;height:27px!important;
+  display:grid!important;place-items:center!important;
+  border-radius:8px!important;
+  background:#19171f!important;
+  font-size:12px!important;
+}
+.rh281-tabs button>b{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:7px!important;
+}
+.rh281-tabs button>small{
+  padding:3px 5px!important;
+  border-radius:999px!important;
+  background:#171b21!important;
+  color:#6e7883!important;
+  font-size:4.5px!important;
+}
+.rh281-tabs button.active{
+  border-color:rgba(139,95,170,.23)!important;
+  background:#1c1622!important;
+  color:#d8b7e9!important;
+}
+.rh281-tabs button.active>span{
+  background:#2b1b36!important;
+  color:#d8b2ea!important;
+}
+
+/* One page scroll — panels don't create their own scroll areas. */
+.rh281-tab-wrap,
+.rh281-panel,
+.rh28-section,
+.rh28-grid{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+
+.rh281-panel{display:none!important}
+.rh281-panel.active{
+  display:block!important;
+  animation:rh427Panel .14s ease both!important;
+}
+@keyframes rh427Panel{
+  from{opacity:.5;transform:translateY(2px)}
+  to{opacity:1;transform:none}
+}
+
+.rh28-section{
+  padding:11px!important;
+  border:1px solid rgba(255,255,255,.05)!important;
+  border-radius:15px!important;
+  background:#0f1217!important;
+}
+
+.rh28-head{
+  margin-bottom:9px!important;
+}
+
+.rh28-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+
+.rh28-item{
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:74px minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  gap:8px!important;
+  align-items:center!important;
+  padding:9px!important;
+  border:1px solid rgba(255,255,255,.05)!important;
+  border-radius:12px!important;
+  background:#11151b!important;
+  overflow:hidden!important;
+}
+
+.rh28-preview{
+  grid-row:1/3!important;
+  width:74px!important;
+  height:74px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:12px!important;
+  background:#18171d!important;
+}
+
+.rh28-preview>i{
+  font-size:23px!important;
+}
+
+.rh28-item-copy{
+  min-width:0!important;
+}
+.rh28-item-copy span,
+.rh28-item-copy h3,
+.rh28-item-copy p,
+.rh28-item-copy small{
+  display:block!important;
+}
+.rh28-item-copy span{
+  font-size:4.5px!important;
+}
+.rh28-item-copy h3{
+  margin:2px 0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:8px!important;
+}
+.rh28-item-copy p{
+  margin:0!important;
+  color:#747d87!important;
+  font-size:5.5px!important;
+  line-height:1.35!important;
+}
+.rh28-item-copy small{
+  margin-top:3px!important;
+  color:#6c6174!important;
+  font-size:5px!important;
+}
+
+.rh28-item>button{
+  grid-column:2!important;
+  width:100%!important;
+  min-height:33px!important;
+  border-radius:8px!important;
+  font-size:5px!important;
+}
+
+.rh28-item.equipped{
+  border-color:rgba(99,175,132,.18)!important;
+  box-shadow:inset 3px 0 0 rgba(91,201,139,.45)!important;
+}
+
+/* Make equipped cosmetics visible on current profile versions. */
+.rp372-avatar[class*="rh28-frame-"],
+.p434-avatar[class*="rh28-frame-"]{
+  position:relative!important;
+}
+.rp372-cover[class*="rh28-bg-"],
+.p434-cover[class*="rh28-bg-"]{
+  overflow:hidden!important;
+}
+.rp372[class*="rh28-effect-"],
+.p434[class*="rh28-effect-"]{
+  position:relative!important;
+}
+
+.rh28-equipped-title{
+  display:inline-flex!important;
+  gap:4px!important;
+  align-items:center!important;
+  margin-top:4px!important;
+  padding:4px 6px!important;
+  border:1px solid rgba(139,95,170,.14)!important;
+  border-radius:999px!important;
+  background:#1b1620!important;
+  color:#c9a7dc!important;
+  font-size:5px!important;
+}
+
+.rh427-game-error{
+  padding:28px 14px!important;
+  text-align:center!important;
+  border:1px solid rgba(221,90,110,.14)!important;
+  border-radius:15px!important;
+  background:#111318!important;
+}
+.rh427-game-error>span{font-size:28px!important}
+.rh427-game-error h2{margin:6px 0!important;font-size:15px!important}
+.rh427-game-error p{color:#7a848f!important;font-size:7px!important}
+.rh427-game-error button{
+  width:100%!important;min-height:39px!important;margin-top:6px!important;
+  border:1px solid #68468a!important;border-radius:9px!important;
+  background:#25182f!important;color:#d2afe6!important;font-size:6px!important;font-weight:950!important;
+}
+.rh427-game-error button.secondary{
+  border-color:#394555!important;background:#141922!important;color:#87929e!important;
+}
+
+@media(max-width:700px){
+  .rh281-tabs{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .rh28-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+@media(max-width:360px){
+  .rh281-tabs button{
+    grid-template-columns:24px minmax(0,1fr)!important;
+  }
+  .rh281-tabs button>small{
+    grid-column:2!important;
+    justify-self:start!important;
+  }
+}

@@ -97,8 +97,9 @@
  window.rh281SwitchTab=(name,button)=>{
    document.querySelectorAll(".rh281-tabs button").forEach(b=>b.classList.toggle("active",b===button));
    document.querySelectorAll(".rh281-panel").forEach(p=>p.classList.toggle("active",p.dataset.rh281Tab===name));
-   const wrap=document.querySelector(".rh281-tab-wrap");
-   if(wrap) wrap.scrollIntoView({behavior:"smooth",block:"nearest"});
+   const shell=document.querySelector(".rh281-shell");
+   shell?.classList.add("rh427-tab-switch");
+   setTimeout(()=>shell?.classList.remove("rh427-tab-switch"),140);
  };
 
  window.rh28Equip=async key=>{
@@ -115,9 +116,9 @@
    try{d=await api("/api/cosmetics-v28/equipped")}catch(_){return}
 
    const targets=[
-     document.querySelector(".rh22-profile"),
-     document.querySelector(".rh21-hero"),
-     document.querySelector(".rh221-avatar-frame")
+     document.querySelector(".rh22-profile,.rp372,.p434"),
+     document.querySelector(".rh21-hero,.rp372-cover,.p434-cover"),
+     document.querySelector(".rh221-avatar-frame,.rp372-avatar,.p434-avatar")
    ].filter(Boolean);
 
    const all=[
@@ -128,9 +129,9 @@
 
    targets.forEach(t=>t.classList.remove(...all));
 
-   const hero=document.querySelector(".rh21-hero");
-   const avatar=document.querySelector(".rh221-avatar-frame");
-   const profile=document.querySelector(".rh22-profile");
+   const hero=document.querySelector(".rh21-hero,.rp372-cover,.p434-cover");
+   const avatar=document.querySelector(".rh221-avatar-frame,.rp372-avatar,.p434-avatar");
+   const profile=document.querySelector(".rh22-profile,.rp372,.p434");
 
    if(avatar&&d.frame?.css_class)avatar.classList.add(d.frame.css_class);
    if(hero&&d.background?.css_class)hero.classList.add(d.background.css_class);
@@ -141,7 +142,7 @@
      if(!title){
        title=document.createElement("div");
        title.className="rh28-equipped-title";
-       const identity=document.querySelector(".rh21-identity");
+       const identity=document.querySelector(".rh21-identity,.rp372-id,.p434-id");
        identity?.appendChild(title);
      }
      if(title)title.innerHTML=`<i>${d.title.icon||"✦"}</i><span>${esc28(d.title.title||"ReferHub Player")}</span>`;

@@ -14,6 +14,10 @@
  const modernOpen=window.openGameDetail;
  const modernGamesPage=window.gamesPage;
 
+ window.__rh427LegacyGameOpen=legacyOpen;
+ window.__rh427ModernGameOpen=modernOpen;
+ window.__rh427ModernGamesPage=modernGamesPage;
+
  let countdown=null;
  let countdownGame=null;
  let countdownEnds=0;
@@ -175,15 +179,26 @@
    });
  };
 
- window.openGameDetail=function(id){
+ window.openGameDetail=async function(id){
    if(countdown){clearInterval(countdown);countdown=null}
    countdownGame=null;
 
-   if(LEGACY.has(id) && typeof legacyOpen==="function"){
-     return legacyOpen(id);
-   }
-   if(typeof modernOpen==="function"){
-     return modernOpen(id);
+   try{
+     if(LEGACY.has(id) && typeof legacyOpen==="function"){
+       return await legacyOpen(id);
+     }
+     if(typeof modernOpen==="function"){
+       return await modernOpen(id);
+     }
+   }catch(error){
+     console.error("Primary game engine failed:",id,error);
+     if(typeof modernOpen==="function"){
+       try{return await modernOpen(id)}catch(secondError){
+         console.error("Fallback game engine failed:",id,secondError);
+       }
+     }
+     const c=document.getElementById("content");
+     if(c)c.innerHTML=`<section class="rh427-game-error"><span>⚠️</span><h2>Гра не відкрилась</h2><p>${String(error?.message||"Помилка гри")}</p><button onclick="gamesPage()">← ДО ІГОР</button></section>`;
    }
  };
 

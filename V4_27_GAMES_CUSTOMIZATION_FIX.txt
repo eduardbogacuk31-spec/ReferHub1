@@ -1,0 +1,28 @@
+ReferHub v4.27 — Games Stability + Customization Fix
+
+GAMES:
+- Verified all 15 server endpoints exist.
+- Final 15-game router added.
+- Explicit global handlers for Color Pick / High-Low / Lucky Card / Triple Pick.
+- Legacy 11 games keep Game Pro visuals.
+- Modern 4 games use the modern engine with fallback.
+- No game may remain on an endless loader: visible Retry screen after 4.5 seconds.
+- Browser-side rh427GameHealth() diagnostic validates all 15 handlers.
+
+CUSTOMIZATION:
+- Rebuilt tabs as a clean 4-tab grid:
+  Frames / Backgrounds / Titles / Effects.
+- Mobile uses 2x2 tabs instead of a long horizontal list.
+- Removed scrollIntoView jump when switching tabs.
+- One vertical page scroll only.
+- Cleaner 2-column cosmetic cards (1 column on mobile).
+- Equipped state is visually clear.
+- Frames/backgrounds/effects now target current rp372/p434 profiles as well as legacy profile.
+- Equipped title now attaches to current profile identity.
+
+Preserved:
+- Referral Hub.
+- Seasons.
+- Admin.
+- Hybrid classic game effects.
+- Existing economy and rewards.

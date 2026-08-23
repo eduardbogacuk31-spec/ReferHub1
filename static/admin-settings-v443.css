@@ -1,0 +1,49 @@
+
+/* v4.4.3 — Settings admin visibility is driven by backend access, not window.me */
+
+.settings44-tabs{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:6px!important;
+}
+
+/* Only when backend confirms admin access do we create two columns. */
+.settings44-tabs.admin443-enabled{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+#settings44AdminTab[hidden]{
+  display:none!important;
+}
+
+.settings44-tabs:not(.admin443-enabled) [data-settings44="general"]{
+  width:100%!important;
+  grid-column:1/-1!important;
+}
+
+/* Preserve readable admin styling once it is actually visible. */
+#settings44AdminTab:not([hidden]){
+  display:block!important;
+  min-height:38px!important;
+  border:1px solid rgba(255,255,255,.05)!important;
+  border-radius:9px!important;
+  background:#15191f!important;
+  color:#8b95a1!important;
+}
+
+#settings44AdminTab.active:not([hidden]){
+  border-color:#77499f!important;
+  background:linear-gradient(145deg,#43235b,#2b1938)!important;
+  color:#e1bdf3!important;
+}
+
+.settings44-admin-open{
+  display:block!important;
+  width:100%!important;
+  min-height:44px!important;
+  border:1px solid #8052aa!important;
+  border-radius:11px!important;
+  background:linear-gradient(145deg,#6c3b92,#47265f)!important;
+  color:#fff!important;
+  font-weight:950!important;
+}

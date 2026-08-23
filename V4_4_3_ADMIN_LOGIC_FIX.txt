@@ -1,0 +1,9 @@
+ReferHub v4.4.3 — Admin Logic Fix
+
+- Removed the broken v4.4.2 window.me admin visibility patch.
+- Settings starts with one full-width General tab: no empty black second cell.
+- Admin access is now verified against the protected backend /api/admin/dashboard endpoint.
+- If backend confirms admin: Settings becomes General | Admin.
+- If backend rejects access: General remains full width and Admin stays hidden.
+- Admin is not placed in Profile.
+- No changes to Profile, Game Center, Tasks, Friends, navigation or scrolling.

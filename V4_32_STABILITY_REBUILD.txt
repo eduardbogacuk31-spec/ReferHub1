@@ -1,0 +1,29 @@
+ReferHub v4.32 — Stability Rebuild
+
+NAVIGATION
+- Removed the lottery capture-phase click interceptor entirely.
+- Removed lottery-nav class from the whole bottom navigation.
+- Removed v4.31 navigation wrapper.
+- Added ONE final navigation authority loaded last.
+- Active tab is set immediately on pointer-down and again after render.
+- No pageTransitionLock: quick tab changes are not silently ignored.
+- Home / Referrals / Season / Lottery / Games / Earn / Profile have explicit routes.
+
+LOTTERY
+- Lottery opens only through openPage('lotteries').
+- No document-wide click interception.
+- Filter buttons keep a clear active state.
+- Lottery content remains in normal document flow.
+
+NEW GAMES
+- Color Pick, High / Low, Lucky Card, Triple Pick no longer depend on the old game-router chain.
+- Each opens through a dedicated v4.32 screen.
+- Each calls its backend endpoint directly.
+- Result appears on the same screen.
+- History is updated on the same screen.
+- Cooldown/daily availability is fetched from /api/games and counts down live.
+- Buttons automatically re-enable after cooldown.
+- No full-page refresh after a round.
+
+CLASSIC GAMES
+- Existing Game Pro engine/effects remain for the 11 classic games.

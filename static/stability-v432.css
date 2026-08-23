@@ -1,0 +1,106 @@
+
+/* v4.32 — navigation/button stability */
+.premium-bottom-nav button[data-page]{
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+  user-select:none!important;
+}
+.premium-bottom-nav button[data-page].active{
+  opacity:1!important;
+}
+.premium-bottom-nav button[data-page].active .nav-icon-wrap{
+  border:1px solid rgba(151,101,184,.24)!important;
+  background:linear-gradient(145deg,#3a2449,#201629)!important;
+  color:#d4afe7!important;
+  box-shadow:0 0 18px rgba(133,79,166,.13)!important;
+}
+.premium-bottom-nav button[data-page].active .nav-label{
+  color:#d7b5e9!important;
+}
+
+/* Lottery stable flow */
+.rh29-shell,.rh29-detail{
+  position:relative!important;
+  inset:auto!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  transform:none!important;
+}
+.rh29-toolbar nav button,
+.rh29-step button,
+.rh29-quick button,
+.rh29-buybtn,
+.rh29-back{
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+.rh29-toolbar nav button.active{
+  border-color:rgba(143,94,175,.28)!important;
+  background:#26182f!important;
+  color:#e0bdec!important;
+}
+.rh29-list{position:relative!important;z-index:1!important}
+
+/* Direct modern game screen */
+.rh432-modern{
+  width:100%;max-width:900px;margin:0 auto;padding-bottom:120px
+}
+.rh432-back{
+  min-height:36px;padding:7px 10px;border:1px solid rgba(255,255,255,.055);border-radius:9px;background:#101318;color:#8b95a0;font-size:6px
+}
+.rh432-modern-hero{
+  display:grid;grid-template-columns:68px minmax(0,1fr) 130px;gap:10px;align-items:center;
+  margin-top:8px;padding:13px;border:1px solid rgba(126,86,154,.14);border-radius:17px;
+  background:radial-gradient(circle at 90% 0%,rgba(132,79,163,.16),transparent 32%),linear-gradient(145deg,#15141a,#0e1116)
+}
+.rh432-modern-icon{
+  width:68px;height:68px;display:grid;place-items:center;border-radius:17px;background:#211729;font-size:30px
+}
+.rh432-modern-hero small{font-size:5px;color:#956da9;font-weight:950;letter-spacing:.1em}
+.rh432-modern-hero h1{margin:2px 0;font-size:23px}.rh432-modern-hero p{margin:0;color:#747e89;font-size:6px;line-height:1.45}
+.rh432-modern-hero article{padding:9px;border:1px solid rgba(255,255,255,.05);border-radius:10px;background:#101318}
+.rh432-modern-hero article span,.rh432-modern-hero article b{display:block}.rh432-modern-hero article span{font-size:4.5px;color:#6e7782}.rh432-modern-hero article b{margin-top:3px;font-size:9px}
+.rh432-wait{
+  display:none;grid-template-columns:58px minmax(0,1fr);gap:9px;align-items:center;
+  margin-top:8px;padding:9px;border:1px solid rgba(214,174,77,.13);border-radius:13px;background:#17150f
+}
+.rh432-wait.show{display:grid}
+.rh432-clock{
+  width:58px;height:58px;display:grid;place-items:center;border:1px solid rgba(217,178,77,.18);border-radius:50%;background:#211c10
+}
+.rh432-clock b{color:#e0bb5d;font-size:9px;font-variant-numeric:tabular-nums}
+.rh432-wait small{color:#9b8045;font-size:5px;font-weight:950}.rh432-wait h3{margin:2px 0;font-size:9px}.rh432-wait p{margin:0;color:#747d87;font-size:5px}
+.rh432-modern-stage{
+  margin-top:8px;padding:12px;border:1px solid rgba(255,255,255,.05);border-radius:15px;background:#101318
+}
+.rh432-modern-stage>header{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:9px}
+.rh432-modern-stage>header span{font-size:5px;color:#876994;font-weight:950}.rh432-modern-stage>header b{font-size:6px;color:#808995;text-align:right}.rh432-modern-stage>header b.win{color:#6bcf99}
+.rh432-modern-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.rh432-modern-choices button{
+  min-height:82px;display:grid;place-items:center;align-content:center;gap:5px;
+  border:1px solid rgba(255,255,255,.06);border-radius:13px;background:#15191f;color:#e9ebed
+}
+.rh432-modern-choices button i{font-size:10px;font-style:normal;font-weight:950}.rh432-modern-choices button small{font-size:4.5px;color:#707a85}
+.rh432-modern-choices button.red{border-color:rgba(198,68,88,.18);background:#211217}
+.rh432-modern-choices button.blue{border-color:rgba(72,130,193,.18);background:#101824}
+.rh432-modern-choices button.green{border-color:rgba(65,164,112,.18);background:#0f1b16}
+.rh432-modern-choices button.black{background:#0c0e12}
+.rh432-modern-choices button.center{border-color:rgba(142,90,172,.18);background:#1b1321}
+.rh432-modern-choices button:disabled{opacity:.42}
+.rh432-history{margin-top:8px;padding:11px;border:1px solid rgba(255,255,255,.05);border-radius:14px;background:#0f1217}
+.rh432-history>header{display:flex;justify-content:space-between;margin-bottom:7px}.rh432-history>header span{font-size:5px;color:#80698d;font-weight:950}.rh432-history>header b{font-size:6px;color:#6e7883}
+.rh432-history>div{display:grid;gap:5px}.rh432-history article{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px;border:1px solid rgba(255,255,255,.04);border-radius:9px;background:#11151a}
+.rh432-history article>span{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#191720}
+.rh432-history article b,.rh432-history article small{display:block}.rh432-history article b{font-size:6px}.rh432-history article small{margin-top:2px;color:#6e7882;font-size:4.5px}.rh432-history article strong{font-size:6px;color:#737d87}.rh432-history article strong.win{color:#69cd98}.rh432-history p{color:#717b86;font-size:6px;text-align:center}
+.rh432-page-error{text-align:center;padding:30px;border:1px solid rgba(220,90,110,.14);border-radius:15px;background:#111318}.rh432-page-error>span{font-size:28px}.rh432-page-error p{color:#78828c;font-size:7px}.rh432-page-error button{width:100%;min-height:38px;border:1px solid #674486;border-radius:9px;background:#25182f;color:#d3afe6}
+
+@media(max-width:620px){
+  .rh432-modern-hero{grid-template-columns:56px minmax(0,1fr)}
+  .rh432-modern-icon{width:56px;height:56px;font-size:25px}
+  .rh432-modern-hero article{grid-column:1/3}
+  .rh432-modern-choices{grid-template-columns:1fr!important}
+  .rh432-modern-choices button{min-height:56px}
+}

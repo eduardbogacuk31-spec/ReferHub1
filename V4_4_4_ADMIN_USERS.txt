@@ -1,0 +1,8 @@
+ReferHub v4.4.4 — Participant Management
+- Full backend-driven user management screen.
+- Add/remove RH with reason.
+- Ban/unban.
+- Telegram ID, username, XP, balance, total earned, referrals.
+- Ledger history, orders and achievements.
+- Whole participant row is clickable.
+- Mobile-friendly.

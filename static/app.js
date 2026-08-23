@@ -3684,7 +3684,7 @@ async function adminPanelPage(){
       </div>
       <div id="admin6UsersList" class="admin6-users-table">
         ${users.map(item=>`
-          <article data-admin-user-search="${esc(`${item.first_name||""} ${item.username||""} ${item.telegram_id}`.toLowerCase())}">
+          <article class="admin444-user-item" data-admin-user-search="${esc(`${item.first_name||""} ${item.username||""} ${item.telegram_id}`.toLowerCase())}" onclick="if(!event.target.closest('button'))openAdminUser(${item.telegram_id})">
             <div class="admin6-user-avatar">${esc(item.first_name?.[0]||"U")}</div>
             <div class="grow">
               <b>${esc(item.first_name||"Користувач")}</b>
@@ -3806,38 +3806,128 @@ function filterAdminUsers(){
   });
 }
 
-function openAdminUser(id){
-  const user=(window.adminUsersCache||[]).find(item=>Number(item.telegram_id)===Number(id));
-  if(!user)return;
+async function openAdminUser(id){
+  try{
+    content.innerHTML=`<div class="loader"></div>`;
+    const data=await api(`/api/admin/users/${id}`);
+    const user=data.profile||{};
+    const history=Array.isArray(data.history)?data.history:[];
+    const orders=Array.isArray(data.orders)?data.orders:[];
+    const achievements=Array.isArray(data.achievements)?data.achievements:[];
 
-  const modal=document.createElement("div");
-  modal.className="admin6-modal";
-  modal.innerHTML=`
-    <div class="admin6-modal-card">
-      <button class="admin6-close" onclick="this.closest('.admin6-modal').remove()">×</button>
-      <div class="admin6-modal-avatar">${esc(user.first_name?.[0]||"U")}</div>
-      <h2>${esc(user.first_name||"Користувач")}</h2>
-      <p>${user.username?"@"+esc(user.username):user.telegram_id}</p>
+    content.innerHTML=`
+      <section class="admin444-user-page">
+        <button class="admin444-back" onclick="adminPanelPage().then(()=>setTimeout(()=>showAdmin6Tab('users',document.querySelector('.admin6-tabs button:nth-child(2)')),60))">← Учасники</button>
 
-      <div class="admin6-modal-stats">
-        <div><span>Баланс</span><strong>${user.balance} RH</strong></div>
-        <div><span>XP</span><strong>${user.xp||0}</strong></div>
-      </div>
+        <section class="admin444-user-hero">
+          <div class="admin444-avatar">${esc((user.first_name||user.username||"U").slice(0,1).toUpperCase())}</div>
+          <div class="grow">
+            <span>USER CONTROL</span>
+            <h1>${esc(user.first_name||"Користувач")}</h1>
+            <p>${user.username?"@"+esc(user.username):"Без username"} · ID ${user.telegram_id}</p>
+          </div>
+          <div class="admin444-state ${user.is_banned?"banned":"active"}">${user.is_banned?"BANNED":"ACTIVE"}</div>
+        </section>
 
-      <label>Змінити баланс</label>
-      <div class="admin6-balance-actions">
-        <input id="admin6BalanceAmount" type="number" value="100">
-        <button onclick="adminBalanceChange(${user.telegram_id},1)">Додати</button>
-        <button onclick="adminBalanceChange(${user.telegram_id},-1)">Зняти</button>
-      </div>
+        <section class="admin444-stats">
+          <article><small>БАЛАНС</small><b>${Number(user.balance||0)} RH</b></article>
+          <article><small>XP</small><b>${Number(user.xp||0)}</b></article>
+          <article><small>ЗАРОБЛЕНО</small><b>${Number(user.total_earned||0)} RH</b></article>
+          <article><small>РЕФЕРАЛИ</small><b>${Number(user.referrals_count||0)}</b></article>
+        </section>
 
-      <button class="admin6-ban-button ${user.is_banned?"unban":""}"
-        onclick="adminBanUser(${user.telegram_id},${user.is_banned?0:1})">
-        ${user.is_banned?"Розблокувати":"Заблокувати користувача"}
-      </button>
-    </div>`;
-  document.body.appendChild(modal);
-  requestAnimationFrame(()=>modal.classList.add("show"));
+        <section class="admin444-control">
+          <div class="admin6-section-title">
+            <div><span>BALANCE CONTROL</span><h2>Керування балансом</h2></div>
+          </div>
+          <div class="admin444-balance-row">
+            <input id="admin444BalanceAmount" type="number" min="1" value="100">
+            <input id="admin444BalanceNote" placeholder="Причина зміни" value="Admin Panel">
+          </div>
+          <div class="admin444-balance-buttons">
+            <button class="plus" onclick="admin444Balance(${user.telegram_id},1)">+ ДОДАТИ RH</button>
+            <button class="minus" onclick="admin444Balance(${user.telegram_id},-1)">− ЗНЯТИ RH</button>
+          </div>
+        </section>
+
+        <section class="admin444-control">
+          <div class="admin6-section-title">
+            <div><span>MODERATION</span><h2>Модерація</h2></div>
+          </div>
+          <button class="admin444-ban ${user.is_banned?"unban":""}" onclick="admin444Ban(${user.telegram_id},${user.is_banned?0:1})">
+            ${user.is_banned?"✓ РОЗБЛОКУВАТИ КОРИСТУВАЧА":"⛔ ЗАБЛОКУВАТИ КОРИСТУВАЧА"}
+          </button>
+        </section>
+
+        <section class="admin444-tabs">
+          <button class="active" onclick="admin444Switch('history',this)">Історія</button>
+          <button onclick="admin444Switch('orders',this)">Замовлення</button>
+          <button onclick="admin444Switch('achievements',this)">Досягнення</button>
+        </section>
+
+        <section id="admin444-history" class="admin444-panel active">
+          ${history.length?history.map(item=>`
+            <article class="admin444-row">
+              <span class="${Number(item.amount)>=0?"plus":"minus"}">${Number(item.amount)>=0?"+":""}${Number(item.amount)} RH</span>
+              <div><b>${esc(item.note||"Операція")}</b><small>${adminTime(item.created_at)}</small></div>
+            </article>`).join(""):`<div class="admin444-empty">Історія порожня</div>`}
+        </section>
+
+        <section id="admin444-orders" class="admin444-panel">
+          ${orders.length?orders.map(item=>`
+            <article class="admin444-row">
+              <span>📦</span>
+              <div><b>${esc(item.emoji||"🎁")} ${esc(item.title||"Подарунок")}</b><small>${esc(item.status||"—")} · ${Number(item.price||0)} RH · ${adminTime(item.created_at)}</small></div>
+            </article>`).join(""):`<div class="admin444-empty">Замовлень немає</div>`}
+        </section>
+
+        <section id="admin444-achievements" class="admin444-panel">
+          ${achievements.length?achievements.map(item=>`
+            <article class="admin444-row">
+              <span>${esc(item.icon||"🏆")}</span>
+              <div><b>${esc(item.title||"Досягнення")}</b><small>${item.unlocked?"Відкрито":"Не відкрито"} · +${Number(item.reward||0)} RH</small></div>
+            </article>`).join(""):`<div class="admin444-empty">Досягнень немає</div>`}
+        </section>
+      </section>
+    `;
+    document.querySelector("main")?.scrollTo({top:0,behavior:"auto"});
+  }catch(error){
+    toast(error.message,"error");
+    await adminPanelPage();
+    setTimeout(()=>showAdmin6Tab("users",document.querySelector('.admin6-tabs button:nth-child(2)')),60);
+  }
+}
+
+function admin444Switch(name,button){
+  document.querySelectorAll(".admin444-panel").forEach(x=>x.classList.remove("active"));
+  document.getElementById(`admin444-${name}`)?.classList.add("active");
+  document.querySelectorAll(".admin444-tabs button").forEach(x=>x.classList.remove("active"));
+  button?.classList.add("active");
+}
+
+async function admin444Balance(userId,direction){
+  const amount=Math.abs(Number(document.getElementById("admin444BalanceAmount")?.value||0))*direction;
+  const note=(document.getElementById("admin444BalanceNote")?.value||"Admin Panel").trim();
+  if(!amount)return toast("Вкажи суму","error");
+  try{
+    const result=await api(`/api/admin/users/${userId}/balance`,{
+      method:"POST",
+      body:JSON.stringify({amount,note})
+    });
+    toast(`Баланс: ${result.balance} RH`,"success");
+    await openAdminUser(userId);
+  }catch(error){toast(error.message,"error")}
+}
+
+async function admin444Ban(userId,isBanned){
+  try{
+    await api(`/api/admin/users/${userId}/ban`,{
+      method:"PATCH",
+      body:JSON.stringify({is_banned:Boolean(isBanned)})
+    });
+    toast(isBanned?"Користувача заблоковано":"Користувача розблоковано","success");
+    await openAdminUser(userId);
+  }catch(error){toast(error.message,"error")}
 }
 
 

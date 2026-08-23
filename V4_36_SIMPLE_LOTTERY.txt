@@ -1,0 +1,14 @@
+ReferHub v4.36 — Simple Lottery
+
+- One clean lottery page.
+- Removed large hero/trust/how-it-works sections.
+- Tabs: Active / Mine / Finished.
+- Each lottery card shows only:
+  prize, time/status, ticket price, my tickets, total tickets.
+- Detail page shows:
+  ticket controls, price, my tickets, total tickets, chance, end time.
+- Finished lottery shows the winner.
+- Admin gets a simple “+ Створити” entry point.
+- Existing Admin Center lottery creation remains.
+- No images or new lottery sub-pages.
+- Modern games/admin/referral fixes from v4.35 remain untouched.

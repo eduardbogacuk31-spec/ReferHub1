@@ -91,33 +91,54 @@
    </section>`;
  }
 
+
  function render(){
    const c=E("#content"); if(!c||!data29)return;
    const active=data29.active||[];
    const history=data29.history||[];
    const mine=[...active,...history].filter(x=>myTickets(x)>0);
-   const arr=filter29==="active"?active:filter29==="mine"?mine:history;
 
-   c.innerHTML=`<main class="rh29-shell">
-     ${hero(active)}
-     <section class="rh29-toolbar">
+   const arr=filter29==="history"?history:filter29==="mine"?mine:active;
+
+   c.innerHTML=`<main class="lot436">
+     <header class="lot436-head">
        <div>
-         <small>REFERHUB LOTTERY</small>
-         <h2>Розіграші</h2>
+         <small>РОЗІГРАШІ</small>
+         <h1>Розіграші</h1>
        </div>
-       <nav>
-         <button class="${filter29==="active"?"active":""}" onclick="rh29Filter('active')">Активні <i>${active.length}</i></button>
-         <button class="${filter29==="mine"?"active":""}" onclick="rh29Filter('mine')">Мої білети <i>${mine.length}</i></button>
-         <button class="${filter29==="history"?"active":""}" onclick="rh29Filter('history')">Історія <i>${history.length}</i></button>
-       </nav>
-     </section>
-     <section class="rh29-list">
-       ${arr.length?arr.map(card).join(""):`<div class="rh29-none"><span>🎟</span><h3>Тут поки порожньо</h3><p>Коли з'являться розіграші, вони будуть тут.</p></div>`}
-     </section>
-     <section class="rh29-trust">
-       <article><span>⚙</span><div><b>Автоматичний вибір</b><small>Переможця визначає генератор, а не адміністратор.</small></div></article>
-       <article><span>👁</span><div><b>Прозорий результат</b><small>Після завершення видно переможця та дані розіграшу.</small></div></article>
-       <article><span>🎟</span><div><b>Кожен білет має шанс</b><small>Більше білетів = вищий шанс, але не гарантована перемога.</small></div></article>
+       ${window.me?.is_admin?`<button class="lot436-create" onclick="admin46Tab?.('lottery')">+ Створити</button>`:""}
+     </header>
+
+     <nav class="lot436-tabs">
+       <button class="${filter29==="active"?"active":""}" onclick="rh29Filter('active')">Активні <span>${active.length}</span></button>
+       <button class="${filter29==="mine"?"active":""}" onclick="rh29Filter('mine')">Мої <span>${mine.length}</span></button>
+       <button class="${filter29==="history"?"active":""}" onclick="rh29Filter('history')">Завершені <span>${history.length}</span></button>
+     </nav>
+
+     <section class="lot436-list">
+       ${arr.length?arr.map(x=>`
+         <article class="lot436-card" onclick="rh29OpenLottery(${n(x.id)})">
+           <div class="lot436-card-main">
+             <span class="lot436-ticket">🎟</span>
+             <div>
+               <small>#${String(n(x.id)).padStart(4,"0")}</small>
+               <h2>${esc29(prize(x))}</h2>
+               <p>${x.status==="drawn"?"Розіграш завершено":`До завершення: ${left(x.ends_at||x.end_at)}`}</p>
+             </div>
+           </div>
+
+           <div class="lot436-card-info">
+             <div><span>Ціна</span><b>${ticketPrice(x)} RH</b></div>
+             <div><span>Мої білети</span><b>${myTickets(x)}</b></div>
+             <div><span>Всього</span><b>${totalTickets(x)}</b></div>
+           </div>
+
+           <button type="button">${x.status==="drawn"?"Результат":"Відкрити"} →</button>
+         </article>
+       `).join(""):`<div class="lot436-empty">
+         <span>🎟</span>
+         <b>${filter29==="history"?"Завершених розіграшів ще немає":filter29==="mine"?"Ти ще не береш участь у розіграшах":"Активних розіграшів зараз немає"}</b>
+       </div>`}
      </section>
    </main>`;
  }
@@ -138,38 +159,64 @@
    const c=E("#content"); if(!c)return;
    const total=Math.max(1,totalTickets(x)),mine=myTickets(x),chance=mine/total*100;
    const done=x.status==="drawn";
-   c.innerHTML=`<main class="rh29-detail">
-     <button class="rh29-back" onclick="rh29Open()">← <span>Розіграші</span></button>
-     <section class="rh29-detail-hero">
-       <div class="rh29-detail-art"><span>🎁</span><i>#${String(n(x.id)).padStart(4,"0")}</i></div>
-       <div class="rh29-detail-copy">
-         <small>${done?"DRAW COMPLETED":"LIVE LOTTERY"}</small>
+   c.innerHTML=`<main class="lot436-detail">
+     <button class="lot436-back" onclick="rh29Open()">← Назад</button>
+
+     <header class="lot436-detail-head">
+       <div>
+         <small>РОЗІГРАШ #${String(n(x.id)).padStart(4,"0")}</small>
          <h1>${esc29(prize(x))}</h1>
-         <p>${esc29(x.description || "Кожен придбаний білет бере участь у випадковому виборі переможця.")}</p>
-         ${!done?`<div class="rh29-bigtime"><span>ДО ФІНАЛУ</span><b data-rh29-end="${n(x.ends_at||x.end_at)}">${left(x.ends_at||x.end_at)}</b></div>`:""}
        </div>
-     </section>
-     <section class="rh29-detail-grid">
-       <article class="rh29-ticketbox">
-         <div class="rh29-tickettop"><span>ТВОЯ УЧАСТЬ</span><b>${mine} 🎟</b></div>
-         <div class="rh29-chance"><small>Поточний шанс*</small><strong>${chance.toFixed(chance<1?2:1)}%</strong><div><i style="width:${Math.min(100,chance)}%"></i></div></div>
-         <p>*Шанс змінюється, коли інші учасники купують білети.</p>
-         ${!done?`<div class="rh29-buy">
-           <label>Кількість білетів</label>
-           <div class="rh29-step"><button onclick="rh29Step(-1)">−</button><b id="rh29Qty">1</b><button onclick="rh29Step(1)">+</button></div>
-           <div class="rh29-quick"><button onclick="rh29Set(1)">1</button><button onclick="rh29Set(5)">5</button><button onclick="rh29Set(10)">10</button><button onclick="rh29Set(25)">25</button></div>
-           <button class="rh29-buybtn" onclick="rh29Buy(${n(x.id)})"><span>Купити білети</span><b id="rh29Cost">${ticketPrice(x)} ⭐</b></button>
-         </div>`:`<div class="rh29-winner"><small>ПЕРЕМОЖЕЦЬ</small><b>🏆 ${esc29(x.winner_name || x.winner_username || "Визначено")}</b></div>`}
+       <span class="${done?"done":"live"}">${done?"Завершено":"Активний"}</span>
+     </header>
+
+     <section class="lot436-detail-grid">
+       <article class="lot436-mainbox">
+         <div class="lot436-stats">
+           <div><span>Мої білети</span><b>${mine}</b></div>
+           <div><span>Всього білетів</span><b>${totalTickets(x)}</b></div>
+           <div><span>Ціна білета</span><b>${ticketPrice(x)} RH</b></div>
+         </div>
+
+         ${!done?`
+           <div class="lot436-end">
+             <span>До завершення</span>
+             <b data-rh29-end="${n(x.ends_at||x.end_at)}">${left(x.ends_at||x.end_at)}</b>
+           </div>
+
+           <div class="lot436-buy">
+             <label>Кількість білетів</label>
+             <div class="lot436-step">
+               <button onclick="rh29Step(-1)">−</button>
+               <b id="rh29Qty">1</b>
+               <button onclick="rh29Step(1)">+</button>
+             </div>
+
+             <div class="lot436-quick">
+               <button onclick="rh29Set(1)">1</button>
+               <button onclick="rh29Set(5)">5</button>
+               <button onclick="rh29Set(10)">10</button>
+               <button onclick="rh29Set(25)">25</button>
+             </div>
+
+             <button class="lot436-buybtn" onclick="rh29Buy(${n(x.id)})">
+               Купити білети
+               <b id="rh29Cost">${ticketPrice(x)} RH</b>
+             </button>
+           </div>
+         `:`
+           <div class="lot436-winner">
+             <span>Переможець</span>
+             <b>${esc29(x.winner_name || x.winner_username || "Визначено")}</b>
+           </div>
+         `}
        </article>
-       <aside class="rh29-info">
-         <h3>Дані розіграшу</h3>
-         <div><span>🎟 Всього білетів</span><b>${totalTickets(x)}</b></div>
-         <div><span>👥 Учасників</span><b>${participants(x)}</b></div>
-         <div><span>⭐ Ціна білета</span><b>${ticketPrice(x)} RH</b></div>
-         <div><span>🕒 Завершення</span><b>${fmtTime(x.ends_at||x.end_at)}</b></div>
-         <hr>
-         <h3>Як це працює?</h3>
-         <ol><li><b>01</b><span>Купуєш білети за внутрішню валюту.</span></li><li><b>02</b><span>Кожен білет додається до пулу розіграшу.</span></li><li><b>03</b><span>Після завершення система випадково визначає один білет.</span></li></ol>
+
+       <aside class="lot436-side">
+         <div><span>Учасників</span><b>${participants(x)}</b></div>
+         <div><span>Твої білети</span><b>${mine}</b></div>
+         <div><span>Твій шанс</span><b>${chance.toFixed(chance<1?2:1)}%</b></div>
+         <div><span>Завершення</span><b>${fmtTime(x.ends_at||x.end_at)}</b></div>
        </aside>
      </section>
    </main>`;

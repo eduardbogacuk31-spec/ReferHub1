@@ -1,0 +1,24 @@
+ReferHub v4.22 — Real Help + Game Timer Fix
+
+ROOT CAUSE — HELP:
+- Settings overlay is z-index 200000.
+- Help overlay was only z-index 99999.
+- Therefore Help opened UNDER Settings.
+- Fixed Help and auxiliary overlays to z-index 310000.
+- Text is visible immediately on open.
+
+ROOT CAUSE — GAME TIMER:
+- v4.18 prioritized daily_limit and showed static "Ліміт".
+- Roulette, Daily Case and Scratch have daily_limit=1, so live timer never appeared.
+- /api/games now exposes:
+  daily_reset_remaining
+  daily_limit_reached
+  availability_remaining
+- UI counts down to the REAL next availability:
+  max(cooldown, daily reset when daily limit is reached).
+- No full game rerender after a round.
+- Timer updates live.
+- At 00:00 controls unlock automatically.
+- Added rotating timer ring so it is visibly alive.
+
+Admin v4.21 single-scroll fix is preserved.

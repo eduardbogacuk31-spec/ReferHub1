@@ -1,0 +1,71 @@
+
+/* ReferHub v4.22 — actual modal stacking fix */
+
+/* Settings itself is z-index:200000 in lottery-v1.css.
+   Anything opened FROM Settings must be above it. */
+.ux47-overlay,
+.support48-overlay,
+.n49-overlay,
+.promo412-overlay,
+.ev414-overlay,
+.dh410-overlay{
+  z-index:310000!important;
+}
+
+/* Help should paint normally; no fake fade delay. */
+.ux47-overlay{
+  display:flex!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  transition:none!important;
+}
+
+.ux47-overlay.show{
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+
+.ux47-overlay.show .ux47-modal,
+.ux47-overlay.show .ux47-modal *{
+  visibility:visible!important;
+  opacity:1!important;
+}
+
+.ux47-modal{
+  position:relative!important;
+  z-index:1!important;
+  transform:none!important;
+  translate:none!important;
+  scale:1!important;
+  animation:none!important;
+  transition:none!important;
+}
+
+/* Live timer should be visually obvious, not look like a static picture. */
+.gc418-ring{
+  position:relative!important;
+}
+
+.gc418-ring::after{
+  content:"";
+  position:absolute!important;
+  inset:-4px!important;
+  border:2px solid transparent!important;
+  border-top-color:#d7b35c!important;
+  border-right-color:rgba(215,179,92,.3)!important;
+  border-radius:50%!important;
+  animation:gc422-timer-spin 1.2s linear infinite!important;
+  pointer-events:none!important;
+}
+
+@keyframes gc422-timer-spin{
+  to{transform:rotate(360deg)}
+}
+
+#gc418Timer{
+  font-variant-numeric:tabular-nums!important;
+  min-width:52px!important;
+  text-align:center!important;
+}

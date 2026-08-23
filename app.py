@@ -7751,6 +7751,22 @@ async def games(
                     - now,
                 )
 
+            # Live UI needs a countdown instead of a static "daily limit".
+            # The current daily counter uses UTC-day buckets (now % 86400),
+            # so expose the exact same reset boundary to the client.
+            next_day_start = today_start + 86400
+            item["daily_reset_remaining"] = max(0, next_day_start - now)
+            item["daily_limit_reached"] = bool(
+                item["daily_limit"]
+                and int(item["plays_today"] or 0) >= int(item["daily_limit"])
+            )
+            item["availability_remaining"] = max(
+                int(item["cooldown_remaining"] or 0),
+                int(item["daily_reset_remaining"] or 0)
+                if item["daily_limit_reached"]
+                else 0,
+            )
+
             result.append(item)
 
     return result

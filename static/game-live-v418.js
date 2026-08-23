@@ -1,10 +1,11 @@
 
-/* ReferHub v4.18 — Live Game Cooldown
-   Keeps the current game screen mounted after a round. */
+/* ReferHub v4.22 — Live availability timer
+   Current game stays mounted; cooldown and daily reset both count down live. */
 (()=>{
  let timer=null;
  let currentGame=null;
  let endsAt=0;
+ let currentReason="cooldown";
 
  const READY_LABELS={
    roulette:"🎡 КРУТИТИ РУЛЕТКУ",
@@ -13,39 +14,31 @@
    reaction:"START"
  };
 
- function page(){
-   return document.querySelector(".gc14-page[data-game-id]");
- }
-
- function gameId(){
-   return page()?.dataset.gameId||null;
- }
+ const page=()=>document.querySelector(".gc14-page[data-game-id]");
+ const gameId=()=>page()?.dataset.gameId||null;
 
  function format(sec){
    sec=Math.max(0,Math.ceil(Number(sec||0)));
-   const h=Math.floor(sec/3600);
-   const m=Math.floor((sec%3600)/60);
-   const s=sec%60;
+   const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+   if(h>=24){
+     const d=Math.floor(h/24),hh=h%24;
+     return `${d}д ${String(hh).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+   }
    if(h)return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
  }
 
- function controls(id){
+ function controls(){
    const shell=document.querySelector(".gc14-game-shell");
    if(!shell)return [];
    return [...shell.querySelectorAll("button")].filter(b=>!b.closest(".gc14-game-head"));
  }
 
- function setControlsDisabled(id,disabled){
-   controls(id).forEach(b=>{
-     // Remember initial disabled state only once.
-     if(b.dataset.gc418InitialDisabled===undefined){
-       b.dataset.gc418InitialDisabled=b.disabled?"1":"0";
-     }
-     if(disabled)b.disabled=true;
-     else b.disabled=b.dataset.gc418InitialDisabled==="1";
+ function setControlsDisabled(disabled){
+   controls().forEach(b=>{
+     if(b.dataset.gc422BaseDisabled===undefined)b.dataset.gc422BaseDisabled=b.disabled?"1":"0";
+     b.disabled=disabled ? true : b.dataset.gc422BaseDisabled==="1";
    });
-
    const surface=document.getElementById("scratchSurface");
    if(surface){
      surface.classList.toggle("gc418-disabled",disabled);
@@ -63,41 +56,30 @@
      panel.innerHTML=`
        <div class="gc418-ring"><span id="gc418Timer">00:00</span></div>
        <div>
-         <small>COOLDOWN</small>
+         <small id="gc422WaitKind">COOLDOWN</small>
          <b id="gc418CooldownTitle">Наступна гра скоро</b>
-         <p>Екран не оновлюється. Коли таймер дійде до нуля — можна одразу грати ще раз.</p>
+         <p id="gc422WaitText">Таймер іде наживо. Екран гри не перезавантажується.</p>
        </div>`;
-     const body=shell.querySelector(".gc14-game-head");
-     body?.insertAdjacentElement("afterend",panel);
+     shell.querySelector(".gc14-game-head")?.insertAdjacentElement("afterend",panel);
    }
    return panel;
  }
 
- function removePanel(){
-   document.querySelector(".gc418-cooldown")?.remove();
- }
+ const removePanel=()=>document.querySelector(".gc418-cooldown")?.remove();
 
  function setStatus(text,ready=false){
-   const top=document.getElementById("gc418TopStatus");
-   const head=document.getElementById("gc418HeadStatus");
-   if(top)top.textContent=text;
-   if(head)head.textContent=text;
-   top?.classList.toggle("ready",ready);
-   head?.classList.toggle("ready",ready);
+   for(const el of [document.getElementById("gc418TopStatus"),document.getElementById("gc418HeadStatus")]){
+     if(el){el.textContent=text;el.classList.toggle("ready",ready)}
+   }
  }
 
  function resetSpecialControl(id){
    if(id==="roulette"){
-     const b=document.getElementById("rhcRouletteButton");
-     if(b)b.textContent=READY_LABELS.roulette;
+     const b=document.getElementById("rhcRouletteButton");if(b)b.textContent=READY_LABELS.roulette;
    }else if(id==="daily_case"){
-     const b=document.getElementById("rhcCaseButton");
-     if(b)b.textContent=READY_LABELS.daily_case;
-     const stage=document.getElementById("rhcCaseStage");
-     stage?.classList.remove("opened");
+     const b=document.getElementById("rhcCaseButton");if(b)b.textContent=READY_LABELS.daily_case;
    }else if(id==="slot"){
-     const b=document.querySelector(".gc3-slot-controls button");
-     if(b)b.textContent=READY_LABELS.slot;
+     const b=document.querySelector(".gc3-slot-controls button");if(b)b.textContent=READY_LABELS.slot;
    }else if(id==="reaction"){
      const b=document.getElementById("reaction44Button");
      if(b){b.textContent=READY_LABELS.reaction;b.disabled=false}
@@ -107,7 +89,6 @@
    }else if(id==="scratch"){
      const surface=document.getElementById("scratchSurface");
      if(surface){
-       surface.dataset.ready="";
        delete surface.dataset.ready;
        surface.innerHTML="СТИРАЙ ПАЛЬЦЕМ";
        surface.classList.remove("disabled","gc418-disabled");
@@ -122,88 +103,93 @@
    endsAt=0;
    removePanel();
    setStatus("Готово",true);
-   setControlsDisabled(id,false);
+   setControlsDisabled(false);
    resetSpecialControl(id);
 
    const shell=document.querySelector(".gc14-game-shell");
    shell?.classList.remove("gc418-waiting");
    shell?.classList.add("gc418-ready-flash");
    setTimeout(()=>shell?.classList.remove("gc418-ready-flash"),650);
-
    toast?.("Можна грати ще раз 🎮","success");
  }
 
  function tick(){
    const id=gameId();
-   if(!id || id!==currentGame){
+   if(!id||id!==currentGame){
      if(timer){clearInterval(timer);timer=null}
      return;
    }
-
    const left=Math.max(0,Math.ceil((endsAt-Date.now())/1000));
    const text=format(left);
    setStatus(text,false);
-
-   const timerText=document.getElementById("gc418Timer");
-   if(timerText)timerText.textContent=text;
-
+   const node=document.getElementById("gc418Timer");
+   if(node)node.textContent=text;
    if(left<=0)finish(id);
  }
 
- function start(id,seconds){
+ function start(id,seconds,reason="cooldown"){
    seconds=Math.max(0,Number(seconds||0));
    currentGame=id;
-
+   currentReason=reason;
    if(timer){clearInterval(timer);timer=null}
 
-   if(seconds<=0){
-     finish(id);
-     return;
-   }
+   if(seconds<=0){finish(id);return}
 
    endsAt=Date.now()+seconds*1000;
-   const panel=ensurePanel();
-   panel?.classList.add("show");
-
-   setControlsDisabled(id,true);
+   ensurePanel();
+   setControlsDisabled(true);
    document.querySelector(".gc14-game-shell")?.classList.add("gc418-waiting");
+
+   const kind=document.getElementById("gc422WaitKind");
+   const title=document.getElementById("gc418CooldownTitle");
+   const text=document.getElementById("gc422WaitText");
+
+   if(reason==="daily"){
+     if(kind)kind.textContent="DAILY RESET";
+     if(title)title.textContent="Наступна спроба після оновлення ліміту";
+     if(text)text.textContent="Це живий таймер до наступного денного циклу. На 00:00 гра розблокується.";
+   }else{
+     if(kind)kind.textContent="COOLDOWN";
+     if(title)title.textContent="Наступний раунд скоро";
+     if(text)text.textContent="Таймер іде наживо. Екран гри не перезавантажується.";
+   }
 
    tick();
    timer=setInterval(tick,250);
  }
 
- async function fetchCooldown(id){
-   try{
-     const games=await api("/api/games");
-     const game=Array.isArray(games)?games.find(x=>x.game_key===id):null;
-     return {
-       remaining:Number(game?.cooldown_remaining||0),
-       playsToday:Number(game?.plays_today||0),
-       dailyLimit:Number(game?.daily_limit||0)
-     };
-   }catch(_){
-     return {remaining:0,playsToday:0,dailyLimit:0};
-   }
+ async function fetchAvailability(id){
+   const games=await api("/api/games");
+   const g=Array.isArray(games)?games.find(x=>x.game_key===id):null;
+   if(!g)return {remaining:0,reason:"cooldown",playsToday:0,dailyLimit:0};
+
+   const dailyReached=Boolean(g.daily_limit_reached) ||
+     Boolean(g.daily_limit && Number(g.plays_today||0)>=Number(g.daily_limit));
+
+   const cooldown=Number(g.cooldown_remaining||0);
+   const daily=Number(g.daily_reset_remaining||0);
+   const remaining=Number(g.availability_remaining ?? Math.max(cooldown,dailyReached?daily:0));
+
+   return {
+     remaining,
+     reason:dailyReached && daily>=cooldown ? "daily" : "cooldown",
+     playsToday:Number(g.plays_today||0),
+     dailyLimit:Number(g.daily_limit||0)
+   };
  }
 
  function addHistory(resultText,reward){
    if(!resultText)return;
-   const list=document.querySelector(".gc14-history-list");
-   if(!list)return;
-
-   const empty=[...list.children].find(x=>x.tagName==="P");
-   empty?.remove();
+   const list=document.querySelector(".gc14-history-list");if(!list)return;
+   [...list.children].find(x=>x.tagName==="P")?.remove();
 
    const id=gameId();
    const icon=(typeof gc13Meta==="function"?gc13Meta(id)?.icon:"🎮")||"🎮";
    const row=document.createElement("div");
    row.className="gc418-new-result";
-   row.innerHTML=`
-     <i>${icon}</i>
-     <span><b>${typeof esc==="function"?esc(resultText):resultText}</b><small>щойно</small></span>
-     <strong class="${Number(reward)>0?"win":""}">${Number(reward)>0?`+${Number(reward)} RH`:"0 RH"}</strong>`;
+   const safe=typeof esc==="function"?esc(resultText):String(resultText);
+   row.innerHTML=`<i>${icon}</i><span><b>${safe}</b><small>щойно</small></span><strong class="${Number(reward)>0?"win":""}">${Number(reward)>0?`+${Number(reward)} RH`:"0 RH"}</strong>`;
    list.prepend(row);
-
    while(list.children.length>6)list.lastElementChild?.remove();
  }
 
@@ -212,67 +198,46 @@
    if(b)b.textContent=`${Number(window.me?.balance||0)} RH`;
  }
 
- async function afterPlay(id,resultText="",reward=0){
-   // Crucial: do NOT call openGameDetail here.
+ window.gc418AfterPlay=async function(id,resultText="",reward=0){
    updateBalance();
    addHistory(resultText,reward);
 
-   const info=await fetchCooldown(id);
+   try{
+     const info=await fetchAvailability(id);
 
-   // Update attempts text without remounting the screen.
-   const statBlocks=[...document.querySelectorAll(".gc14-stats>div")];
-   const attempts=statBlocks.find(x=>(x.querySelector("small")?.textContent||"").includes("Спроб"));
-   if(attempts && info.dailyLimit){
-     const left=Math.max(0,info.dailyLimit-info.playsToday);
-     const b=attempts.querySelector("b");
-     if(b)b.textContent=left;
+     const attempts=[...document.querySelectorAll(".gc14-stats>div")]
+       .find(x=>(x.querySelector("small")?.textContent||"").includes("Спроб"));
+     if(attempts&&info.dailyLimit){
+       const b=attempts.querySelector("b");
+       if(b)b.textContent=Math.max(0,info.dailyLimit-info.playsToday);
+     }
+
+     start(id,info.remaining,info.reason);
+   }catch(error){
+     // Even a status refresh failure must not remount the game.
+     setControlsDisabled(false);
+     setStatus("Готово",true);
+     console.warn("Live availability refresh failed",error);
    }
-
-   if(info.dailyLimit && info.playsToday>=info.dailyLimit){
-     if(timer){clearInterval(timer);timer=null}
-     removePanel();
-     setControlsDisabled(id,true);
-     setStatus("Ліміт",false);
-     return;
-   }
-
-   start(id,info.remaining);
- }
-
- window.gc418AfterPlay=afterPlay;
+ };
 
  async function syncCurrent(){
-   const id=gameId();
-   if(!id)return;
-
+   const id=gameId();if(!id)return;
    currentGame=id;
-   const info=await fetchCooldown(id);
-
-   if(info.dailyLimit && info.playsToday>=info.dailyLimit){
-     setControlsDisabled(id,true);
-     setStatus("Ліміт",false);
-     return;
-   }
-
-   if(info.remaining>0)start(id,info.remaining);
-   else{
-     removePanel();
-     setStatus("Готово",true);
-     setControlsDisabled(id,false);
-   }
+   try{
+     const info=await fetchAvailability(id);
+     if(info.remaining>0)start(id,info.remaining,info.reason);
+     else{
+       removePanel();
+       setStatus("Готово",true);
+       setControlsDisabled(false);
+     }
+   }catch(_){}
  }
 
- function decorate(){
-   if(page())syncCurrent();
-   else{
-     if(timer){clearInterval(timer);timer=null}
-     currentGame=null;
-   }
- }
-
- document.addEventListener("DOMContentLoaded",()=>setTimeout(decorate,500));
+ document.addEventListener("DOMContentLoaded",()=>setTimeout(syncCurrent,500));
  document.addEventListener("click",()=>setTimeout(()=>{
    const id=gameId();
-   if(id && id!==currentGame)decorate();
+   if(id&&id!==currentGame)syncCurrent();
  },80));
 })();

@@ -162,6 +162,12 @@ def init_database():
                 created_at INTEGER NOT NULL,
                 UNIQUE(referrer_id, referral_id, reward_type)
             );
+            CREATE TABLE IF NOT EXISTS app_settings_v429 (
+                setting_key TEXT PRIMARY KEY,
+                setting_value TEXT NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                updated_by INTEGER
+            );
 
             CREATE TABLE IF NOT EXISTS game_settings (
                 game_key TEXT PRIMARY KEY,
@@ -1473,7 +1479,26 @@ def init_database():
             ),
         )
 
+        db.execute(
+            """INSERT OR IGNORE INTO app_settings_v429(setting_key,setting_value,updated_at,updated_by)
+               VALUES('referral_reward',?,?,NULL)""",
+            (str(REFERRAL_REWARD), int(time.time())),
+        )
         db.commit()
+
+
+def get_referral_reward(db=None) -> int:
+    try:
+        if db is not None:
+            row=db.execute("SELECT setting_value FROM app_settings_v429 WHERE setting_key='referral_reward'").fetchone()
+        else:
+            with connect_db() as local_db:
+                row=local_db.execute("SELECT setting_value FROM app_settings_v429 WHERE setting_key='referral_reward'").fetchone()
+        if row:
+            return max(0,int(row[0]))
+    except Exception:
+        pass
+    return max(0,int(REFERRAL_REWARD))
 
 
 def add_balance(db, user_id: int, amount: int, note: str, xp: int = 0):
@@ -1577,14 +1602,14 @@ def upsert_user(user: dict, referrer_id: int | None = None):
                     (
                         referrer_id,
                         user_id,
-                        REFERRAL_REWARD,
+                        get_referral_reward(db),
                         now,
                     ),
                 )
                 add_balance(
                     db,
                     referrer_id,
-                    REFERRAL_REWARD,
+                    get_referral_reward(db),
                     f"Новий реферал #{user_id}",
                 )
                 add_season_progress(db, referrer_id, "friends", 1)
@@ -6301,7 +6326,7 @@ async def referral_summary(
         "referrals_count": count,
         "active_count": active_count,
         "total_reward": total_reward,
-        "reward_per_friend": REFERRAL_REWARD,
+        "reward_per_friend": get_referral_reward(),
         "referral_link": (
             f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
         ),
@@ -6397,6 +6422,30 @@ async def feed(
 
     return [dict(row) for row in rows]
 
+
+
+class ReferralRewardUpdateV429(BaseModel):
+    reward: int = Field(ge=0, le=1000000)
+
+@app.get("/api/admin/referral-reward-v429")
+async def admin_get_referral_reward_v429(x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); require_admin(int(user["id"]))
+    return {"reward":get_referral_reward()}
+
+@app.post("/api/admin/referral-reward-v429")
+async def admin_set_referral_reward_v429(payload: ReferralRewardUpdateV429,x_telegram_init_data: str | None = Header(default=None)):
+    user=current_user(x_telegram_init_data); admin_id=int(user["id"]); require_admin(admin_id)
+    now=int(time.time())
+    with connect_db() as db:
+        old=get_referral_reward(db)
+        db.execute("""INSERT INTO app_settings_v429(setting_key,setting_value,updated_at,updated_by)
+                      VALUES('referral_reward',?,?,?)
+                      ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by""",
+                   (str(int(payload.reward)),now,admin_id))
+        try: log_admin_action(db,admin_id,"referral_reward_update",f"Referral reward: {old} -> {payload.reward} RH",None)
+        except Exception: pass
+        db.commit()
+    return {"ok":True,"old_reward":old,"reward":int(payload.reward)}
 
 @app.get("/api/admin/tasks")
 async def admin_tasks(

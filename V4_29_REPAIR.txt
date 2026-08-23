@@ -1,0 +1,9 @@
+ReferHub v4.29
+- Fixed customization overlap/layout.
+- Responsive 7-tab grid; mobile 2 columns.
+- Clean cosmetic cards, icons and buttons.
+- Added persistent admin-controlled referral reward.
+- New referral registrations use saved reward value.
+- Referral summary displays saved reward.
+- Admin quick action to change reward + preview.
+- Repaired 15-game routing with classic/modern fallback.

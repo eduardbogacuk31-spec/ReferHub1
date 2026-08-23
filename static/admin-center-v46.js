@@ -62,6 +62,7 @@
          <button onclick="admin46Tab('tasks')"><span>＋</span><b>Створити завдання</b><i>→</i></button>
          <button onclick="admin46Tab('games')"><span>🎮</span><b>Налаштувати ігри</b><i>→</i></button>
          <button onclick="admin46Tab('lottery')"><span>🎟️</span><b>Новий розіграш</b><i>→</i></button>
+         <button onclick="admin429ReferralReward()"><span>👥</span><b>Нагорода за реферала</b><i>→</i></button>
        </div>
      </section>
 
@@ -211,6 +212,24 @@
      document.querySelector("main")?.scrollTo({top:0,behavior:"auto"});
    }catch(error){toast(error.message,"error")}
  };
+
+
+ window.admin429ReferralReward=async()=>{
+   try{
+     const cfg=await api("/api/admin/referral-reward-v429");
+     let o=document.getElementById("a429Ref"); if(!o){o=document.createElement("div");o.id="a429Ref";o.className="a429-overlay";document.body.appendChild(o)}
+     o.innerHTML=`<section class="a429-modal"><header><div><span>REFERRAL CORE</span><h2>Нагорода за реферала</h2><p>Застосовується до нових рефералів.</p></div><button onclick="admin429Close()">×</button></header>
+     <article class="a429-current"><small>ПОТОЧНО</small><b>${Number(cfg.reward||0)} RH</b><span>за 1 нового користувача</span></article>
+     <label>Нова нагорода<input id="a429Reward" type="number" min="0" max="1000000" value="${Number(cfg.reward||0)}"></label>
+     <div class="a429-preview"><span>1 реферал <b id="p1"></b></span><span>5 рефералів <b id="p5"></b></span><span>10 рефералів <b id="p10"></b></span></div>
+     <button class="save" onclick="admin429SaveReward()">ЗБЕРЕГТИ</button></section>`;
+     o.classList.add("show");
+     const inp=document.getElementById("a429Reward");
+     const upd=()=>{const v=Math.max(0,Number(inp.value||0));p1.textContent=v+" RH";p5.textContent=v*5+" RH";p10.textContent=v*10+" RH"}; inp.oninput=upd;upd();
+   }catch(e){toast(e.message,"error")}
+ };
+ window.admin429Close=()=>document.getElementById("a429Ref")?.classList.remove("show");
+ window.admin429SaveReward=async()=>{const reward=Math.max(0,Math.floor(Number(document.getElementById("a429Reward")?.value||0)));try{const r=await api("/api/admin/referral-reward-v429",{method:"POST",body:JSON.stringify({reward})});toast(`Нагорода: ${r.reward} RH`,"success");admin429Close()}catch(e){toast(e.message,"error")}};
 
  window.admin46FilterUsers=q=>{
    q=String(q||"").trim().toLowerCase();

@@ -1,0 +1,24 @@
+ReferHub v4.19 — Game Engine Cleanup
+
+ROOT CAUSE FIXED:
+- game-v2.js and game-pro.js were both still loaded.
+- Both files defined their own global openGameDetail().
+- They also contained their own post-game setTimeout(() => openGameDetail(...)).
+- Because they loaded after app.js, they overrode the current Game Center and bypassed v4.18 Live Cooldown.
+
+CHANGES:
+- Removed game-v2.js from index.html.
+- Removed game-pro.js from index.html.
+- Kept current app.js Game Center as the single active engine.
+- Kept v4.17 Game Experience.
+- Kept v4.18 Live Cooldown.
+- Added final single-engine guard to prevent a later legacy override.
+
+EXPECTED RESULT:
+- Completing a round no longer reloads the full game screen.
+- Scroll position remains where the player is.
+- Live cooldown counts down in place.
+- At 00:00 controls unlock automatically.
+- Player can immediately play another round.
+
+Old JS files remain in the archive only as unused legacy files; they are no longer loaded by the app.

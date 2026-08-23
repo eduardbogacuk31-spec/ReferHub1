@@ -5371,6 +5371,7 @@ async function openPage(page){
     lotteries:lotteryPage,
     tasks:tasksPage,
     friends:friendsPage,
+    referrals:()=>window.referralHub424(),
     games:gamesPage,
     shop:shopPage,
     tournaments:tournamentsPage,

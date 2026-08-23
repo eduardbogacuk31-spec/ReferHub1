@@ -1,0 +1,26 @@
+ReferHub v4.24 — Referral First
+
+CORE PRODUCT CHANGE:
+- Referral system is now a first-class main navigation destination.
+- Added dedicated "Реферали" button to bottom navigation.
+- Referral system is no longer hidden inside Friends > Invites.
+
+NEW REFERRAL HUB:
+- Referral earnings.
+- Reward per new user.
+- Total invited users.
+- Active referrals.
+- Online referrals.
+- Team-generated RH.
+- Referral link with Share and Copy.
+- Progress to next referral level.
+- Full referral milestones.
+- Full team list with online/activity/XP/reward generated.
+- Clear explanation of the referral flow.
+
+PRESERVED:
+- Existing /api/referrals/summary logic.
+- Existing /api/referrals/v413 team data.
+- Existing Friends/Social Hub.
+- No referral economy/reward formula change.
+- v4.23 Hybrid Game Engine preserved.

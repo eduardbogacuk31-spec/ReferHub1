@@ -1,0 +1,30 @@
+ReferHub v4.38 — Visual Polish
+
+LOTTERY
+- Animated card entrance.
+- Better active-tab indicator.
+- Live status pulse.
+- Refined card depth and lighting.
+- Button shine interaction.
+- Cleaner detail header and countdown emphasis.
+
+FOUR MODERN GAMES
+- Floating/shimmering game icon.
+- Animated choice selection.
+- Stage feedback pulse after a choice.
+- Result reveal animation.
+- Green win feedback.
+- Animated live-cooldown sweep and rotating timer ring.
+
+GENERAL DESIGN
+- More consistent panel shadows/depth.
+- Cleaner active button states.
+- Soft page-enter motion.
+- Reduced-motion support.
+
+IMPORTANT
+- No backend changes.
+- No admin changes.
+- No referral/economy changes.
+- No route changes.
+- No lottery/game logic changes.

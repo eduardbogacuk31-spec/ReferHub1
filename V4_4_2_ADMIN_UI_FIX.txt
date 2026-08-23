@@ -1,0 +1,6 @@
+ReferHub v4.4.2 — Admin UI Fix
+- Fixed black/unreadable Admin button in Settings.
+- Fixed active tab contrast.
+- Fixed Admin dashboard card colors.
+- Fixed Full Admin Panel button styling.
+- No changes to Profile, Game Center, Tasks, Friends or scrolling.

@@ -9,7 +9,8 @@
    economy:["ECONOMY","RH"],
    lottery:["LOTTERY","Лотерея"],
    social:["SOCIAL","Соціальне"],
-   daily:["DAILY","Streak"]
+   daily:["DAILY","Streak"],
+   secret:["SECRET","Секретні"]
  };
 
  function card(x){
@@ -41,7 +42,7 @@
        <div class="rh32-hero-grid"></div>
        <div class="rh32-emblem">🏆</div>
        <div class="rh32-hero-copy">
-         <span>ACHIEVEMENTS 2.0</span>
+         <span>ACHIEVEMENTS · v4.28</span>
          <h1>Колекція досягнень</h1>
          <p>Грай, вигравай, запрошуй друзів і відкривай рідкісні ачивки.</p>
        </div>

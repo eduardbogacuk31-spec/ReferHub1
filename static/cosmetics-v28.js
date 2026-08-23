@@ -46,7 +46,7 @@
    try{rh28Data=await api("/api/cosmetics-v28")}catch(e){toast(e.message,"error");return}
    const c=document.getElementById("content");if(!c)return;
 
-   const groups={frame:[],background:[],title:[],effect:[]};
+   const groups={frame:[],background:[],title:[],effect:[],badge:[],accent:[],cardstyle:[]};
    rh28Data.items.forEach(x=>groups[x.type]?.push(x));
 
    c.innerHTML=`<section class="rh28-shell rh281-shell">
@@ -70,6 +70,9 @@
        <button onclick="rh281SwitchTab('background',this)"><span>▦</span><b>Фони</b><small>${groups.background.filter(x=>x.unlocked).length}/${groups.background.length}</small></button>
        <button onclick="rh281SwitchTab('title',this)"><span>R</span><b>Титули</b><small>${groups.title.filter(x=>x.unlocked).length}/${groups.title.length}</small></button>
        <button onclick="rh281SwitchTab('effect',this)"><span>✦</span><b>Ефекти</b><small>${groups.effect.filter(x=>x.unlocked).length}/${groups.effect.length}</small></button>
+       <button onclick="rh281SwitchTab('badge',this)"><span>★</span><b>Значки</b><small>${groups.badge.filter(x=>x.unlocked).length}/${groups.badge.length}</small></button>
+       <button onclick="rh281SwitchTab('accent',this)"><span>●</span><b>Акцент</b><small>${groups.accent.filter(x=>x.unlocked).length}/${groups.accent.length}</small></button>
+       <button onclick="rh281SwitchTab('cardstyle',this)"><span>▤</span><b>Картки</b><small>${groups.cardstyle.filter(x=>x.unlocked).length}/${groups.cardstyle.length}</small></button>
      </nav>
 
      <div class="rh281-tab-wrap">
@@ -85,9 +88,10 @@
          ${section("Титули","PLAYER TITLES","title",groups.title)}
        </section>
 
-       <section class="rh281-panel" data-rh281-tab="effect">
-         ${section("Ефекти","PROFILE EFFECTS","effect",groups.effect)}
-       </section>
+       <section class="rh281-panel" data-rh281-tab="effect">${section("Ефекти","PROFILE EFFECTS","effect",groups.effect)}</section>
+       <section class="rh281-panel" data-rh281-tab="badge">${section("Значки біля ніку","NAME BADGES","badge",groups.badge)}</section>
+       <section class="rh281-panel" data-rh281-tab="accent">${section("Кольоровий акцент","PROFILE ACCENTS","accent",groups.accent)}</section>
+       <section class="rh281-panel" data-rh281-tab="cardstyle">${section("Стиль карток","PROFILE CARDS","cardstyle",groups.cardstyle)}</section>
      </div>
    </section>`;
  }
@@ -124,7 +128,12 @@
    const all=[
      "rh28-frame-default","rh28-frame-neon","rh28-frame-gold","rh28-frame-aurora",
      "rh28-bg-night","rh28-bg-neon","rh28-bg-gold","rh28-bg-cosmic",
-     "rh28-effect-none","rh28-effect-glow","rh28-effect-sparks","rh28-effect-prism"
+     "rh28-effect-none","rh28-effect-glow","rh28-effect-sparks","rh28-effect-prism",
+     "rh428-frame-void","rh428-frame-crimson","rh428-frame-royal",
+     "rh428-bg-matrix","rh428-bg-crimson","rh428-bg-genesis",
+     "rh428-effect-scan","rh428-effect-crimson","rh428-effect-genesis",
+     "rh428-accent-default","rh428-accent-blue","rh428-accent-gold","rh428-accent-crimson",
+     "rh428-card-classic","rh428-card-glass","rh428-card-terminal","rh428-card-royal"
    ];
 
    targets.forEach(t=>t.classList.remove(...all));
@@ -136,6 +145,19 @@
    if(avatar&&d.frame?.css_class)avatar.classList.add(d.frame.css_class);
    if(hero&&d.background?.css_class)hero.classList.add(d.background.css_class);
    if(profile&&d.effect?.css_class)profile.classList.add(d.effect.css_class);
+   if(profile&&d.accent?.css_class)profile.classList.add(d.accent.css_class);
+   if(profile&&d.cardstyle?.css_class)profile.classList.add(d.cardstyle.css_class);
+
+   const identity=document.querySelector(".rh21-identity,.rp372-id,.p434-id");
+   let badge=document.querySelector(".rh428-equipped-badge");
+   if(identity&&d.badge&&d.badge.key!=="badge_none"){
+     if(!badge){
+       badge=document.createElement("span");
+       badge.className="rh428-equipped-badge";
+       identity.querySelector("h1")?.insertAdjacentElement("afterend",badge);
+     }
+     badge.innerHTML=`${d.badge.icon||"★"} ${esc28(d.badge.title||"")}`;
+   }else badge?.remove();
 
    let title=document.querySelector(".rh28-equipped-title");
    if(profile&&d.title){

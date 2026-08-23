@@ -1,0 +1,17 @@
+ReferHub v4.28 — Customization & Achievements Expansion
+
+CUSTOMIZATION:
+- +24 cosmetics.
+- 7 categories: Frames, Backgrounds, Titles, Effects, Badges, Accents, Card Styles.
+- Badges show next to profile name.
+- Accents recolor active profile UI.
+- Card styles change profile stat cards.
+- Existing persistent cosmetic backend is reused.
+
+ACHIEVEMENTS:
+- +13 achievements on top of the existing collection.
+- Secret category.
+- More game, RH, referral, streak and lottery milestones.
+- Existing real RH claim flow remains.
+
+No game engine or referral reward formula changes.

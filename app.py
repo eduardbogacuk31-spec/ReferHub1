@@ -642,6 +642,40 @@ def init_database():
             )
 
 
+        cosmetics_seed_v428 = [
+            ("frame_void","frame","Void Halo","Темна енергетична рамка","rare","level",5,"rh428-frame-void","◌",5,1),
+            ("frame_crimson","frame","Crimson Edge","Червона бойова рамка","epic","games",60,"rh428-frame-crimson","◆",6,1),
+            ("frame_royal","frame","Royal Sigil","Королівська рамка ReferHub","legendary","level",20,"rh428-frame-royal","♛",7,1),
+            ("bg_matrix","background","Matrix Rain","Цифровий зелений фон","rare","games",40,"rh428-bg-matrix","▥",14,1),
+            ("bg_crimson","background","Crimson Night","Темно-червоний профіль","epic","level",10,"rh428-bg-crimson","◩",15,1),
+            ("bg_genesis","background","Genesis Core","Сезонний фіолетово-золотий фон","legendary","level",18,"rh428-bg-genesis","✧",16,1),
+            ("title_recruiter","title","Recruiter","За розвиток команди","rare","level",6,"rh428-title-recruiter","👥",24,1),
+            ("title_highroller","title","High Roller","Для активних гравців","epic","games",100,"rh428-title-highroller","🎰",25,1),
+            ("title_elite","title","ReferHub Elite","Елітний титул профілю","legendary","level",22,"rh428-title-elite","♜",26,1),
+            ("effect_scan","effect","Scan Lines","Цифровий scan-ефект","rare","games",30,"rh428-effect-scan","⌁",34,1),
+            ("effect_crimson","effect","Crimson Pulse","Пульсуюче червоне світіння","epic","level",12,"rh428-effect-crimson","✹",35,1),
+            ("effect_genesis","effect","Genesis Aura","Преміальна сезонна aura","legendary","level",25,"rh428-effect-genesis","✦",36,1),
+            ("badge_none","badge","Без значка","Без значка біля ніку","common","free",0,"rh428-badge-none","·",40,1),
+            ("badge_star","badge","Star Member","Зірка біля імені","rare","level",4,"rh428-badge-star","★",41,1),
+            ("badge_fire","badge","On Fire","Для активного акаунта","epic","games",75,"rh428-badge-fire","🔥",42,1),
+            ("badge_crown","badge","Royal Member","Корона біля імені","legendary","level",20,"rh428-badge-crown","♛",43,1),
+            ("accent_default","accent","Default Violet","Стандартний акцент ReferHub","common","free",0,"rh428-accent-default","●",50,1),
+            ("accent_blue","accent","Electric Blue","Синій UI-акцент профілю","rare","level",6,"rh428-accent-blue","●",51,1),
+            ("accent_gold","accent","Royal Gold","Золотий UI-акцент","epic","wins",1,"rh428-accent-gold","●",52,1),
+            ("accent_crimson","accent","Crimson","Червоний UI-акцент","legendary","level",16,"rh428-accent-crimson","●",53,1),
+            ("card_classic","cardstyle","Classic Card","Стандартна картка профілю","common","free",0,"rh428-card-classic","▤",60,1),
+            ("card_glass","cardstyle","Glass Card","Скляний стиль карток","rare","level",7,"rh428-card-glass","◇",61,1),
+            ("card_terminal","cardstyle","Terminal Card","Цифровий terminal стиль","epic","games",80,"rh428-card-terminal","▦",62,1),
+            ("card_royal","cardstyle","Royal Card","Преміальний золотий стиль","legendary","level",24,"rh428-card-royal","♛",63,1),
+        ]
+        db.executemany(
+            """INSERT OR IGNORE INTO cosmetics(
+                cosmetic_key,cosmetic_type,title,subtitle,rarity,unlock_type,
+                unlock_value,css_class,icon,sort_order,active
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            cosmetics_seed_v428
+        )
+
         db.executescript(
             """
             CREATE TABLE IF NOT EXISTS achievements_v32 (
@@ -704,6 +738,29 @@ def init_database():
                 seed
             )
 
+
+        achievements_seed_v428 = [
+            ("games_250","games","Arcade Veteran II","Зіграй 250 раундів","🕹️","epic","games_played",250,100,0,5,1),
+            ("games_1000","games","Machine Spirit","Зіграй 1000 раундів","⚙️","legendary","games_played",1000,300,1,6,1),
+            ("earn_500","economy","Перші 500","Зароби 500 RH за весь час","✦","rare","total_earned",500,30,0,13,1),
+            ("earn_2500","economy","RH Magnate","Зароби 2500 RH","💎","epic","total_earned",2500,90,0,14,1),
+            ("earn_10000","economy","Treasury Master","Зароби 10000 RH","♛","legendary","total_earned",10000,250,1,15,1),
+            ("friends_50","social","Referral Legend","Збери 50 друзів","♜","legendary","friends",50,250,0,33,1),
+            ("friends_100","social","Referral Empire","Збери 100 друзів","🌐","legendary","friends",100,400,1,34,1),
+            ("streak_14","daily","Дисципліна","Утримуй streak 14 днів","⚡","epic","streak",14,100,0,43,1),
+            ("streak_60","daily","Незламний","Утримуй streak 60 днів","♛","legendary","streak",60,350,1,44,1),
+            ("tickets_50","lottery","Lottery Hunter","Отримай 50 білетів","🎫","rare","tickets",50,55,0,24,1),
+            ("tickets_250","lottery","Ticket Baron","Отримай 250 білетів","🎟️","epic","tickets",250,140,0,25,1),
+            ("secret_games_77","secret","77","Секретне досягнення","❖","epic","games_played",77,77,1,90,1),
+            ("secret_7777","secret","Lucky 7777","Секретне досягнення","🎰","legendary","total_earned",7777,177,1,91,1),
+        ]
+        db.executemany(
+            """INSERT OR IGNORE INTO achievements_v32(
+                achievement_key,category,title,description,icon,rarity,
+                metric,goal,reward_rh,hidden,sort_order,active
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+            achievements_seed_v428
+        )
 
         db.executescript(
             """
